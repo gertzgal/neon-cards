@@ -89,7 +89,8 @@ Rules are pure: same state + action + rng state gives the same result, and `appl
 Further rules every game follows:
 - `Config`, `State`, `Action`, `View`, and events are plain JSON (no classes, Maps, `undefined` values, or functions), because the server stores them in D1 and sends them over HTTP.
 - `legalActions()` is the menu the UI renders and Policies pick from. A parameterized action appears once with a representative value (Blackjack's `bet` carries the suggested amount). `apply()` is the authority on legality: it throws `IllegalActionError` (exported by the engine) for anything it rejects, and the server answers 400.
-- A round ends with the action that moves `phase` into `'settling'` (or into `'over'` from a phase other than `'settling'`). The platform calls `settle()` exactly then. While `'settling'`, `toAct` may return a seat whose action starts the next round (Blackjack's next `bet`, Flip 7's "next round"), or null.
+- Every action that leaves `phase` at `'settling'` ends exactly one round, and so does an action that moves it into `'over'` from a phase other than `'settling'`. The platform calls `settle()` exactly then. (Blackjack's `bet` from `'settling'` can deal and resolve a natural in one action, settling to settling, and that is a round.) An action taken during `'settling'` that does not finish a new round must leave `'settling'`.
+- `setup()` emits no events. The UI renders the first view as the opening deal. While `'settling'`, `toAct` may return a seat whose action starts the next round (Blackjack's next `bet`, Flip 7's "next round"), or null.
 - `seats.min`/`seats.max` count every seat `seatsFor` can return, house seats included.
 
 ## Multi-seat turn order
