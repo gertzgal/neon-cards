@@ -115,3 +115,4 @@ Append-only log. Every PR adds the decisions it made, dated, with who made the c
 - The shell owns the session: it stores the session id per game in localStorage, resumes it with `GET /api/sessions/:id` after a reload, and hands the Table `act()`. The HUD back arrow keeps the session (come back and resume); "New game" in the in-game settings sheet drops it.
 - The wallet pill shows on the lobby and in `chips` games and hides in `score` games. It shows `$—` when the wallet API can't be reached rather than a fake number.
 - The lobby shows an empty state until a game is registered, so the shell can land before Blackjack.
+- `docs/decisions.md` is marked `merge=union` in `.gitattributes`. Every PR appends to it, so parallel PRs always conflicted on rebase; union keeps both sides' new lines.
