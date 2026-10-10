@@ -66,6 +66,12 @@ importers:
 
   apps/worker:
     dependencies:
+      '@neon-cards/engine':
+        specifier: workspace:*
+        version: link:../../packages/engine
+      '@neon-cards/game-blackjack':
+        specifier: workspace:*
+        version: link:../../packages/games/blackjack
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(@cloudflare/workers-types@5.20261010.1)
