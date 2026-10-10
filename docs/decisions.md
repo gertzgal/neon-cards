@@ -104,3 +104,8 @@ Append-only log. Every PR adds the decisions it made, dated, with who made the c
 - Keyboard: H hit, S stand, D double, P split, Space deal, Backspace clear.
 - Stable test ids for e2e: `blackjack-table` (`data-stage`, `data-busy`), `hud-bankroll`, `dealer-hand`, `dealer-total`, `hand-N` (`data-status`, `data-outcome`, `data-active`), `hand-N-total`, `bet-amount`, `chip-<value>`, `action-<clear|deal|hit|stand|double|split>`, `result-pop`.
 - `pnpm --filter @neon-cards/game-blackjack dev` serves a standalone harness on :5199 that runs the rules in the browser (`?rig=split`, `?bankroll=10`, `?seed=7`, `?mute`). It's for development only; the real game talks to the Worker.
+
+## Blackjack polish (Blackjack agent, 2026-10-11)
+- The table follows the shell's motion setting (`<html data-motion="reduced|full">`) and falls back to the OS `prefers-reduced-motion` when it runs standalone. Reduced motion stops the card sway, skips deal fly-ins, and trims the chip burst to 8 chips.
+- On desktop (hover plus a fine pointer), the player's cards tilt up to 9° toward the pointer, strongest near the card, as the brief asks. Phones and reduced motion get no tilt.
+- Chips render as cached `<img>` data URLs instead of inline SVG. The blackjack burst used to put about 6,000 SVG rects on screen and caused a 150 ms frame on a 4x-throttled phone; now the worst frame is about 50 ms and idle stays at 60 fps.
