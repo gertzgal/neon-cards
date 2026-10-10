@@ -29,6 +29,7 @@ describe('config and seats', () => {
       { id: 'player', kind: 'human', name: 'You' },
       { id: 'dealer', kind: 'house', name: 'Dealer' },
     ])
+    expect(blackjack.seats).toEqual({ min: 2, max: 2 })
     expect(blackjack.toAct(newGame().state)).toBe('player')
     expect(blackjack.toAct(rigged('win', 50).state)).toBe('player')
     expect(blackjack.toAct(rigged('win', 50, ['stand']).state)).toBe('player')
