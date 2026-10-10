@@ -1,6 +1,8 @@
 // The public contract of @neon-cards/ui. Games and the shell build against these shapes.
 import type { ComponentType, ReactNode } from 'react'
-import type { Card, GameDefinition, GameEvent, Policies, Seat, SeatId } from '@neon-cards/engine'
+import type { CardView, GameEvent, GameRules, Seat, SeatId } from '@neon-cards/engine'
+
+export type { CardView, GameMeta, SettingSpec } from '@neon-cards/engine'
 import type { ChipValue, Tone } from './theme/tokens'
 
 // ---------- Card faces ----------
@@ -24,26 +26,21 @@ export interface CardFaceRenderer<Face = unknown> {
   render(face: Face, ctx: FaceRenderContext): ReactNode
 }
 
-/** A card as a table shows it. `faceDown` draws the shared dimmed back and hides the face. */
-export interface TableCard<Face = unknown> {
-  card: Card<Face>
-  faceDown?: boolean
-}
-
 // ---------- Table primitives ----------
 
 /** Visual state shared by hands, seats and badges. `active` is the toAct pulse glow. */
 export type SeatState = 'idle' | 'active' | 'waiting' | 'bust' | 'win' | 'blackjack' | 'out'
 
-export interface CardViewProps<Face = unknown> {
-  card: TableCard<Face>
+export interface PlayingCardProps<Face = unknown> {
+  /** `face: null` draws the shared dimmed back. */
+  card: CardView<Face>
   renderer: CardFaceRenderer<Face>
   size?: CardSize
   state?: SeatState
 }
 
 export interface HandProps<Face = unknown> {
-  cards: TableCard<Face>[]
+  cards: CardView<Face>[]
   renderer: CardFaceRenderer<Face>
   size?: CardSize
   /** `fan` rotates and arcs the cards (the human's hand); `row` lays them flat (tray, compact seats). */
@@ -63,7 +60,7 @@ export interface ScoreBadgeProps {
 }
 
 export interface DealerTrayProps<Face = unknown> {
-  cards: TableCard<Face>[]
+  cards: CardView<Face>[]
   renderer: CardFaceRenderer<Face>
   total?: string | number | null
   state?: SeatState
@@ -74,7 +71,7 @@ export interface DealerTrayProps<Face = unknown> {
 /** One CPU or remote seat in the top zone. Rendered with data-testid="seat-<seat.id>". */
 export interface OpponentSeatModel<Face = unknown> {
   seat: Seat
-  cards: TableCard<Face>[]
+  cards: CardView<Face>[]
   total?: string | number | null
   /** Short status word under the name, e.g. "STAYED", "BUST", "FROZEN". */
   status?: string
@@ -223,12 +220,6 @@ export interface AudioManager {
 
 // ---------- Plugin contract (docs/architecture.md, "Plugin contract") ----------
 
-export interface SettingSpec {
-  key: string
-  label: string
-  options: { value: string | number; label: string }[]
-}
-
 /** One server response's events, in order. `id` increases per response so the Table knows when to play. */
 export interface EventBatch {
   id: number
@@ -249,23 +240,12 @@ export interface TableProps<View = unknown, Action = unknown> {
   busy: boolean
 }
 
-export interface GamePluginMeta {
-  title: string
-  description: string
-  economy: 'chips' | 'score'
-  minBet?: number
-  settings?: SettingSpec[]
-}
-
+/** The browser plugin a game package exports. The shell reads title, settings and economy from `rules.meta`. */
 export interface GamePlugin<View = unknown, Action = unknown, Face = unknown> {
-  rules: {
-    definition: GameDefinition<unknown, unknown, Action, View, Face>
-    policies?: Policies<View, Action>
-  }
+  rules: GameRules<unknown, unknown, Action, View, Face>
   Table: ComponentType<TableProps<View, Action>>
   faceRenderer: CardFaceRenderer<Face>
   juice: JuiceMap
-  meta: GamePluginMeta
 }
 
 /** Erases a plugin's View/Action/Face so plugins of different games fit one registry array. */

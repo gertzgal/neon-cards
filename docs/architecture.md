@@ -146,7 +146,7 @@ interface GamePlugin {
   juice: JuiceMap                                // maps this game's GameEvent types to shared juice primitives
 }
 ```
-The browser-side plugin types (`GamePlugin`, `TableProps`, `CardFaceRenderer`, `JuiceMap`, `SettingSpec`) are exported by `@neon-cards/ui`, with `definePlugin()` to erase a plugin's generics for the registry. The shell renders `Table` with:
+The browser-side plugin types (`GamePlugin`, `TableProps`, `EventBatch`, `CardFaceRenderer`, `JuiceMap`) are exported by `@neon-cards/ui`, with `definePlugin()` to erase a plugin's generics for the registry. The shell renders `Table` with:
 ```ts
 interface EventBatch { id: number; events: GameEvent[] }   // one server response's events; id increases per response
 interface TableProps<View, Action> {
