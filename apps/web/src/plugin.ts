@@ -1,28 +1,7 @@
 import type { ComponentType } from 'react'
-import type { GameDefinition, GameEvent, Policies, Seat, SeatId } from '@neon-cards/engine'
+import type { GameEvent, GameRules, Seat, SeatId } from '@neon-cards/engine'
 
-export type SettingValue = string | number
-
-export interface SettingSpec {
-  key: string
-  label: string
-  options: { value: SettingValue; label: string }[]
-}
-
-export interface GameMeta {
-  title: string
-  description: string
-  economy: 'chips' | 'score'
-  minBet?: number
-  settings?: SettingSpec[]
-}
-
-export interface GameRules {
-  definition: GameDefinition<unknown, unknown, unknown, unknown, unknown>
-  policies?: Policies<unknown, unknown>
-  meta: GameMeta
-}
-
+// Mirrors TableProps and GamePlugin from the UI kit contract PR until it lands in packages/ui.
 export interface EventBatch {
   id: number
   events: GameEvent[]

@@ -1,4 +1,6 @@
-import type { SettingSpec, SettingValue } from './plugin'
+import type { SettingSpec } from '@neon-cards/engine'
+
+type SettingValue = SettingSpec['options'][number]['value']
 
 export type GameSettings = Record<string, SettingValue>
 

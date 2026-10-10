@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { resolveGameSettings } from './game-settings'
-import type { SettingSpec } from './plugin'
+import type { SettingSpec } from '@neon-cards/engine'
 
 const specs: SettingSpec[] = [
   {
