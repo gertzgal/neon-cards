@@ -55,9 +55,61 @@ Append-only log. Every PR adds the decisions it made, dated, with who made the c
 - Deploy is a documented one-command step (`pnpm run deploy`). Agents can't read repo secrets, so there's no automatic deploy workflow yet.
 - Merge mechanism: Platform agents have git push but no GitHub merge API (the GitHub MCP server was down and the `gh` CLI is read-only). PRs land by fast-forwarding `main` to the exact head that CI tested (`git push origin HEAD:main`), which keeps "never merge red" exact and makes GitHub mark the PR merged. Squash-merge is used whenever a merge tool is available. Steps are in AGENTS.md.
 
+<<<<<<< HEAD
 ## 6. UI kit (Platform UI agent, 2026-10-11)
 - `@neon-cards/ui` owns the browser-side plugin types (`GamePlugin`, `TableProps`, `CardFaceRenderer`, `JuiceMap`, `SettingSpec`), because game packages must import them and `packages/engine` stays React-free. `GamePlugin.rules` is typed structurally (`{definition, policies?}`), so it accepts the engine's `GameRules` without the UI depending on a type the Engine PR has not landed. `definePlugin()` erases generics for the registry array instead of using `any`.
 - `TableProps` was not in the contract; added to architecture.md. The Table gets the human's final `view` plus the response's `EventBatch` and plays the batch itself with `usePlayback()`, so the UI animates from events and never diffs state.
 - Theme tokens follow the prototype: background `#050409`, table `#0b0b12`, pink `#ff2e88`, cyan `#2ef2ff`, violet `#a64dff`, gold `#ffd23f`, bust `#ff2e5a`. Chips are 5 cyan, 25 pink, 100 violet, 500 gold. The phone composition applies below 700px, as in the prototype.
 - The pixel font is Jersey 10, self-hosted through `@fontsource/jersey-10` so the app and e2e screenshots never depend on Google Fonts.
 - Juice targets are an element or a `data-testid`, so game juice handlers address the same handles Playwright uses.
+=======
+## 6. Blackjack rules (Blackjack agent, 2026-10-11)
+- The round is a three-phase state machine: `betting` → `playing` → `settling`. The `bet` action places the wager and deals in one step; the next `bet` from `settling` starts the next round, so a round enters `settling` exactly once.
+- `toAct` is always the player. In blackjack the player can act in every phase (bet, refill, or play the hand), so `settling` is not a "nobody can act" phase here. The dealer is the `house` seat `dealer`, played inside `apply()`.
+- The seat's chip stack lives in game state (`config.bankroll` seeds it; the server should pass the wallet balance). Bets, doubles, and splits debit it immediately; settlement credits the payout. `settle()` returns the round's net, so wallet += delta keeps the wallet equal to the stack after every round.
+- Refill is a game action, legal only when the stack is below the 5 minimum bet. It restores the stack to 1,250 and emits a `refill` event with the amount, which the server ledgers. It also returns the phase to `betting`. Keeping it inside the rules keeps replay pure.
+- Blackjack pays 3:2 rounded down to whole chips ($5 pays $7, $25 pays $37). Chips are 5/25/100/500, so the economy stays integer.
+- Any two ten-value cards can split (K+10), one split only, split aces get one card each and can't be hit, 21 after a split pays 1:1, and double after split is allowed. Splitting deals the second card to both hands at once, which reads better on screen and doesn't change the odds.
+- A hand that reaches 21 stands automatically.
+- The dealer peeks under an ace or a ten-value card. On a dealer blackjack the round ends at once and only the original bet is lost (no doubles or splits have happened yet).
+- `legalActions` returns one suggested `bet` (the last bet, capped by the stack); `apply` validates the actual amount (whole number, at least 5, a multiple of 5, at most the stack) and throws `IllegalActionError` otherwise.
+- Hidden information: the hole card appears as `{id: 'hole', face: null}` in both `view()` and the `deal` event, so its real card id never reaches the client before the `reveal` event. The view exposes only the shoe's size and remaining count.
+- `config.rig` takes a named rig (the prototype's names plus `splitaces`, `bjpush`, `dealerbust`, `soft17`) or a literal card list such as `"AH,9C,KS,7D"`. It restacks the shoe at the start of every round, pulling those exact cards out of the shoe so card ids stay unique.
+- Blackjack uses the engine's `buildShoe`, `standard52`, `createRng`, `IllegalActionError`, and `ConfigError` (bad config, including an unknown rig card, is a 400). A mid-session reshuffle uses the id prefix `standard52.r<round>`, so new card ids never repeat ones the table has already animated.
+- `rules.meta`: title "Blackjack", economy `chips`, minBet 5, no settings.
+
+## Worker API (Platform agent, 2026-10-11)
+- The D1 schema is hand-written SQL in `apps/worker/migrations` (wrangler applies it, tests apply it), with a Drizzle mirror in `apps/worker/src/db/schema.ts` used for every query. No drizzle-kit: its generated file names and `meta/` journal don't match the `NNNN_name.sql` convention, and one hand-kept mirror is simpler to review.
+- Timestamps are Unix epoch milliseconds (`INTEGER`).
+- `actions` gains a nullable `response_json` column holding the stored response of each human action, so a retried `seq` returns it byte-for-byte without re-running anything. Contract updated.
+- "Broke" means a balance below 5, the smallest chip, because a player with 1 to 4 chips can't place any bet. Contract updated.
+- A new player starts with a `wallet_ledger` row `(+1250, 'start')`, so the ledger always sums to the balance.
+- The identity cookie is `nc_player` (httpOnly, SameSite=Lax, one year, `Secure` only over https so local http dev works). A cookie naming an unknown player (for example after a local D1 wipe) is replaced with a new player.
+- The `meta` schema marker stays `foundation`, so the shell's health line and the smoke e2e don't churn with every migration.
+
+## Engine contract (Engine agent, 2026-10-11)
+- `meta` (title, description, economy, minBet, settings) moves from the React `GamePlugin` to the pure `GameRules`. The Worker registry only sees `GameRules` and must know `economy` to decide whether to touch the wallet. `GamePlugin` keeps `rules`, `Table`, `faceRenderer`, and `juice`, and lives in packages/ui because it needs React types.
+- `apply()` is the authority on legality and throws the engine's `IllegalActionError` (400). `legalActions()` is a menu with a representative value for parameterized actions (Blackjack's bet amount), so "validate against legalActions" by equality could never accept a custom bet. The engine checks `toAct` first and throws `NotYourTurnError` (409).
+- Face-down cards are `CardView<Face> = Card<Face | null>` with `face: null`, the convention the Blackjack branch already uses. Card ids never encode the face (they are shoe positions), so a hidden card can keep its real id and flip in place. Blackjack's placeholder `hole` id is also fine.
+- Events are public and never leak hidden information; private information reaches a seat only through `view()`. Per-seat event redaction is deferred to real-time multiplayer, where poker hole cards will need it.
+- `toAct` may return a seat during `'settling'` so it can start the next round (Blackjack's next bet). A round ends when an action moves the phase into `'settling'`, or into `'over'` from any other phase; the engine calls `settle()` exactly then and reports it in `Step.rounds`.
+- The CPU loop does not stop at the end of a round. It runs until no CPU seat is to act, so a CPU that ends a round can never deadlock the session. Every finished round in the step is reported, in order.
+- The engine owns the session loop (`startMatch`, `act`, `replay` over a JSON `Match`), not the Worker. Turn order, `turn` events, the CPU RNG stream, and settlement then work the same for every game and are proven once in engine tests.
+- RNG is sfc32 seeded from a string. The deck RNG is one stream per session whose `state()` is persisted in the `Match`; `cpuRng(seed, seq)` is `createRng(`${seed}:cpu:${seq}`)` with `seq` the CPU action's log index.
+- Config, State, Action, View, and events must be plain JSON, since D1 stores them and HTTP carries them.
+- The test-only "high card" game ships from `@neon-cards/engine/testing` so Worker tests can register it.
+- `parseSettings` takes only exact option values (no `"2"` → `2` coercion) and ignores undeclared keys, so a game can parse extras such as the dev `rig` next to it. Invalid config throws `ConfigError`, which the server maps to 400. (Engine agent, 2026-10-11)
+- `standard52` uses Blackjack's face shape (`{rank: 'A'|'2'..'10'|'J'|'Q'|'K', suit: 'H'|'D'|'S'|'C'}`) so the Blackjack package can import it unchanged. (Engine agent, 2026-10-11)
+
+## Blackjack table (Blackjack agent, 2026-10-11)
+- The table takes the UI kit's `TableProps` shape (`view`, `events: {id, events}`, `act`, `busy`), mirrored locally in `packages/games/blackjack/src/view/contract.ts` until the UI PR lands. It plays each event batch one event at a time through a display reducer, so every card, flip, chip, and result gets its own beat. A test replays every rig and checks that the reduced display ends equal to the server's final view.
+- The UI kit's primitives are API-only right now, so the table draws its own cards, chips, HUD, and action bar with the prototype's styles (prefixed `bj-`). It moves onto `@neon-cards/ui` components once they exist.
+- One chip color per value: 5 cyan, 25 pink, 100 violet, 500 gold (prototype review).
+- No dealer tray during betting; it appears with the first dealt card (prototype review).
+- The blackjack chip burst sprays sideways and down from the player's hand, capped below the dealer row and drawn under it, so it never covers the dealer cards (prototype review).
+- The desktop HUD is larger: 40px bankroll, 34px icons (prototype review).
+- After a round the last bet goes back on the felt automatically (Balatro-style "one tap to go again"). When the stack drops below 5 the table sends `refill` by itself.
+- Keyboard: H hit, S stand, D double, P split, Space deal, Backspace clear.
+- Stable test ids for e2e: `blackjack-table` (`data-stage`, `data-busy`), `hud-bankroll`, `dealer-hand`, `dealer-total`, `hand-N` (`data-status`, `data-outcome`, `data-active`), `hand-N-total`, `bet-amount`, `chip-<value>`, `action-<clear|deal|hit|stand|double|split>`, `result-pop`.
+- `pnpm --filter @neon-cards/game-blackjack dev` serves a standalone harness on :5199 that runs the rules in the browser (`?rig=split`, `?bankroll=10`, `?seed=7`, `?mute`). It's for development only; the real game talks to the Worker.
+>>>>>>> origin/main

@@ -6,6 +6,7 @@ The maintained source for verifying what a Neon Cards player can see and do. Rea
 | --- | --- | --- |
 | App shell boots and reads D1 | [app-shell.md](app-shell.md) | live (Foundation) |
 | Health API | [health-api.md](health-api.md) | live (Foundation) |
+| Wallet API and player identity | [wallet-api.md](wallet-api.md) | live (Worker API) |
 | Home screen and game list | | planned (Shell PR) |
 | Blackjack round | | planned (Blackjack project) |
 | Game settings sheet (opponents, difficulty) | | planned (Shell PR) |
