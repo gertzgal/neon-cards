@@ -66,7 +66,7 @@
 .bj-hand { position: relative; flex: none; transition: width .2s; }
 .bj-slot { position: absolute; top: 0; left: 0; transition: transform .22s ease-out; }
 .bj-fly, .bj-sway { width: 100%; height: 100%; }
-.bj-sway { animation: bj-sway 3.4s ease-in-out infinite; transform-origin: 50% 85%; }
+.bj-sway { animation: bj-sway 3.4s ease-in-out infinite; transform-origin: 50% 85%; will-change: transform; }
 .bj-slot:nth-child(2n) .bj-sway { animation-duration: 3.9s; animation-delay: -1.3s; }
 .bj-slot:nth-child(3n) .bj-sway { animation-delay: -2.1s; }
 @keyframes bj-sway { 0%, 100% { transform: rotate(-1.2deg) translateY(0); } 50% { transform: rotate(1.2deg) translateY(-3px); } }
@@ -79,7 +79,7 @@
 .bj-grp[data-status='blackjack'] .bj-sway { filter: drop-shadow(0 0 10px #fff3b0) drop-shadow(0 0 22px var(--gold)); }
 
 /* cards */
-.bj-card { --c: var(--cyan); position: absolute; inset: 0; background: var(--c);
+.bj-card { --c: var(--cyan); position: absolute; inset: 0; background: var(--c); transform: perspective(520px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .18s ease-out;
   clip-path: polygon(var(--n) 0, calc(100% - var(--n)) 0, calc(100% - var(--n)) calc(var(--n) / 2), calc(100% - var(--n) / 2) calc(var(--n) / 2), calc(100% - var(--n) / 2) var(--n), 100% var(--n), 100% calc(100% - var(--n)), calc(100% - var(--n) / 2) calc(100% - var(--n)), calc(100% - var(--n) / 2) calc(100% - var(--n) / 2), calc(100% - var(--n)) calc(100% - var(--n) / 2), calc(100% - var(--n)) 100%, var(--n) 100%, var(--n) calc(100% - var(--n) / 2), calc(var(--n) / 2) calc(100% - var(--n) / 2), calc(var(--n) / 2) calc(100% - var(--n)), 0 calc(100% - var(--n)), 0 var(--n), calc(var(--n) / 2) var(--n), calc(var(--n) / 2) calc(var(--n) / 2), var(--n) calc(var(--n) / 2)); }
 .bj-slot { --g: var(--cyan); }
 .bj-slot:has(.bj-card[data-tone='pink']), .bj-slot:has(.bj-card[data-tone='back']) { --g: var(--pink); }
@@ -116,7 +116,7 @@
 
 /* chips */
 .bj-chip { width: 46px; height: 34px; position: relative; display: grid; place-items: start center; flex: none; }
-.bj-chip svg { position: absolute; inset: 0; width: 100%; height: 100%; filter: drop-shadow(0 0 4px var(--cc)); }
+.bj-chip img { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; filter: drop-shadow(0 0 4px var(--cc)); }
 .bj-chip span { position: relative; margin-top: 16%; font-size: 15px; color: #fff; line-height: 1; }
 .bj-chip.big { width: 62px; height: 46px; }
 .bj-chip.big span { font-size: 20px; }
@@ -150,6 +150,8 @@
   .bj-player-row[data-split='true'] .bj-badge { font-size: calc(var(--ph) * .13); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .bj-sway { animation: none; }
-  .bj-drop { animation-duration: .01s; }
+  :root:not([data-motion='full']) .bj-sway { animation: none; }
+  :root:not([data-motion='full']) .bj-drop { animation-duration: .01s; }
 }
+:root[data-motion='reduced'] .bj-sway { animation: none; }
+:root[data-motion='reduced'] .bj-drop { animation-duration: .01s; }

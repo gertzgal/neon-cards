@@ -129,3 +129,7 @@ Append-only log. Every PR adds the decisions it made, dated, with who made the c
 ## Blackjack on the engine runtime (Blackjack agent, 2026-10-11)
 - `definition.seats` is `{min: 2, max: 2}`: the engine counts every seat `seatsFor` returns, including the `house` dealer. The old `{1, 1}` made `startMatch` refuse Blackjack.
 - `match.test.ts` drives Blackjack through the engine's `startMatch`, `act`, and `replay`: one settlement per finished round, a natural settling inside the bet action, refill not counted as a round, and replay of a six-round session matching the live match, events, and rounds exactly.
+## Blackjack polish (Blackjack agent, 2026-10-11)
+- The table follows the shell's motion setting (`<html data-motion="reduced|full">`) and falls back to the OS `prefers-reduced-motion` when it runs standalone. Reduced motion stops the card sway, skips deal fly-ins, and trims the chip burst to 8 chips.
+- On desktop (hover plus a fine pointer), the player's cards tilt up to 9° toward the pointer, strongest near the card, as the brief asks. Phones and reduced motion get no tilt.
+- Chips render as cached `<img>` data URLs instead of inline SVG. The blackjack burst used to put about 6,000 SVG rects on screen and caused a 150 ms frame on a 4x-throttled phone; now the worst frame is about 50 ms and idle stays at 60 fps.
