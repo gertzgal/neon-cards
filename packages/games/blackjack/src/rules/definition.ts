@@ -283,6 +283,7 @@ class Table {
     let wagered = 0
     let payout = 0
     s.hands.forEach((hand, index) => {
+      if (hand.status === 'active') hand.status = 'stood'
       const outcome = outcomeOf(hand, dealerNatural, dealerTotal)
       hand.outcome = outcome
       hand.payout = PAYOUT[outcome](hand.bet)

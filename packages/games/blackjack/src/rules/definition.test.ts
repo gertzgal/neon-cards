@@ -105,7 +105,7 @@ describe('dealer peek', () => {
     expect(types(events)).toEqual(['bet', 'deal', 'deal', 'deal', 'deal', 'reveal', 'dealerBlackjack', 'handResult', 'roundEnd'])
     expect(view.phase).toBe('settling')
     expect(view.dealer.total).toBe(21)
-    expect(view.hands[0]).toMatchObject({ outcome: 'lose', payout: 0 })
+    expect(view.hands[0]).toMatchObject({ status: 'stood', outcome: 'lose', payout: 0 })
     expect(view.stack).toBe(1200)
     expect(view.result).toEqual({ wagered: 50, payout: 0, net: -50 })
   })
