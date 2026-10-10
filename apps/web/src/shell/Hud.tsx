@@ -3,23 +3,33 @@ import { Link } from '../router'
 import type { Route } from '../routes'
 import { updateSettings, useSettings } from '../settings'
 import { BackIcon, GearIcon, HistoryIcon, SoundIcon } from './icons'
-import { SettingsSheet } from './SettingsSheet'
+import { SettingsSheet, type TableControls } from './SettingsSheet'
 import { WalletPill } from './wallet'
 
-export function Hud({
-  back,
-  history,
-  showWallet = true,
-  onNewGame,
-}: {
-  back?: Route
-  history?: Route
-  showWallet?: boolean
-  onNewGame?: () => void
-}) {
+/** The sound and settings buttons. Tables render them in their own top bar via `TableProps.hudIcons`. */
+export function HudIcons({ table }: { table?: TableControls }) {
   const { muted } = useSettings()
   const [settingsOpen, setSettingsOpen] = useState(false)
+  return (
+    <>
+      <button
+        type="button"
+        data-testid="sound-toggle"
+        data-state={muted ? 'muted' : 'on'}
+        aria-label={muted ? 'Unmute' : 'Mute'}
+        onClick={() => updateSettings({ muted: !muted })}
+      >
+        <SoundIcon muted={muted} />
+      </button>
+      <button type="button" data-testid="open-settings" aria-label="Settings" onClick={() => setSettingsOpen(true)}>
+        <GearIcon />
+      </button>
+      {settingsOpen && <SettingsSheet onClose={() => setSettingsOpen(false)} {...(table && { table })} />}
+    </>
+  )
+}
 
+export function Hud({ back, history, showWallet = true }: { back?: Route; history?: Route; showWallet?: boolean }) {
   return (
     <header className="hud">
       <div className="hud-side">
@@ -36,30 +46,8 @@ export function Hud({
             <HistoryIcon />
           </Link>
         )}
-        <button
-          type="button"
-          data-testid="sound-toggle"
-          data-state={muted ? 'muted' : 'on'}
-          aria-label={muted ? 'Unmute' : 'Mute'}
-          onClick={() => updateSettings({ muted: !muted })}
-        >
-          <SoundIcon muted={muted} />
-        </button>
-        <button type="button" data-testid="open-settings" aria-label="Settings" onClick={() => setSettingsOpen(true)}>
-          <GearIcon />
-        </button>
+        <HudIcons />
       </div>
-      {settingsOpen && (
-        <SettingsSheet
-          onClose={() => setSettingsOpen(false)}
-          {...(onNewGame && {
-            onNewGame: () => {
-              setSettingsOpen(false)
-              onNewGame()
-            },
-          })}
-        />
-      )}
     </header>
   )
 }

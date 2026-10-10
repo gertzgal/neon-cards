@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { loadGameSettings, saveGameSettings, type GameSettings } from './game-settings'
 import type { GamePlugin } from './plugin'
 import { useGameSession } from './session'
-import { Hud } from './shell/Hud'
+import { Hud, HudIcons } from './shell/Hud'
 import { Segmented } from './shell/Segmented'
 import { Sheet } from './shell/Sheet'
 import { useWallet } from './shell/wallet'
@@ -15,12 +15,9 @@ export function GameScreen({ plugin }: { plugin: GamePlugin }) {
 
   return (
     <div className="screen game" data-testid="game-screen" data-game={definition.id} data-state={state.status}>
-      <Hud
-        back={{ name: 'home' }}
-        history={{ name: 'history', gameId: definition.id }}
-        showWallet={chips}
-        {...(state.status === 'playing' && { onNewGame: reset })}
-      />
+      {state.status !== 'playing' && (
+        <Hud back={{ name: 'home' }} history={{ name: 'history', gameId: definition.id }} showWallet={chips} />
+      )}
       {state.status === 'loading' && (
         <p className="center-msg" data-testid="game-loading">
           Shuffling…
@@ -45,6 +42,7 @@ export function GameScreen({ plugin }: { plugin: GamePlugin }) {
           wallet={chips && wallet.status === 'ok' ? wallet.balance : null}
           busy={state.busy}
           act={act}
+          hudIcons={<HudIcons table={{ gameId: definition.id, newGame: reset }} />}
         />
       )}
     </div>

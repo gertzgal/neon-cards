@@ -9,6 +9,7 @@ Opening Neon Cards shows the lobby: the neon logo, one tile per game in `apps/we
 - `shell-settings` opens `settings` from `open-settings`; toggles are `setting-music`, `setting-sfx`, `setting-motion` with `data-value` and one button per option (`setting-music-off`, `setting-motion-reduced`). Motion resolves onto `<html data-motion="full|reduced">`.
 - `shell-mute` is `sound-toggle` with `data-state` `on` or `muted`.
 - `shell-history` is `/history` (`history-list`, `history-round`, `history-empty`, filters `history-all` and `history-filter-<id>`).
+- `shell-table-hud`: over a live table the shell draws no HUD of its own; `sound-toggle` and `open-settings` render inside the table's top bar, and the settings sheet adds `table-history`, `table-lobby`, and `new-game`.
 - `shell-routing` covers `nav-back`, `nav-history`, `not-found`, and `go-home`.
 
 ## How to get to it (user POV)

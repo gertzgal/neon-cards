@@ -285,7 +285,7 @@ a {
 .sheet-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 30;
+  z-index: 100;
   display: grid;
   place-items: end center;
   background: rgba(5, 4, 9, 0.6);
@@ -464,4 +464,14 @@ a {
 [data-motion='reduced'] *::after {
   animation-duration: 0.01ms !important;
   transition-duration: 0.01ms !important;
+}
+
+.sheet-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.sheet-actions .btn.main {
+  grid-column: 1 / -1;
 }

@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@neon-cards/engine": "workspace:*",
+    "@neon-cards/game-blackjack": "workspace:*",
     "@neon-cards/ui": "workspace:*",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
