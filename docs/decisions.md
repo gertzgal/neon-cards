@@ -89,6 +89,8 @@ Append-only log. Every PR adds the decisions it made, dated, with who made the c
 - RNG is sfc32 seeded from a string. The deck RNG is one stream per session whose `state()` is persisted in the `Match`; `cpuRng(seed, seq)` is `createRng(`${seed}:cpu:${seq}`)` with `seq` the CPU action's log index.
 - Config, State, Action, View, and events must be plain JSON, since D1 stores them and HTTP carries them.
 - The test-only "high card" game ships from `@neon-cards/engine/testing` so Worker tests can register it.
+- `parseSettings` takes only exact option values (no `"2"` → `2` coercion) and ignores undeclared keys, so a game can parse extras such as the dev `rig` next to it. Invalid config throws `ConfigError`, which the server maps to 400. (Engine agent, 2026-10-11)
+- `standard52` uses Blackjack's face shape (`{rank: 'A'|'2'..'10'|'J'|'Q'|'K', suit: 'H'|'D'|'S'|'C'}`) so the Blackjack package can import it unchanged. (Engine agent, 2026-10-11)
 
 ## Blackjack table (Blackjack agent, 2026-10-11)
 - The table takes the UI kit's `TableProps` shape (`view`, `events: {id, events}`, `act`, `busy`), mirrored locally in `packages/games/blackjack/src/view/contract.ts` until the UI PR lands. It plays each event batch one event at a time through a display reducer, so every card, flip, chip, and result gets its own beat. A test replays every rig and checks that the reduced display ends equal to the server's final view.

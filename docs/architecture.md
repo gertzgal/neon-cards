@@ -156,7 +156,8 @@ The Worker never calls `setup`/`apply`/policies directly; it drives a `Match` th
 createRng(seed: string): Rng; restoreRng(state: string): Rng; cpuRng(seed: string, seq: number): Rng
 shuffle<T>(items: readonly T[], rng: Rng): T[]
 buildShoe<Face>(spec: DeckSpec<Face>, copies: number, rng: Rng, idPrefix?: string): Card<Face>[]
-parseSettings<C>(settings: SettingSpec[], defaults: C, input: unknown): C   // choice-list config parsing for parseConfig()
+faceDown<Face>(card: Card<Face>): Card<null>     // same id, face hidden
+parseSettings<C>(settings: SettingSpec[], defaults: C, input: unknown): C   // choice-list config parsing for parseConfig(); throws ConfigError (400)
 standard52: DeckSpec<{ rank: Rank; suit: Suit }>; flip7Deck: DeckSpec<Flip7Face>
 
 // Everything the server persists for a live session, as plain JSON.
