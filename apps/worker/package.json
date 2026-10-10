@@ -1,0 +1,21 @@
+{
+  "name": "@neon-cards/worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --port ${WORKER_PORT:-8787}",
+    "start": "wrangler d1 migrations apply DB --local --persist-to ${PERSIST_DIR:-.wrangler/state} && wrangler dev --port ${PORT:-8787} --persist-to ${PERSIST_DIR:-.wrangler/state}",
+    "db:migrate": "wrangler d1 migrations apply DB --local",
+    "deploy": "wrangler d1 migrations apply DB --remote && wrangler deploy",
+    "typegen": "wrangler types --include-runtime false",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "hono": "^4.13.13"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.4.0",
+    "@cloudflare/workers-types": "^5.20261010.1",
+    "wrangler": "^4.149.0"
+  }
+}

@@ -1,0 +1,46 @@
+:root {
+  color-scheme: dark;
+  --table: #0b0b12;
+  --pink: #ff2e88;
+  --cyan: #2ef2ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--table);
+  color: #fff;
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+}
+
+.hello {
+  display: grid;
+  place-content: center;
+  height: 100%;
+  text-align: center;
+}
+
+.hello h1 {
+  margin: 0 0 1rem;
+  color: var(--pink);
+  font-size: clamp(2rem, 8vw, 4rem);
+  text-shadow: 0 0 12px var(--pink);
+}
+
+.hello p {
+  color: var(--cyan);
+  text-shadow: 0 0 8px var(--cyan);
+}
+
+.hello p[data-state='error'] {
+  color: var(--pink);
+}

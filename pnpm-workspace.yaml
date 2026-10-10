@@ -1,0 +1,9 @@
+packages:
+  - apps/*
+  - packages/*
+  - packages/games/*
+
+onlyBuiltDependencies:
+  - esbuild
+  - workerd
+  - sharp

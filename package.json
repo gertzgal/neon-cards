@@ -1,0 +1,31 @@
+{
+  "name": "neon-cards",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.4",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm build && pnpm --filter @neon-cards/worker db:migrate && pnpm --parallel --filter @neon-cards/worker --filter @neon-cards/web dev",
+    "build": "pnpm --filter @neon-cards/web build",
+    "start": "pnpm build && pnpm --filter @neon-cards/worker start",
+    "typecheck": "tsc -p tsconfig.json && pnpm -r typecheck",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "e2e": "playwright test",
+    "verify": ".cursor/skills/verify-neon-cards/scripts/verify.sh",
+    "deploy": "pnpm build && pnpm --filter @neon-cards/worker run deploy"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.64.0",
+    "@types/node": "^22.15.0",
+    "eslint": "^10.12.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.13.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.1",
+    "vitest": "~4.1.11"
+  }
+}
