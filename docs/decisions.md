@@ -77,3 +77,15 @@ Append-only log. Every PR adds the decisions it made, dated, with who made the c
 - A new player starts with a `wallet_ledger` row `(+1250, 'start')`, so the ledger always sums to the balance.
 - The identity cookie is `nc_player` (httpOnly, SameSite=Lax, one year, `Secure` only over https so local http dev works). A cookie naming an unknown player (for example after a local D1 wipe) is replaced with a new player.
 - The `meta` schema marker stays `foundation`, so the shell's health line and the smoke e2e don't churn with every migration.
+
+## 7. Blackjack table (Blackjack agent, 2026-10-11)
+- The table takes the UI kit's `TableProps` shape (`view`, `events: {id, events}`, `act`, `busy`), mirrored locally in `packages/games/blackjack/src/view/contract.ts` until the UI PR lands. It plays each event batch one event at a time through a display reducer, so every card, flip, chip, and result gets its own beat. A test replays every rig and checks that the reduced display ends equal to the server's final view.
+- The UI kit's primitives are API-only right now, so the table draws its own cards, chips, HUD, and action bar with the prototype's styles (prefixed `bj-`). It moves onto `@neon-cards/ui` components once they exist.
+- One chip color per value: 5 cyan, 25 pink, 100 violet, 500 gold (prototype review).
+- No dealer tray during betting; it appears with the first dealt card (prototype review).
+- The blackjack chip burst sprays sideways and down from the player's hand, capped below the dealer row and drawn under it, so it never covers the dealer cards (prototype review).
+- The desktop HUD is larger: 40px bankroll, 34px icons (prototype review).
+- After a round the last bet goes back on the felt automatically (Balatro-style "one tap to go again"). When the stack drops below 5 the table sends `refill` by itself.
+- Keyboard: H hit, S stand, D double, P split, Space deal, Backspace clear.
+- Stable test ids for e2e: `blackjack-table` (`data-stage`, `data-busy`), `hud-bankroll`, `dealer-hand`, `dealer-total`, `hand-N` (`data-status`, `data-outcome`, `data-active`), `hand-N-total`, `bet-amount`, `chip-<value>`, `action-<clear|deal|hit|stand|double|split>`, `result-pop`.
+- `pnpm --filter @neon-cards/game-blackjack dev` serves a standalone harness on :5199 that runs the rules in the browser (`?rig=split`, `?bankroll=10`, `?seed=7`, `?mute`). It's for development only; the real game talks to the Worker.
