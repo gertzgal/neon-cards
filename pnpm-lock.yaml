@@ -82,6 +82,12 @@ importers:
 
   packages/engine: {}
 
+  packages/games/blackjack:
+    dependencies:
+      '@neon-cards/engine':
+        specifier: workspace:*
+        version: link:../../engine
+
   packages/ui: {}
 
 packages:

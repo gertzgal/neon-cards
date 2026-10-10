@@ -1,4 +1,4 @@
-import type { Rng } from '../contract'
+import type { Rng } from '@neon-cards/engine'
 import { blackjack, defaultConfig } from './definition'
 import type { BlackjackAction, BlackjackConfig, BlackjackEvent, BlackjackState } from './types'
 
@@ -14,11 +14,12 @@ export function seededRng(seed: number): Rng {
   return { next, int: (n) => Math.floor(next() * n), state: () => String(a) }
 }
 
-export const SEAT = 'p1'
+export const SEAT = 'player'
 
 export function newGame(config: Partial<BlackjackConfig> = {}, seed = 1) {
   const rng = seededRng(seed)
-  const state = blackjack.setup({ ...defaultConfig, ...config }, [{ id: SEAT, kind: 'human', name: 'You' }], rng)
+  const full = { ...defaultConfig, ...config }
+  const state = blackjack.setup(full, blackjack.seatsFor(full), rng)
   return { state, rng }
 }
 

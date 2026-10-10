@@ -21,6 +21,42 @@ describe('setup', () => {
   })
 })
 
+describe('config and seats', () => {
+  it('seats one human and the house dealer, and the human always acts', () => {
+    expect(blackjack.seatsFor(blackjack.defaultConfig)).toEqual([
+      { id: 'player', kind: 'human', name: 'You' },
+      { id: 'dealer', kind: 'house', name: 'Dealer' },
+    ])
+    expect(blackjack.toAct(newGame().state)).toBe('player')
+    expect(blackjack.toAct(rigged('win', 50).state)).toBe('player')
+    expect(blackjack.toAct(rigged('win', 50, ['stand']).state)).toBe('player')
+  })
+
+  it('parses a rig and a bankroll over the house defaults', () => {
+    expect(blackjack.parseConfig(undefined)).toEqual({ decks: 6, minBet: 5, betStep: 5, bankroll: 1250, refillTo: 1250, reshuffleAt: 0.25 })
+    expect(blackjack.parseConfig({ rig: 'split', bankroll: 300, decks: 1 })).toEqual({
+      decks: 6,
+      minBet: 5,
+      betStep: 5,
+      bankroll: 300,
+      refillTo: 1250,
+      reshuffleAt: 0.25,
+      rig: 'split',
+    })
+  })
+
+  it.each([
+    ['a string', 'x', 'Config must be an object'],
+    ['an array', [], 'Config must be an object'],
+    ['an empty rig', { rig: '' }, 'rig must be a non-empty string'],
+    ['an unknown card', { rig: 'AH,1Z' }, 'Bad card code "1Z"'],
+    ['a fractional bankroll', { bankroll: 10.5 }, 'bankroll must be a whole number of chips'],
+    ['a negative bankroll', { bankroll: -5 }, 'bankroll must be a whole number of chips'],
+  ])('rejects %s', (_, input, message) => {
+    expect(() => blackjack.parseConfig(input)).toThrow(message)
+  })
+})
+
 describe('betting', () => {
   it('rejects bets that are too small, off-step, fractional, or above the stack', () => {
     const { state, rng } = newGame()
@@ -53,7 +89,7 @@ describe('betting', () => {
     expect(types(events)).toEqual(['bet', 'deal', 'deal', 'deal', 'deal', 'turn'])
     expect(events[0]).toEqual({ type: 'bet', seat: SEAT, amount: 50, stack: 1200 })
     expect(events.slice(1, 5).map((e) => (e.type === 'deal' ? e.seat : ''))).toEqual([SEAT, 'dealer', SEAT, 'dealer'])
-    expect(codes(view.hands[0]!.cards)).toEqual(['10H', '9S'])
+    expect(view.hands.map((h) => codes(h.cards))).toEqual([['10H', '9S']])
     expect(view.phase).toBe('playing')
     expect(view.legal).toEqual(['hit', 'stand', 'double'])
     expect(view.hands[0]).toMatchObject({ bet: 50, total: 19, soft: false, status: 'active' })
@@ -63,7 +99,8 @@ describe('betting', () => {
 describe('hidden information', () => {
   it('hides the hole card in the view and in the deal event', () => {
     const { state, events, view } = rigged('win', 50)
-    const holeId = state.dealer[1]!.id
+    const holeId = state.dealer[1]?.id
+    expect(holeId).toMatch(/^standard52-\d+$/)
     expect(view.dealer).toEqual({
       cards: [state.dealer[0], { id: 'hole', deck: 'standard52', face: null }],
       total: 9,
@@ -221,7 +258,7 @@ describe('split', () => {
 
     const { state, rng } = afterSplit
     const hit = play(state, rng, { type: 'hit' })
-    expect(hit.view.hands[0]!.total).toBe(13)
+    expect(hit.view.hands.map((h) => h.total)).toEqual([13, 18])
     expect(hit.view.active).toBe(0)
     const standOne = play(hit.state, rng, { type: 'stand' })
     expect(standOne.events.at(-1)).toEqual({ type: 'turn', seat: SEAT, hand: 1 })
@@ -285,6 +322,9 @@ describe('refill', () => {
     expect(refilled.events).toEqual([{ type: 'refill', seat: SEAT, amount: 1250, stack: 1250 }])
     expect(refilled.view.stack).toBe(1250)
     expect(refilled.view.legal).toEqual(['bet'])
+    expect(refilled.view.phase).toBe('betting')
+    expect(refilled.view.hands).toEqual([])
+    expect(refilled.view.result).toBe(null)
   })
 
   it('tops a nearly broke stack up to the refill amount', () => {
@@ -328,16 +368,18 @@ describe('purity and replay', () => {
 
   it('replays a session identically from the same seed and action log', () => {
     const run = (seed: number) => {
-      let { state, rng } = newGame({}, seed)
+      const game = newGame({}, seed)
+      const rng = game.rng
+      let state = game.state
       const log = []
       for (let round = 0; round < 30; round++) {
         let out = play(state, rng, { type: 'bet', amount: 25 })
         while (out.view.phase === 'playing') {
-          const action = out.view.hands[out.view.active]!.total < 17 ? 'hit' : 'stand'
+          const action = (out.view.hands[out.view.active]?.total ?? 0) < 17 ? 'hit' : 'stand'
           out = play(out.state, rng, { type: action })
         }
         state = out.state
-        log.push(out.view.result!.net)
+        log.push(out.view.result?.net)
       }
       return { state: JSON.stringify(state), log }
     }

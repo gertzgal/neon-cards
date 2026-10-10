@@ -1,4 +1,4 @@
-import type { Card, DeckSpec } from '../contract'
+import type { Card, DeckSpec } from '@neon-cards/engine'
 
 export const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'] as const
 export const SUITS = ['H', 'D', 'S', 'C'] as const

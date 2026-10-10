@@ -1,4 +1,4 @@
-import type { Card, SeatId } from '../contract'
+import type { Card, SeatId } from '@neon-cards/engine'
 import type { BlackjackCard, BlackjackFace } from './cards'
 
 export interface BlackjackConfig {

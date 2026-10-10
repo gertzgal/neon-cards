@@ -54,3 +54,17 @@ Append-only log. Every PR adds the decisions it made, dated, with who made the c
 - `packages/engine` exports the contract types as type declarations only, so the Blackjack project can build against them now. The Engine PR adds the runtime code.
 - Deploy is a documented one-command step (`pnpm run deploy`). Agents can't read repo secrets, so there's no automatic deploy workflow yet.
 - Merge mechanism: Platform agents have git push but no GitHub merge API (the GitHub MCP server was down and the `gh` CLI is read-only). PRs land by fast-forwarding `main` to the exact head that CI tested (`git push origin HEAD:main`), which keeps "never merge red" exact and makes GitHub mark the PR merged. Squash-merge is used whenever a merge tool is available. Steps are in AGENTS.md.
+
+## 6. Blackjack rules (Blackjack agent, 2026-10-11)
+- The round is a three-phase state machine: `betting` → `playing` → `settling`. The `bet` action places the wager and deals in one step; the next `bet` from `settling` starts the next round, so a round enters `settling` exactly once.
+- `toAct` is always the player. In blackjack the player can act in every phase (bet, refill, or play the hand), so `settling` is not a "nobody can act" phase here. The dealer is the `house` seat `dealer`, played inside `apply()`.
+- The seat's chip stack lives in game state (`config.bankroll` seeds it; the server should pass the wallet balance). Bets, doubles, and splits debit it immediately; settlement credits the payout. `settle()` returns the round's net, so wallet += delta keeps the wallet equal to the stack after every round.
+- Refill is a game action, legal only when the stack is below the 5 minimum bet. It restores the stack to 1,250 and emits a `refill` event with the amount, which the server ledgers. It also returns the phase to `betting`. Keeping it inside the rules keeps replay pure.
+- Blackjack pays 3:2 rounded down to whole chips ($5 pays $7, $25 pays $37). Chips are 5/25/100/500, so the economy stays integer.
+- Any two ten-value cards can split (K+10), one split only, split aces get one card each and can't be hit, 21 after a split pays 1:1, and double after split is allowed. Splitting deals the second card to both hands at once, which reads better on screen and doesn't change the odds.
+- A hand that reaches 21 stands automatically.
+- The dealer peeks under an ace or a ten-value card. On a dealer blackjack the round ends at once and only the original bet is lost (no doubles or splits have happened yet).
+- `legalActions` returns one suggested `bet` (the last bet, capped by the stack); `apply` validates the actual amount (whole number, at least 5, a multiple of 5, at most the stack) and throws `IllegalActionError` otherwise.
+- Hidden information: the hole card appears as `{id: 'hole', face: null}` in both `view()` and the `deal` event, so its real card id never reaches the client before the `reveal` event. The view exposes only the shoe's size and remaining count.
+- `config.rig` takes a named rig (the prototype's names plus `splitaces`, `bjpush`, `dealerbust`, `soft17`) or a literal card list such as `"AH,9C,KS,7D"`. It restacks the shoe at the start of every round, pulling those exact cards out of the shoe so card ids stay unique.
+- `buildShoe` and `shuffle` live in the blackjack package until the Engine PR ships the runtime helpers; the next blackjack PR swaps to the engine's.

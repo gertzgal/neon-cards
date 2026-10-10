@@ -1,4 +1,5 @@
-import { buildShoe, type GameDefinition, type Rng, type Seat, type SeatId, type Settlement } from '../contract'
+import type { GameDefinition, Rng, Seat, SeatId, Settlement } from '@neon-cards/engine'
+import { buildShoe } from './shoe'
 import { handValue, isNatural, rankValue, standard52, type BlackjackCard, type BlackjackFace } from './cards'
 import { rigFaces } from './rigs'
 import {
@@ -32,7 +33,42 @@ export const defaultConfig: BlackjackConfig = {
 
 const HOLE_ID = 'hole'
 
+export const PLAYER = 'player'
+
+function seatsFor(): Seat[] {
+  return [
+    { id: PLAYER, kind: 'human', name: 'You' },
+    { id: DEALER, kind: 'house', name: 'Dealer' },
+  ]
+}
+
+/** Clients may only pick a dev rig; the server sets `bankroll` from the wallet. Everything else is house rules. */
+function parseConfig(input: unknown): BlackjackConfig {
+  if (input === undefined || input === null) return { ...defaultConfig }
+  if (typeof input !== 'object' || Array.isArray(input)) throw new Error('Config must be an object')
+  const { rig, bankroll } = input as Record<string, unknown>
+  const config: BlackjackConfig = { ...defaultConfig }
+  if (rig !== undefined) {
+    if (typeof rig !== 'string' || !rig) throw new Error('rig must be a non-empty string')
+    rigFaces(rig)
+    config.rig = rig
+  }
+  if (bankroll !== undefined) {
+    if (typeof bankroll !== 'number' || !Number.isInteger(bankroll) || bankroll < 0) {
+      throw new Error('bankroll must be a whole number of chips')
+    }
+    config.bankroll = bankroll
+  }
+  return config
+}
+
 const faces = (cards: readonly BlackjackCard[]) => cards.map((c) => c.face)
+
+function at<T>(items: readonly T[], index: number): T {
+  const item = items[index]
+  if (item === undefined) throw new Error(`No item at index ${index}`)
+  return item
+}
 
 function setup(config: BlackjackConfig, seats: Seat[], rng: Rng): BlackjackState {
   const player = seats.find((s) => s.kind !== 'house')
@@ -59,8 +95,10 @@ function canSplit(state: BlackjackState, hand: Hand): boolean {
   const [a, b] = hand.cards
   return (
     state.hands.length === 1 &&
+    a !== undefined &&
+    b !== undefined &&
     hand.cards.length === 2 &&
-    rankValue(a!.face.rank) === rankValue(b!.face.rank) &&
+    rankValue(a.face.rank) === rankValue(b.face.rank) &&
     state.stack >= hand.bet
   )
 }
@@ -68,7 +106,7 @@ function canSplit(state: BlackjackState, hand: Hand): boolean {
 function legalTypes(state: BlackjackState, seat: SeatId): ActionType[] {
   if (seat !== state.seat) return []
   if (state.phase === 'playing') {
-    const hand = state.hands[state.active]!
+    const hand = at(state.hands, state.active)
     const types: ActionType[] = ['hit', 'stand']
     if (hand.cards.length === 2 && state.stack >= hand.bet) types.push('double')
     if (canSplit(state, hand)) types.push('split')
@@ -140,7 +178,7 @@ class Table {
 
   dealPlayer(hand: number) {
     const card = this.draw()
-    this.s.hands[hand]!.cards.push(card)
+    at(this.s.hands, hand).cards.push(card)
     this.emit({ type: 'deal', seat: this.s.seat, hand, card })
   }
 
@@ -156,7 +194,7 @@ class Table {
     this.emit({
       type: 'reveal',
       seat: DEALER,
-      card: this.s.dealer[1]!,
+      card: at(this.s.dealer, 1),
       total: handValue(faces(this.s.dealer)).total,
     })
   }
@@ -180,12 +218,12 @@ class Table {
     this.dealPlayer(0)
     this.dealDealer(true)
 
-    const up = s.dealer[0]!.face.rank
+    const up = at(s.dealer, 0).face.rank
     const dealerNatural = isNatural(faces(s.dealer))
-    const playerNatural = isNatural(faces(s.hands[0]!.cards))
+    const playerNatural = isNatural(faces(at(s.hands, 0).cards))
     if (rankValue(up) >= 10 && !dealerNatural) this.emit({ type: 'peek', seat: DEALER })
     if (playerNatural) {
-      s.hands[0]!.status = 'blackjack'
+      at(s.hands, 0).status = 'blackjack'
       this.emit({ type: 'blackjack', seat: s.seat, hand: 0 })
     }
     if (dealerNatural || playerNatural) {
@@ -200,7 +238,7 @@ class Table {
 
   /** Marks the active hand finished if it busted or reached 21; returns whether it finished. */
   settleHandAfterCard(index: number): boolean {
-    const hand = this.s.hands[index]!
+    const hand = at(this.s.hands, index)
     const { total } = handValue(faces(hand.cards))
     if (total > 21) {
       hand.status = 'bust'
@@ -220,14 +258,14 @@ class Table {
   }
 
   stand() {
-    this.s.hands[this.s.active]!.status = 'stood'
+    at(this.s.hands, this.s.active).status = 'stood'
     this.emit({ type: 'stand', seat: this.s.seat, hand: this.s.active })
     this.advance()
   }
 
   double() {
     const s = this.s
-    const hand = s.hands[s.active]!
+    const hand = at(s.hands, s.active)
     s.stack -= hand.bet
     this.emit({ type: 'double', seat: s.seat, hand: s.active, amount: hand.bet, stack: s.stack })
     hand.bet *= 2
@@ -239,7 +277,7 @@ class Table {
 
   split() {
     const s = this.s
-    const original = s.hands[0]!
+    const original = at(s.hands, 0)
     const [first, second] = original.cards as [BlackjackCard, BlackjackCard]
     s.stack -= original.bet
     this.emit({ type: 'split', seat: s.seat, amount: original.bet, stack: s.stack })
@@ -299,9 +337,15 @@ class Table {
   }
 
   refill() {
-    const amount = this.s.config.refillTo - this.s.stack
-    this.s.stack = this.s.config.refillTo
-    this.emit({ type: 'refill', seat: this.s.seat, amount, stack: this.s.stack })
+    const s = this.s
+    const amount = s.config.refillTo - s.stack
+    s.stack = s.config.refillTo
+    s.phase = 'betting'
+    s.dealer = []
+    s.hands = []
+    s.holeRevealed = false
+    s.result = null
+    this.emit({ type: 'refill', seat: s.seat, amount, stack: s.stack })
   }
 }
 
@@ -342,7 +386,7 @@ function apply(state: BlackjackState, seat: SeatId, action: BlackjackAction, rng
     const err = betError(state, action.amount)
     if (err) throw new IllegalActionError(err)
   }
-  const table = new Table(structuredClone(state), rng)
+  const table = new Table(JSON.parse(JSON.stringify(state)) as BlackjackState, rng)
   switch (action.type) {
     case 'bet':
       table.startRound(action.amount)
@@ -410,7 +454,11 @@ export const blackjack: GameDefinition<
   deck: standard52,
   seats: { min: 1, max: 1 },
   defaultConfig,
+  parseConfig,
+  seatsFor,
   setup,
+  // The player can always act: bet, refill, or play the hand. The dealer plays inside apply().
+  toAct: (state) => state.seat,
   legalActions,
   apply,
   view,

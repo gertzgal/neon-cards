@@ -1,6 +1,5 @@
 {
-  "name": "@neon-cards/blackjack",
-  "version": "0.0.0",
+  "name": "@neon-cards/game-blackjack",
   "private": true,
   "type": "module",
   "exports": {
@@ -8,11 +7,9 @@
     "./rules": "./src/rules/index.ts"
   },
   "scripts": {
-    "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc -p tsconfig.json"
   },
-  "devDependencies": {
-    "typescript": "^5.6.0",
-    "vitest": "^2.1.0"
+  "dependencies": {
+    "@neon-cards/engine": "workspace:*"
   }
 }
