@@ -126,6 +126,18 @@ interface GamePlugin {
   }
 }
 ```
+The browser-side plugin types (`GamePlugin`, `TableProps`, `CardFaceRenderer`, `JuiceMap`, `SettingSpec`) are exported by `@neon-cards/ui`, with `definePlugin()` to erase a plugin's generics for the registry. The shell renders `Table` with:
+```ts
+interface EventBatch { id: number; events: GameEvent[] }   // one server response's events; id increases per response
+interface TableProps<View, Action> {
+  seats: Seat[]; humanSeat: SeatId
+  view: View                 // the human's view after `events`; the Table shows it once playback finishes
+  events: EventBatch         // the Table plays it through usePlayback(): turn beats for CPU seats, then juice
+  wallet: number | null      // null for 'score' games
+  act(action: Action): Promise<void>   // resolves once the response and its new batch arrived
+  busy: boolean
+}
+```
 There are two registries, one line per game each: apps/web/src/games.ts (an array of `GamePlugin`, the home screen lists them) and apps/worker/src/games.ts (an array of `GameRules`, keyed by `definition.id`). Only Blackjack exists in v1; Flip 7 is next.
 
 Shared juice primitives in packages/ui (every game reuses them, so all games feel the same): deal (fly-in plus a squash on landing), flip (squash-and-stretch), shake (small or big), flash (color), numberPop (+$75), chipBurst, chipsToPot, chipsToPlayer, badgePulse. Durations stay short, following the brief. A blackjack-level moment is the only "big" one (a Flip 7 "flip 7" bonus is the same tier).

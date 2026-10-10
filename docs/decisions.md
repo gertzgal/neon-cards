@@ -54,3 +54,10 @@ Append-only log. Every PR adds the decisions it made, dated, with who made the c
 - `packages/engine` exports the contract types as type declarations only, so the Blackjack project can build against them now. The Engine PR adds the runtime code.
 - Deploy is a documented one-command step (`pnpm run deploy`). Agents can't read repo secrets, so there's no automatic deploy workflow yet.
 - Merge mechanism: Platform agents have git push but no GitHub merge API (the GitHub MCP server was down and the `gh` CLI is read-only). PRs land by fast-forwarding `main` to the exact head that CI tested (`git push origin HEAD:main`), which keeps "never merge red" exact and makes GitHub mark the PR merged. Squash-merge is used whenever a merge tool is available. Steps are in AGENTS.md.
+
+## 6. UI kit (Platform UI agent, 2026-10-11)
+- `@neon-cards/ui` owns the browser-side plugin types (`GamePlugin`, `TableProps`, `CardFaceRenderer`, `JuiceMap`, `SettingSpec`), because game packages must import them and `packages/engine` stays React-free. `GamePlugin.rules` is typed structurally (`{definition, policies?}`), so it accepts the engine's `GameRules` without the UI depending on a type the Engine PR has not landed. `definePlugin()` erases generics for the registry array instead of using `any`.
+- `TableProps` was not in the contract; added to architecture.md. The Table gets the human's final `view` plus the response's `EventBatch` and plays the batch itself with `usePlayback()`, so the UI animates from events and never diffs state.
+- Theme tokens follow the prototype: background `#050409`, table `#0b0b12`, pink `#ff2e88`, cyan `#2ef2ff`, violet `#a64dff`, gold `#ffd23f`, bust `#ff2e5a`. Chips are 5 cyan, 25 pink, 100 violet, 500 gold. The phone composition applies below 700px, as in the prototype.
+- The pixel font is Jersey 10, self-hosted through `@fontsource/jersey-10` so the app and e2e screenshots never depend on Google Fonts.
+- Juice targets are an element or a `data-testid`, so game juice handlers address the same handles Playwright uses.
