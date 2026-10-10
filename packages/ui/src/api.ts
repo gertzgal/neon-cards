@@ -121,12 +121,36 @@ export interface ActionBarProps {
   columns?: { phone?: number; desktop?: number }
 }
 
+/** Betting: the chip rack over [clear | deal] on phone, one row on desktop. Buttons: action-clear, action-deal, chip-<v>. */
+export interface BetControlsProps {
+  values?: readonly ChipValue[]
+  onPick(value: ChipValue, from: HTMLElement): void
+  isDisabled?(value: ChipValue): boolean
+  onClear(): void
+  onDeal(): void
+  canClear: boolean
+  canDeal: boolean
+  dealLabel?: ReactNode
+}
+
+export interface SegmentedControlProps<V extends string | number = string | number> {
+  label: string
+  options: { value: V; label: string }[]
+  value: V
+  onChange(value: V): void
+  /** Each option gets data-testid="<testId>-<value>". */
+  testId?: string
+}
+
 export interface HudProps {
-  /** The bankroll pill (data-testid="hud-bankroll"). Null hides it, for score games. */
+  /** The bankroll pill (data-testid="hud-bankroll"), counting up or down on change. Null hides it, for score games. */
   bankroll?: number | null
   left?: ReactNode
   /** Extra icon buttons placed before the sound and settings icons. */
   right?: ReactNode
+  /** The sound icon (data-testid="hud-sound"). */
+  sound?: { on: boolean; toggle(): void }
+  /** The settings icon (data-testid="hud-settings"); hidden when absent. */
   onSettings?(): void
 }
 

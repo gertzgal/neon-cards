@@ -29,13 +29,13 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.nc-root *,
-.nc-root *::before,
-.nc-root *::after {
+:where(.nc-root) *,
+:where(.nc-root) *::before,
+:where(.nc-root) *::after {
   box-sizing: border-box;
 }
 
-.nc-root button {
+:where(.nc-root) button {
   font: inherit;
   color: inherit;
   background: none;
