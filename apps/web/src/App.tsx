@@ -1,31 +1,39 @@
-import { useEffect, useState } from 'react'
-
-type DbStatus = { state: 'loading' } | { state: 'ok'; schema: string } | { state: 'error'; error: string }
+import { useEffect } from 'react'
+import { GameScreen } from './GameScreen'
+import { findGame } from './games'
+import { History } from './History'
+import { Home } from './Home'
+import { NotFound } from './NotFound'
+import { useRoute } from './router'
+import type { Route } from './routes'
+import { useReducedMotion } from './settings'
+import { WalletProvider } from './shell/wallet'
 
 export function App() {
-  const [db, setDb] = useState<DbStatus>({ state: 'loading' })
-
+  const route = useRoute()
+  const reduced = useReducedMotion()
   useEffect(() => {
-    fetch('/api/health')
-      .then((res) => res.json() as Promise<{ ok: boolean; db?: { schema: string }; error?: string }>)
-      .then((body) =>
-        setDb(
-          body.ok && body.db
-            ? { state: 'ok', schema: body.db.schema }
-            : { state: 'error', error: body.error ?? 'unknown error' },
-        ),
-      )
-      .catch((err: unknown) => setDb({ state: 'error', error: String(err) }))
-  }, [])
+    document.documentElement.dataset['motion'] = reduced ? 'reduced' : 'full'
+  }, [reduced])
 
   return (
-    <main className="hello">
-      <h1 data-testid="app-title">Neon Cards</h1>
-      <p data-testid="db-status" data-state={db.state}>
-        {db.state === 'loading' && 'Checking database…'}
-        {db.state === 'ok' && `D1 ok · schema ${db.schema}`}
-        {db.state === 'error' && `D1 error · ${db.error}`}
-      </p>
-    </main>
+    <WalletProvider>
+      <Screen route={route} />
+    </WalletProvider>
   )
+}
+
+function Screen({ route }: { route: Route }) {
+  switch (route.name) {
+    case 'home':
+      return <Home />
+    case 'history':
+      return <History gameId={route.gameId} />
+    case 'game': {
+      const plugin = findGame(route.gameId)
+      return plugin ? <GameScreen key={route.gameId} plugin={plugin} /> : <NotFound what={`No game called "${route.gameId}".`} />
+    }
+    case 'notFound':
+      return <NotFound what={`${route.path} is not a page.`} />
+  }
 }

@@ -9,7 +9,7 @@
 
 ## How to get to it (user POV)
 
-- The app calls it on load (see [app-shell.md](app-shell.md)).
+- `verify.sh doctor` and the Playwright web server poll it before driving the app.
 - `curl http://localhost:$PORT/api/health`.
 
 ## Driving it with verify.sh
