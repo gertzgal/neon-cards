@@ -105,6 +105,27 @@ Append-only log. Every PR adds the decisions it made, dated, with who made the c
 - Stable test ids for e2e: `blackjack-table` (`data-stage`, `data-busy`), `hud-bankroll`, `dealer-hand`, `dealer-total`, `hand-N` (`data-status`, `data-outcome`, `data-active`), `hand-N-total`, `bet-amount`, `chip-<value>`, `action-<clear|deal|hit|stand|double|split>`, `result-pop`.
 - `pnpm --filter @neon-cards/game-blackjack dev` serves a standalone harness on :5199 that runs the rules in the browser (`?rig=split`, `?bankroll=10`, `?seed=7`, `?mute`). It's for development only; the real game talks to the Worker.
 
+
+## Web shell (Platform agent, 2026-10-11)
+- Routing is a 40-line History API router over a pure `parseRoute`/`hrefFor` pair (`apps/web/src/routes.ts`), not react-router. The shell has four routes (`/`, `/games/:id`, `/history?game=`, not found), and the Worker already serves the SPA fallback.
+- Settings is a sheet over the current screen, opened from the HUD gear, not a route. Leaving the table to change the music would unmount the game; Balatro's options menu overlays the run the same way.
+- Shell settings are `muted`, `music`, `sfx`, and `motion: 'system' | 'full' | 'reduced'` (shown as Auto / Full / Calm), stored in localStorage under `neon-cards:settings`. The HUD speaker is the master mute; the sheet has the separate music and effects toggles from the brief. The resolved motion level lands on `<html data-motion>` so CSS and the UI kit can read one attribute.
+- Per-game settings resolve per key: the remembered choice if it's still offered, else the game's `defaultConfig` value if offered, else the first option. Values are never coerced (`"3"` is not `3`). The shell sends only the chosen settings as `config`; the game's `parseConfig` fills the rest.
+- Games without settings skip the pre-game sheet and deal straight in, like opening a Balatro run. Games with settings always show the sheet before a new session.
+- The shell owns the session: it stores the session id per game in localStorage, resumes it with `GET /api/sessions/:id` after a reload, and hands the Table `act()`. The HUD back arrow keeps the session (come back and resume); "New game" in the in-game settings sheet drops it.
+- The wallet pill shows on the lobby and in `chips` games and hides in `score` games. It shows `$—` when the wallet API can't be reached rather than a fake number.
+- The lobby shows an empty state until a game is registered, so the shell can land before Blackjack.
+- `docs/decisions.md` is marked `merge=union` in `.gitattributes`. Every PR appends to it, so parallel PRs always conflicted on rebase; union keeps both sides' new lines.
+## Engine runtime (Engine agent, 2026-10-11)
+- A round ends on every action whose result is `'settling'`, not only on a phase change into it. Blackjack's `bet` from `'settling'` deals and resolves a natural in one action (settling to settling), and that round must still settle. (Engine agent, 2026-10-11)
+- `setup()` stays event-free, so the merged Blackjack rules don't change. A game that deals in `setup()` gets its opening deal animated from the first view. (Engine agent, 2026-10-11)
+- `act()` only accepts `human` seats, so a client can never drive a CPU seat even if the server forwards a bad seat id. A match whose `version` differs from the rules' throws instead of running old state through new rules. (Engine agent, 2026-10-11)
+- Policies receive JSON copies of their view and legal actions, so a policy that mutates its input can't corrupt state or replay. A CPU loop past 1,000 actions throws as a rules bug. (Engine agent, 2026-10-11)
+- The test game is "high card": each seat keeps or swaps one face-down card, the highest rank scores a point, ties all score, three rounds. The human starts each next round from `'settling'`, and the last round ends straight in `'over'`, so it covers both settle paths. A `position: 'first' | 'last'` setting puts CPU turns before the human. Policies: easy picks at random from `cpuRng`, medium swaps below 8, hard swaps below 10. (Engine agent, 2026-10-11)
+- Error mapping for the Worker: `ConfigError` and `IllegalActionError` are 400, and `NotYourTurnError` is 409 (including acting on a finished match, where nobody is to act). Any other throw from `startMatch`, `act`, or `replay` (wrong seat kind, version mismatch, a policy bug) is a server bug and stays a 500. `replay` takes an optional `version` and rejects a log from other rules. (Engine agent, 2026-10-11)
+## Flip 7 deck (Engine agent, 2026-10-11)
+- The Flip 7 DeckSpec lives in `packages/engine` (`flip7Deck`, deck id `flip7`) per the plan, with its `Flip7Face` type, so the future Flip 7 package imports it the way Blackjack imports `standard52`. It builds one 0, n copies of each number n from 1 to 12, one each of +2, +4, +6, +8, +10, and x2, and three each of Freeze, Flip Three, and Second Chance: 94 cards. No Flip 7 rules. (Engine agent, 2026-10-11)
+
 ## Blackjack polish (Blackjack agent, 2026-10-11)
 - The table follows the shell's motion setting (`<html data-motion="reduced|full">`) and falls back to the OS `prefers-reduced-motion` when it runs standalone. Reduced motion stops the card sway, skips deal fly-ins, and trims the chip burst to 8 chips.
 - On desktop (hover plus a fine pointer), the player's cards tilt up to 9° toward the pointer, strongest near the card, as the brief asks. Phones and reduced motion get no tilt.
