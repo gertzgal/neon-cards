@@ -15,6 +15,19 @@ Gal (the owner) approved full autopilot. There is no human in the loop.
 - Change the contract only through a PR that updates `docs/architecture.md` first and logs why in `docs/decisions.md`.
 - Prove a change on the real app before you merge it. Use the `verify-neon-cards` skill (`.cursor/skills/verify-neon-cards/SKILL.md`).
 
+## Merging
+
+Agents can push with git but may not have a GitHub merge API (the `gh` CLI can be read-only). The house merge is a fast-forward of `main` to the PR head that CI tested:
+
+```sh
+git fetch origin main
+git merge-base --is-ancestor origin/main HEAD || { git rebase origin/main && git push; }  # then wait for green again
+gh pr checks <pr>                     # both `checks` and `e2e` must pass on this exact head
+git push origin HEAD:main             # fast-forward only; GitHub marks the PR merged
+```
+
+If the push is rejected because `main` moved, rebase, push the branch, wait for green, and try again. Never use `--force` on `main`. Keep each PR small and its commits tidy, because they land on `main` as they are. If a GitHub merge tool is available, squash-merge instead.
+
 ## Ownership
 
 | Project | Owns |
