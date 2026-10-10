@@ -3,6 +3,11 @@ export class IllegalActionError extends Error {
   override name = 'IllegalActionError'
 }
 
+/** Thrown by parseConfig() for invalid client config. The server answers 400. */
+export class ConfigError extends Error {
+  override name = 'ConfigError'
+}
+
 /** Thrown by the engine when a seat acts out of turn. The server answers 409. */
 export class NotYourTurnError extends Error {
   override name = 'NotYourTurnError'

@@ -20,4 +20,8 @@ export type {
   Step,
   TurnEvent,
 } from './types'
-export { IllegalActionError, NotYourTurnError } from './errors'
+export { ConfigError, IllegalActionError, NotYourTurnError } from './errors'
+export { cpuRng, createRng, restoreRng } from './rng'
+export { buildShoe, faceDown, shuffle } from './deck'
+export { parseSettings } from './settings'
+export { RANKS, SUITS, standard52, type Rank, type StandardFace, type Suit } from './decks/standard52'
