@@ -448,7 +448,7 @@ export const blackjack: GameDefinition<
   name: 'Blackjack',
   version: 1,
   deck: standard52,
-  seats: { min: 1, max: 1 },
+  seats: { min: 2, max: 2 },
   defaultConfig,
   parseConfig,
   seatsFor,

@@ -125,3 +125,7 @@ Append-only log. Every PR adds the decisions it made, dated, with who made the c
 - Error mapping for the Worker: `ConfigError` and `IllegalActionError` are 400, and `NotYourTurnError` is 409 (including acting on a finished match, where nobody is to act). Any other throw from `startMatch`, `act`, or `replay` (wrong seat kind, version mismatch, a policy bug) is a server bug and stays a 500. `replay` takes an optional `version` and rejects a log from other rules. (Engine agent, 2026-10-11)
 ## Flip 7 deck (Engine agent, 2026-10-11)
 - The Flip 7 DeckSpec lives in `packages/engine` (`flip7Deck`, deck id `flip7`) per the plan, with its `Flip7Face` type, so the future Flip 7 package imports it the way Blackjack imports `standard52`. It builds one 0, n copies of each number n from 1 to 12, one each of +2, +4, +6, +8, +10, and x2, and three each of Freeze, Flip Three, and Second Chance: 94 cards. No Flip 7 rules. (Engine agent, 2026-10-11)
+
+## Blackjack on the engine runtime (Blackjack agent, 2026-10-11)
+- `definition.seats` is `{min: 2, max: 2}`: the engine counts every seat `seatsFor` returns, including the `house` dealer. The old `{1, 1}` made `startMatch` refuse Blackjack.
+- `match.test.ts` drives Blackjack through the engine's `startMatch`, `act`, and `replay`: one settlement per finished round, a natural settling inside the bet action, refill not counted as a round, and replay of a six-round session matching the live match, events, and rounds exactly.
