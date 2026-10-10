@@ -104,3 +104,14 @@ Append-only log. Every PR adds the decisions it made, dated, with who made the c
 - Keyboard: H hit, S stand, D double, P split, Space deal, Backspace clear.
 - Stable test ids for e2e: `blackjack-table` (`data-stage`, `data-busy`), `hud-bankroll`, `dealer-hand`, `dealer-total`, `hand-N` (`data-status`, `data-outcome`, `data-active`), `hand-N-total`, `bet-amount`, `chip-<value>`, `action-<clear|deal|hit|stand|double|split>`, `result-pop`.
 - `pnpm --filter @neon-cards/game-blackjack dev` serves a standalone harness on :5199 that runs the rules in the browser (`?rig=split`, `?bankroll=10`, `?seed=7`, `?mute`). It's for development only; the real game talks to the Worker.
+
+
+## Web shell (Platform agent, 2026-10-11)
+- Routing is a 40-line History API router over a pure `parseRoute`/`hrefFor` pair (`apps/web/src/routes.ts`), not react-router. The shell has four routes (`/`, `/games/:id`, `/history?game=`, not found), and the Worker already serves the SPA fallback.
+- Settings is a sheet over the current screen, opened from the HUD gear, not a route. Leaving the table to change the music would unmount the game; Balatro's options menu overlays the run the same way.
+- Shell settings are `muted`, `music`, `sfx`, and `motion: 'system' | 'full' | 'reduced'` (shown as Auto / Full / Calm), stored in localStorage under `neon-cards:settings`. The HUD speaker is the master mute; the sheet has the separate music and effects toggles from the brief. The resolved motion level lands on `<html data-motion>` so CSS and the UI kit can read one attribute.
+- Per-game settings resolve per key: the remembered choice if it's still offered, else the game's `defaultConfig` value if offered, else the first option. Values are never coerced (`"3"` is not `3`). The shell sends only the chosen settings as `config`; the game's `parseConfig` fills the rest.
+- Games without settings skip the pre-game sheet and deal straight in, like opening a Balatro run. Games with settings always show the sheet before a new session.
+- The shell owns the session: it stores the session id per game in localStorage, resumes it with `GET /api/sessions/:id` after a reload, and hands the Table `act()`. The HUD back arrow keeps the session (come back and resume); "New game" in the in-game settings sheet drops it.
+- The wallet pill shows on the lobby and in `chips` games and hides in `score` games. It shows `$—` when the wallet API can't be reached rather than a fake number.
+- The lobby shows an empty state until a game is registered, so the shell can land before Blackjack.

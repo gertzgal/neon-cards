@@ -1,0 +1,70 @@
+import { expect, test } from '@playwright/test'
+
+test('home shows the lobby, the wallet pill, and the HUD icons', async ({ page }, testInfo) => {
+  await page.goto('/')
+  await expect(page.getByTestId('app-title')).toHaveText('Neon Cards')
+  await expect(page.getByTestId('game-list')).toBeAttached()
+  await expect(page.getByTestId('wallet')).not.toHaveAttribute('data-state', 'loading')
+  await expect(page.getByTestId('sound-toggle')).toBeVisible()
+  await expect(page.getByTestId('open-settings')).toBeVisible()
+  await page.screenshot({ path: testInfo.outputPath('home.png'), fullPage: true })
+})
+
+test('settings persist across a reload', async ({ page }, testInfo) => {
+  await page.goto('/')
+  await page.getByTestId('open-settings').click()
+  const sheet = page.getByTestId('settings')
+  await expect(sheet).toBeVisible()
+  await expect(page.getByTestId('setting-music')).toHaveAttribute('data-value', 'on')
+  await expect(page.getByTestId('setting-motion')).toHaveAttribute('data-value', 'system')
+
+  await page.getByTestId('setting-music-off').click()
+  await page.getByTestId('setting-motion-reduced').click()
+  await expect(page.locator('html')).toHaveAttribute('data-motion', 'reduced')
+  await page.screenshot({ path: testInfo.outputPath('settings.png') })
+  await page.getByTestId('settings-close').click()
+  await expect(sheet).toBeHidden()
+
+  await page.reload()
+  await expect(page.locator('html')).toHaveAttribute('data-motion', 'reduced')
+  await page.getByTestId('open-settings').click()
+  await expect(page.getByTestId('setting-music')).toHaveAttribute('data-value', 'off')
+  await expect(page.getByTestId('setting-sfx')).toHaveAttribute('data-value', 'on')
+  await expect(page.getByTestId('setting-motion')).toHaveAttribute('data-value', 'reduced')
+  await page.keyboard.press('Escape')
+  await expect(sheet).toBeHidden()
+})
+
+test('the HUD sound icon mutes and unmutes, and remembers it', async ({ page }) => {
+  await page.goto('/')
+  const sound = page.getByTestId('sound-toggle')
+  await expect(sound).toHaveAttribute('data-state', 'on')
+  await sound.click()
+  await expect(sound).toHaveAttribute('data-state', 'muted')
+  await page.reload()
+  await expect(sound).toHaveAttribute('data-state', 'muted')
+  await sound.click()
+  await expect(sound).toHaveAttribute('data-state', 'on')
+})
+
+test('history opens from the HUD and goes back to the lobby', async ({ page }, testInfo) => {
+  await page.goto('/')
+  await page.getByTestId('nav-history').click()
+  await expect(page).toHaveURL(/\/history$/)
+  await expect(page.getByTestId('history-all')).toHaveClass(/on/)
+  await expect(page.getByTestId('history-list')).not.toHaveAttribute('data-state', 'loading')
+  await page.screenshot({ path: testInfo.outputPath('history.png'), fullPage: true })
+  await page.getByTestId('nav-back').click()
+  await expect(page.getByTestId('app-title')).toBeVisible()
+  await page.goBack()
+  await expect(page).toHaveURL(/\/history$/)
+})
+
+test('unknown games and pages show a way back to the lobby', async ({ page }) => {
+  await page.goto('/games/no-such-game')
+  await expect(page.getByTestId('not-found')).toContainText('No game called "no-such-game".')
+  await page.getByTestId('go-home').click()
+  await expect(page).toHaveURL(/\/$/)
+  await page.goto('/nope')
+  await expect(page.getByTestId('not-found')).toContainText('/nope is not a page.')
+})
