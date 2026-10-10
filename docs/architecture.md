@@ -144,9 +144,9 @@ The server is authoritative. The shoe and hidden cards live only on the server.
 - `POST /api/sessions/:id/actions {action, seq}` checks that the human seat is `toAct` (409 otherwise), validates against legalActions, applies, runs the CPU loop, persists every action (human and CPU) to `actions`, and returns `{events, view, wallet}`. `seq` makes retries idempotent: a retried `seq` returns the stored response without re-running anything.
 - `GET /api/sessions/:id` returns the current view (for resume after reload).
 - `GET /api/history?gameId=` returns finished rounds for this player.
-- `GET /api/wallet` returns the balance. A broke player is refilled to the starting bankroll (1,250), and the refill is recorded. Only `economy: 'chips'` games read or write the wallet; `rounds.net` is 0 for score games and their result lives in `summary_json`.
+- `GET /api/wallet` returns the balance. A broke player (balance below 5, the smallest chip) is refilled to the starting bankroll (1,250), and the refill is recorded. Only `economy: 'chips'` games read or write the wallet; `rounds.net` is 0 for score games and their result lives in `summary_json`.
 - Identity is an anonymous player id in an httpOnly cookie. There are no accounts in v1.
-- D1 tables: `players`, `wallets`, `sessions(id, player_id, game_id, game_version, seed, config, state_json, status, created_at)`, `actions(session_id, seq, seat, action_json, created_at)`, `rounds(id, session_id, round_no, summary_json, net, created_at)`, `wallet_ledger(player_id, delta, reason, ref, created_at)`.
+- D1 tables: `players`, `wallets`, `sessions(id, player_id, game_id, game_version, seed, config, state_json, status, created_at)`, `actions(session_id, seq, seat, action_json, response_json, created_at)` (`response_json` is stored on human actions so a retried `seq` replays it), `rounds(id, session_id, round_no, summary_json, net, created_at)`, `wallet_ledger(player_id, delta, reason, ref, created_at)`.
 - Dev-only rigging: when `env.DEV_RIG === "1"`, `config.rig` stacks the shoe (e.g. "blackjack", "bust", "split", "dealerbj"), matching the prototype's `?rig=` param. It's never enabled in production.
 
 ## Verification bar

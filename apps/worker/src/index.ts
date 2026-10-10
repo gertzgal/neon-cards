@@ -1,13 +1,13 @@
 import { Hono } from 'hono'
+import type { AppEnv } from './env'
+import { withPlayer } from './player'
+import { readWallet } from './wallet'
 
-export interface Env {
-  DB: D1Database
-  ASSETS: Fetcher
-}
+export type { Env } from './env'
 
 export type Health = { ok: true; db: { schema: string } } | { ok: false; error: string }
 
-const app = new Hono<{ Bindings: Env }>().basePath('/api')
+const app = new Hono<AppEnv>().basePath('/api')
 
 app.get('/health', async (c) => {
   try {
@@ -20,5 +20,7 @@ app.get('/health', async (c) => {
     return c.json<Health>({ ok: false, error: String(err) }, 503)
   }
 })
+
+app.get('/wallet', withPlayer, async (c) => c.json(await readWallet(c.var.db, c.var.playerId)))
 
 export default app

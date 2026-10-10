@@ -68,3 +68,12 @@ Append-only log. Every PR adds the decisions it made, dated, with who made the c
 - Hidden information: the hole card appears as `{id: 'hole', face: null}` in both `view()` and the `deal` event, so its real card id never reaches the client before the `reveal` event. The view exposes only the shoe's size and remaining count.
 - `config.rig` takes a named rig (the prototype's names plus `splitaces`, `bjpush`, `dealerbust`, `soft17`) or a literal card list such as `"AH,9C,KS,7D"`. It restacks the shoe at the start of every round, pulling those exact cards out of the shoe so card ids stay unique.
 - `buildShoe` and `shuffle` live in the blackjack package until the Engine PR ships the runtime helpers; the next blackjack PR swaps to the engine's.
+
+## Worker API (Platform agent, 2026-10-11)
+- The D1 schema is hand-written SQL in `apps/worker/migrations` (wrangler applies it, tests apply it), with a Drizzle mirror in `apps/worker/src/db/schema.ts` used for every query. No drizzle-kit: its generated file names and `meta/` journal don't match the `NNNN_name.sql` convention, and one hand-kept mirror is simpler to review.
+- Timestamps are Unix epoch milliseconds (`INTEGER`).
+- `actions` gains a nullable `response_json` column holding the stored response of each human action, so a retried `seq` returns it byte-for-byte without re-running anything. Contract updated.
+- "Broke" means a balance below 5, the smallest chip, because a player with 1 to 4 chips can't place any bet. Contract updated.
+- A new player starts with a `wallet_ledger` row `(+1250, 'start')`, so the ledger always sums to the balance.
+- The identity cookie is `nc_player` (httpOnly, SameSite=Lax, one year, `Secure` only over https so local http dev works). A cookie naming an unknown player (for example after a local D1 wipe) is replaced with a new player.
+- The `meta` schema marker stays `foundation`, so the shell's health line and the smoke e2e don't churn with every migration.
