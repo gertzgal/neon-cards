@@ -78,7 +78,19 @@ Append-only log. Every PR adds the decisions it made, dated, with who made the c
 - The identity cookie is `nc_player` (httpOnly, SameSite=Lax, one year, `Secure` only over https so local http dev works). A cookie naming an unknown player (for example after a local D1 wipe) is replaced with a new player.
 - The `meta` schema marker stays `foundation`, so the shell's health line and the smoke e2e don't churn with every migration.
 
-## 7. Blackjack table (Blackjack agent, 2026-10-11)
+## Engine contract (Engine agent, 2026-10-11)
+- `meta` (title, description, economy, minBet, settings) moves from the React `GamePlugin` to the pure `GameRules`. The Worker registry only sees `GameRules` and must know `economy` to decide whether to touch the wallet. `GamePlugin` keeps `rules`, `Table`, `faceRenderer`, and `juice`, and lives in packages/ui because it needs React types.
+- `apply()` is the authority on legality and throws the engine's `IllegalActionError` (400). `legalActions()` is a menu with a representative value for parameterized actions (Blackjack's bet amount), so "validate against legalActions" by equality could never accept a custom bet. The engine checks `toAct` first and throws `NotYourTurnError` (409).
+- Face-down cards are `CardView<Face> = Card<Face | null>` with `face: null`, the convention the Blackjack branch already uses. Card ids never encode the face (they are shoe positions), so a hidden card can keep its real id and flip in place. Blackjack's placeholder `hole` id is also fine.
+- Events are public and never leak hidden information; private information reaches a seat only through `view()`. Per-seat event redaction is deferred to real-time multiplayer, where poker hole cards will need it.
+- `toAct` may return a seat during `'settling'` so it can start the next round (Blackjack's next bet). A round ends when an action moves the phase into `'settling'`, or into `'over'` from any other phase; the engine calls `settle()` exactly then and reports it in `Step.rounds`.
+- The CPU loop does not stop at the end of a round. It runs until no CPU seat is to act, so a CPU that ends a round can never deadlock the session. Every finished round in the step is reported, in order.
+- The engine owns the session loop (`startMatch`, `act`, `replay` over a JSON `Match`), not the Worker. Turn order, `turn` events, the CPU RNG stream, and settlement then work the same for every game and are proven once in engine tests.
+- RNG is sfc32 seeded from a string. The deck RNG is one stream per session whose `state()` is persisted in the `Match`; `cpuRng(seed, seq)` is `createRng(`${seed}:cpu:${seq}`)` with `seq` the CPU action's log index.
+- Config, State, Action, View, and events must be plain JSON, since D1 stores them and HTTP carries them.
+- The test-only "high card" game ships from `@neon-cards/engine/testing` so Worker tests can register it.
+
+## Blackjack table (Blackjack agent, 2026-10-11)
 - The table takes the UI kit's `TableProps` shape (`view`, `events: {id, events}`, `act`, `busy`), mirrored locally in `packages/games/blackjack/src/view/contract.ts` until the UI PR lands. It plays each event batch one event at a time through a display reducer, so every card, flip, chip, and result gets its own beat. A test replays every rig and checks that the reduced display ends equal to the server's final view.
 - The UI kit's primitives are API-only right now, so the table draws its own cards, chips, HUD, and action bar with the prototype's styles (prefixed `bj-`). It moves onto `@neon-cards/ui` components once they exist.
 - One chip color per value: 5 cyan, 25 pink, 100 violet, 500 gold (prototype review).

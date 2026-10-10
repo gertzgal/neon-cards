@@ -33,15 +33,19 @@ docs/
 
 ## Core data shapes (packages/engine)
 ```ts
-type Rng = { next(): number; int(maxExclusive: number): number; state(): string }  // seeded, serializable (e.g. PCG32 or sfc32)
+type Rng = { next(): number; int(maxExclusive: number): number; state(): string }  // seeded, serializable (sfc32)
 
 // A card instance. `id` is unique per physical card in the shoe so animations can track it.
+// `id` never encodes the face, so a face-down card can keep its real id and the UI can flip it in place.
 // `face` is game-defined; the theme's face renderer for this deck draws it.
 interface Card<Face = unknown> { id: string; deck: string; face: Face }
+// What views and events carry: `face: null` is a face-down card.
+type CardView<Face = unknown> = Card<Face | null>
 
 // Decks are data, not code. Standard 52 and Flip 7 are both just DeckSpecs.
 interface DeckSpec<Face> { id: string; build(): Face[] }          // one copy of the deck
-// helpers: buildShoe(spec, copies, rng) -> Card<Face>[], shuffle(cards, rng)
+// helpers: buildShoe(spec, copies, rng, idPrefix = spec.id) -> Card<Face>[], shuffle(items, rng)
+// ids are `${idPrefix}-${index in the shuffled shoe}`; a game that reshuffles mid-session passes a fresh prefix.
 
 type SeatId = string
 type Difficulty = 'easy' | 'medium' | 'hard'
@@ -49,7 +53,11 @@ type Difficulty = 'easy' | 'medium' | 'hard'
 interface Seat { id: SeatId; kind: 'human' | 'cpu' | 'house'; name: string; difficulty?: Difficulty }  // difficulty only on 'cpu'
 
 // Everything the UI animates comes from typed events. The UI never diffs state to guess what happened.
+// Events are public: they never carry information hidden from any seat (deal a hidden card as a CardView with
+// face: null and reveal it in a later event). A seat's private information reaches it only through view().
 type GameEvent = { type: string; seat?: SeatId; [k: string]: unknown }
+// The platform emits this before each CPU action's events. Games may emit it too (Blackjack: the next hand to play).
+type TurnEvent = { type: 'turn'; seat: SeatId }
 
 // `delta` is in the game's economy unit (see meta.economy): chips for 'chips' games, points for 'score' games.
 interface Settlement { seat: SeatId; delta: number }
@@ -64,19 +72,25 @@ interface GameDefinition<Config, State, Action, View, Face> {
   parseConfig(input: unknown): Config            // validates client-sent config at the API boundary; throws on invalid
   seatsFor(config: Config): Seat[]               // builds the seat list, in turn order, from config (e.g. opponents, difficulty)
   setup(config: Config, seats: Seat[], rng: Rng): State
-  toAct(state: State): SeatId | null             // whose turn it is; null while nobody can act (settling, over). Never a 'house' seat.
+  toAct(state: State): SeatId | null             // whose turn it is; null while nobody can act. Never a 'house' seat.
   legalActions(state: State, seat: SeatId): Action[]   // [] for any seat that is not toAct(state)
-  apply(state: State, seat: SeatId, action: Action, rng: Rng): { state: State; events: GameEvent[] }
+  apply(state: State, seat: SeatId, action: Action, rng: Rng): { state: State; events: GameEvent[] }  // throws IllegalActionError
   view(state: State, seat: SeatId): View         // MUST hide hidden information (hole card, shoe order, other seats' hidden cards)
   phase(state: State): GamePhase
-  settle(state: State): Settlement[]             // valid once phase is 'settling'
+  settle(state: State): Settlement[]             // valid once phase is 'settling' (or 'over' reached straight from play)
 }
 
 // CPU seats run a Policy. Policies are pure and see only what that seat's view() exposes, never full state.
 interface Policy<View, Action> { choose(view: View, legal: Action[], rng: Rng): Action }
 type Policies<View, Action> = Record<Difficulty, Policy<View, Action>>
 ```
-Rules are pure: same state + action + rng state gives the same result. A full round can be replayed from `seed + action log`. That powers history, debugging, and deterministic e2e tests. CPU actions go into the action log exactly like human actions, so replay never re-runs a policy.
+Rules are pure: same state + action + rng state gives the same result, and `apply()` never mutates its input state. A full round can be replayed from `seed + action log`. That powers history, debugging, and deterministic e2e tests. CPU actions go into the action log exactly like human actions, so replay never re-runs a policy.
+
+Further rules every game follows:
+- `Config`, `State`, `Action`, `View`, and events are plain JSON (no classes, Maps, `undefined` values, or functions), because the server stores them in D1 and sends them over HTTP.
+- `legalActions()` is the menu the UI renders and Policies pick from. A parameterized action appears once with a representative value (Blackjack's `bet` carries the suggested amount). `apply()` is the authority on legality: it throws `IllegalActionError` (exported by the engine) for anything it rejects, and the server answers 400.
+- A round ends with the action that moves `phase` into `'settling'` (or into `'over'` from a phase other than `'settling'`). The platform calls `settle()` exactly then. While `'settling'`, `toAct` may return a seat whose action starts the next round (Blackjack's next `bet`, Flip 7's "next round"), or null.
+- `seats.min`/`seats.max` count every seat `seatsFor` can return, house seats included.
 
 ## Multi-seat turn order
 - `seatsFor(config)` returns seats in turn order. `toAct(state)` is the single source of truth for whose turn it is; the rules advance it inside `apply()`.
@@ -85,14 +99,16 @@ Rules are pure: same state + action + rng state gives the same result. A full ro
 
 ## CPU seats
 - CPU seats run on the server, never in the browser. After every human action, the server loops: while `toAct(state)` is a `cpu` seat, it calls `policies[seat.difficulty].choose(view(state, seat), legalActions(state, seat), cpuRng)`, applies the chosen action, and appends it to the action log with that seat.
-- `cpuRng` is a separate stream seeded from `seed + seq`, so CPU randomness never shifts the deck's RNG.
-- Each CPU action's events are wrapped as `{type: 'turn', seat}` followed by the events `apply()` returned, all in the same response. The response ends when it's the human's turn again or the round reaches `settling`/`over`.
+- `cpuRng` is a separate stream, `cpuRng(seed, seq)` = `createRng(`${seed}:cpu:${seq}`)` where `seq` is the CPU action's index in the action log, so CPU randomness never shifts the deck's RNG.
+- The deck RNG is one stream per session: `createRng(seed)` feeds `setup()` and every `apply()` in log order, and its `state()` is persisted between requests (`restoreRng(state)`).
+- Each CPU action's events are wrapped as `{type: 'turn', seat}` followed by the events `apply()` returned, all in the same response. The response ends when no CPU seat is to act: it's the human's turn again, or nobody can act. A CPU action that ends a round does not stop the loop; the round is reported in `Step.rounds` and the game decides through `toAct` who starts the next one.
+- The engine runs this loop (`act()` and `startMatch()`, see Engine runtime); the server only persists and responds.
 - The UI plays CPU turns as a paced queue: a short "thinking" beat (about 500 ms) on the seat, then the action's juice, then the next turn. Tapping skips to the end of the queue. Pacing is purely client-side; the server returns everything at once.
 - If CPU seats come before the human in turn order, the `POST /api/sessions` response resolves their turns the same way.
 
 ## Game settings
 - Settings live in `Config` and travel `POST /api/sessions {gameId, config}` → `definition.parseConfig(config)` → `seatsFor(config)` and `setup(config, ...)`. Nothing about seats or difficulty is hard-coded in the platform.
-- The plugin declares which settings the shell should show in `meta.settings` (choice lists only, rendered as segmented pixel buttons on a pre-game sheet). Flip 7's are `opponents: 1 | 2 | 3` and `difficulty: easy | medium | hard`. Blackjack has none in v1.
+- The game declares which settings the shell should show in `rules.meta.settings` (choice lists only, rendered as segmented pixel buttons on a pre-game sheet). Flip 7's are `opponents: 1 | 2 | 3` and `difficulty: easy | medium | hard`. Blackjack has none in v1.
 - The shell remembers the last-used settings per game in localStorage.
 
 ## Card faces
@@ -106,29 +122,63 @@ A game package has two entrypoints, because the Worker must run the rules and CP
 - `@neon-cards/game-<id>`: the browser plugin. Exports `GamePlugin`, which re-uses the same `rules`.
 
 ```ts
-interface GameRules {
-  definition: GameDefinition<any, any, any, any, any>
-  policies?: Policies<any, any>                  // required when seatsFor() can return 'cpu' seats
+// packages/engine. Both registries see GameRules, so everything the Worker needs (economy, settings) lives here.
+interface GameRules<Config = unknown, State = unknown, Action = unknown, View = unknown, Face = unknown> {
+  definition: GameDefinition<Config, State, Action, View, Face>
+  policies?: Policies<View, Action>              // required when seatsFor() can return 'cpu' seats
+  meta: GameMeta
+}
+
+interface GameMeta {
+  title: string; description: string
+  economy: 'chips' | 'score'                     // 'chips' games bet from and settle into the wallet; 'score' games never touch it
+  minBet?: number                                // 'chips' games only
+  settings?: SettingSpec[]                       // shown on the pre-game sheet; values land in config[key]
 }
 
 interface SettingSpec { key: string; label: string; options: { value: string | number; label: string }[] }
 
+// packages/ui (it needs React types). The shell reads title, settings, and economy from plugin.rules.meta.
 interface GamePlugin {
   rules: GameRules
   Table: React.ComponentType<TableProps>        // composed from packages/ui primitives only
   faceRenderer: CardFaceRenderer                 // how this deck's faces draw in the shared card frame
   juice: JuiceMap                                // maps this game's GameEvent types to shared juice primitives
-  meta: {
-    title: string; description: string
-    economy: 'chips' | 'score'                   // 'chips' games bet from and settle into the wallet; 'score' games never touch it
-    minBet?: number                              // 'chips' games only
-    settings?: SettingSpec[]                     // shown on the pre-game sheet; values land in config[key]
-  }
 }
 ```
 There are two registries, one line per game each: apps/web/src/games.ts (an array of `GamePlugin`, the home screen lists them) and apps/worker/src/games.ts (an array of `GameRules`, keyed by `definition.id`). Only Blackjack exists in v1; Flip 7 is next.
 
 Shared juice primitives in packages/ui (every game reuses them, so all games feel the same): deal (fly-in plus a squash on landing), flip (squash-and-stretch), shake (small or big), flash (color), numberPop (+$75), chipBurst, chipsToPot, chipsToPlayer, badgePulse. Durations stay short, following the brief. A blackjack-level moment is the only "big" one (a Flip 7 "flip 7" bonus is the same tier).
+
+## Engine runtime (packages/engine)
+The Worker never calls `setup`/`apply`/policies directly; it drives a `Match` through the engine, so turn order, the CPU loop, `turn` events, the CPU RNG stream, and settlement work the same for every game and are proven once in engine tests.
+```ts
+createRng(seed: string): Rng; restoreRng(state: string): Rng; cpuRng(seed: string, seq: number): Rng
+shuffle<T>(items: readonly T[], rng: Rng): T[]
+buildShoe<Face>(spec: DeckSpec<Face>, copies: number, rng: Rng, idPrefix?: string): Card<Face>[]
+parseSettings<C>(settings: SettingSpec[], defaults: C, input: unknown): C   // choice-list config parsing for parseConfig()
+standard52: DeckSpec<{ rank: Rank; suit: Suit }>; flip7Deck: DeckSpec<Flip7Face>
+
+// Everything the server persists for a live session, as plain JSON.
+interface Match<Config, State> {
+  gameId: string; version: number; seed: string; config: Config; seats: Seat[]
+  state: State; rng: string                      // rng is the deck Rng's state()
+  seq: number                                    // next action seq, equal to the action log's length
+}
+interface ActionRecord<Action> { seq: number; seat: SeatId; action: Action }
+interface Step<Config, State, Action> {
+  match: Match<Config, State>
+  events: GameEvent[]                            // the human's action's events, then per CPU action: TurnEvent + its events
+  log: ActionRecord<Action>[]                    // every action applied in this step (human and CPU), to append to `actions`
+  rounds: Settlement[][]                         // one entry per round that ended in this step, in order
+}
+startMatch(rules, config, seed): Step            // config already parsed; runs setup, then leading CPU turns
+act(rules, match, seat, action): Step            // throws NotYourTurnError (409), IllegalActionError (400); then runs CPU turns
+replay(rules, { seed, config, log }): Step       // rebuilds the match from the log alone; never runs a policy
+```
+The CPU loop stops when `toAct` is null or not a `cpu` seat. It throws if a CPU seat has no policy for its difficulty or chooses an action outside `legalActions`.
+
+The test-only multi-seat game ("high card", 1 human + 1 to 3 CPUs, a trivial policy per difficulty) ships from `@neon-cards/engine/testing` so Worker tests can register it next to the real games. It is never in a production registry.
 
 ## Table primitives (packages/ui)
 One table composition scales from phone to desktop and from heads-up to a full table. Top to bottom:
@@ -141,7 +191,7 @@ One table composition scales from phone to desktop and from heads-up to a full t
 ## Server model (apps/worker)
 The server is authoritative. The shoe and hidden cards live only on the server.
 - `POST /api/sessions {gameId, config}` parses config with `definition.parseConfig` (400 on invalid), builds seats with `seatsFor`, creates a session with a seed, runs any leading CPU turns, and returns `{sessionId, seats, events, view}`.
-- `POST /api/sessions/:id/actions {action, seq}` checks that the human seat is `toAct` (409 otherwise), validates against legalActions, applies, runs the CPU loop, persists every action (human and CPU) to `actions`, and returns `{events, view, wallet}`. `seq` makes retries idempotent: a retried `seq` returns the stored response without re-running anything.
+- `POST /api/sessions/:id/actions {action, seq}` runs the engine's `act()` (409 when the human seat is not `toAct`, 400 when `apply()` rejects the action), which applies it and runs the CPU loop, settles every round in `Step.rounds`, persists every action (human and CPU) to `actions`, and returns `{events, view, wallet}`. `seq` makes retries idempotent: a retried `seq` returns the stored response without re-running anything.
 - `GET /api/sessions/:id` returns the current view (for resume after reload).
 - `GET /api/history?gameId=` returns finished rounds for this player.
 - `GET /api/wallet` returns the balance. A broke player (balance below 5, the smallest chip) is refilled to the starting bankroll (1,250), and the refill is recorded. Only `economy: 'chips'` games read or write the wallet; `rounds.net` is 0 for score games and their result lives in `summary_json`.
