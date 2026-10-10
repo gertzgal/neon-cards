@@ -18,12 +18,12 @@ function deepFreeze<T>(value: T): T {
   return value
 }
 
-/** Plays a whole match, always choosing `keep`/`next` for the human, and returns every step. */
+/** Plays a whole match (the human mixes keep and swap) and returns every step. */
 function playOut(rules: typeof highCard, c: HighCardConfig, seed: string) {
   const steps: Step<HighCardConfig, HighCardState, unknown>[] = [startMatch(rules, c, seed)]
   let match = steps[0]?.match as Match<HighCardConfig, HighCardState>
   while (rules.definition.toAct(match.state) === 'you') {
-    const action = match.state.phase === 'settling' ? { type: 'next' as const } : { type: 'keep' as const }
+    const action = match.state.phase === 'settling' ? { type: 'next' as const } : { type: match.seq % 2 ? ('swap' as const) : ('keep' as const) }
     const step = act(rules, match, 'you', action)
     steps.push(step)
     match = step.match
@@ -210,8 +210,10 @@ describe('replay', () => {
     expect(replay(noPolicies, { seed: 'neon', config: c, log: steps.flatMap((s) => s.log) }).match).toEqual(match)
   })
 
-  it('rejects a log that skips a seq or has the wrong seat acting', () => {
+  it('rejects a log that skips a seq, has the wrong seat acting, or came from other rules', () => {
     const c = config({ opponents: 1 })
+    expect(() => replay(highCard, { seed: 'neon', config: c, log: [], version: 2 })).toThrow('log is high-card v2, rules are high-card v1')
+    expect(replay(highCard, { seed: 'neon', config: c, log: [], version: 1 }).match.seq).toBe(0)
     expect(() => replay(highCard, { seed: 'neon', config: c, log: [{ seq: 1, seat: 'you', action: { type: 'keep' } }] })).toThrow(
       'log entry 0 has seq 1',
     )
@@ -331,6 +333,23 @@ describe('the CPU loop edges', () => {
   it('does not settle when over follows settling', () => {
     const rules = loopGame({ setup: () => ({ phase: 'settling', toAct: 'you', moves: 0, limit: 1, settlesTo: 'over' }) })
     expect(act(rules, startMatch(rules, null, 's').match, 'you', 'go').rounds).toEqual([])
+  })
+
+  it('keeps running CPU turns after a CPU ends a round, reporting every round', () => {
+    const script: Record<number, Pick<LoopState, 'phase' | 'toAct'>> = {
+      1: { phase: 'playing', toAct: 'bot' },
+      2: { phase: 'settling', toAct: 'bot' },
+      3: { phase: 'settling', toAct: 'bot' },
+      4: { phase: 'playing', toAct: 'you' },
+    }
+    const rules = loopGame({
+      apply: (s) => ({ state: { ...s, moves: s.moves + 1, ...script[s.moves + 1] }, events: [{ type: 'go', moves: s.moves + 1 }] }),
+    })
+    const step = act(rules, startMatch(rules, null, 's').match, 'you', 'go')
+    expect(types(step.events)).toEqual(['go', 'turn:bot', 'go', 'turn:bot', 'go', 'turn:bot', 'go'])
+    expect(step.rounds).toEqual([[{ seat: 'you', delta: 2 }], [{ seat: 'you', delta: 3 }]])
+    expect(step.log.map((r) => `${r.seq}:${r.seat}`)).toEqual(['0:you', '1:bot', '2:bot', '3:bot'])
+    expect(replay(rules, { seed: 's', config: null, log: step.log }).rounds).toEqual(step.rounds)
   })
 
   it('stops a runaway CPU loop', () => {

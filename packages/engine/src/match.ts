@@ -114,9 +114,12 @@ export function act<C, S, A, V, F>(rules: GameRules<C, S, A, V, F>, match: Match
  */
 export function replay<C, S, A, V, F>(
   rules: GameRules<C, S, A, V, F>,
-  input: { seed: string; config: C; log: readonly ActionRecord<A>[] },
+  input: { seed: string; config: C; log: readonly ActionRecord<A>[]; version?: number },
 ): Step<C, S, A> {
   const def = rules.definition
+  if (input.version !== undefined && input.version !== def.version) {
+    throw new Error(`log is ${def.id} v${input.version}, rules are ${def.id} v${def.version}`)
+  }
   let step = begin(rules, input.config, input.seed)
   for (const [i, record] of input.log.entries()) {
     if (record.seq !== i) throw new Error(`log entry ${i} has seq ${record.seq}`)

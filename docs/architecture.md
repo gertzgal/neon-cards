@@ -89,7 +89,7 @@ Rules are pure: same state + action + rng state gives the same result, and `appl
 Further rules every game follows:
 - `Config`, `State`, `Action`, `View`, and events are plain JSON (no classes, Maps, `undefined` values, or functions), because the server stores them in D1 and sends them over HTTP.
 - `legalActions()` is the menu the UI renders and Policies pick from. A parameterized action appears once with a representative value (Blackjack's `bet` carries the suggested amount). `apply()` is the authority on legality: it throws `IllegalActionError` (exported by the engine) for anything it rejects, and the server answers 400.
-- Every action that leaves `phase` at `'settling'` ends exactly one round, and so does an action that moves it into `'over'` from a phase other than `'settling'`. The platform calls `settle()` exactly then. (Blackjack's `bet` from `'settling'` can deal and resolve a natural in one action, settling to settling, and that is a round.) An action taken during `'settling'` that does not finish a new round must leave `'settling'`.
+- Every action that leaves `phase` at `'settling'` ends exactly one round, and so does an action that moves it into `'over'` from `'betting'` or `'playing'`. The platform calls `settle()` exactly then. (Blackjack's `bet` from `'settling'` can deal and resolve a natural in one action, settling to settling, and that is a round.) An action taken during `'settling'` that does not finish a new round must leave `'settling'`.
 - `setup()` emits no events. The UI renders the first view as the opening deal. While `'settling'`, `toAct` may return a seat whose action starts the next round (Blackjack's next `bet`, Flip 7's "next round"), or null.
 - `seats.min`/`seats.max` count every seat `seatsFor` can return, house seats included.
 
@@ -176,7 +176,7 @@ interface Step<Config, State, Action> {
 }
 startMatch(rules, config, seed): Step            // config already parsed; runs setup, then leading CPU turns
 act(rules, match, seat, action): Step            // throws NotYourTurnError (409), IllegalActionError (400); then runs CPU turns
-replay(rules, { seed, config, log }): Step       // rebuilds the match from the log alone; never runs a policy
+replay(rules, { seed, config, log, version? }): Step  // rebuilds the match from the log alone; never runs a policy
 ```
 The CPU loop stops when `toAct` is null or not a `cpu` seat. It throws if a CPU seat has no policy for its difficulty or chooses an action outside `legalActions`.
 
