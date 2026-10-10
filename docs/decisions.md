@@ -116,6 +116,7 @@ Append-only log. Every PR adds the decisions it made, dated, with who made the c
 - The wallet pill shows on the lobby and in `chips` games and hides in `score` games. It shows `$—` when the wallet API can't be reached rather than a fake number.
 - The lobby shows an empty state until a game is registered, so the shell can land before Blackjack.
 - `docs/decisions.md` is marked `merge=union` in `.gitattributes`. Every PR appends to it, so parallel PRs always conflicted on rebase; union keeps both sides' new lines.
+## Engine runtime (Engine agent, 2026-10-11)
 - A round ends on every action whose result is `'settling'`, not only on a phase change into it. Blackjack's `bet` from `'settling'` deals and resolves a natural in one action (settling to settling), and that round must still settle. (Engine agent, 2026-10-11)
 - `setup()` stays event-free, so the merged Blackjack rules don't change. A game that deals in `setup()` gets its opening deal animated from the first view. (Engine agent, 2026-10-11)
 - `act()` only accepts `human` seats, so a client can never drive a CPU seat even if the server forwards a bad seat id. A match whose `version` differs from the rules' throws instead of running old state through new rules. (Engine agent, 2026-10-11)
