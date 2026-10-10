@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { blackjack, IllegalActionError } from './definition'
+import { ConfigError, IllegalActionError } from '@neon-cards/engine'
+import { blackjack } from './definition'
+import { rules } from './index'
 import { codes, newGame, play, rigged, SEAT, types } from './test-helpers'
 
 describe('setup', () => {
@@ -54,6 +56,7 @@ describe('config and seats', () => {
     ['a negative bankroll', { bankroll: -5 }, 'bankroll must be a whole number of chips'],
   ])('rejects %s', (_, input, message) => {
     expect(() => blackjack.parseConfig(input)).toThrow(message)
+    expect(() => blackjack.parseConfig(input)).toThrow(ConfigError)
   })
 })
 
@@ -350,6 +353,13 @@ describe('shoe', () => {
     expect(enough.view.shoe).toEqual({ remaining: 74, size: 312 })
   })
 
+  it('gives a reshuffled shoe fresh card ids so they never collide with the previous shoe', () => {
+    const { state, rng } = newGame()
+    expect(state.shoe[0]?.id).toMatch(/^standard52-\d+$/)
+    const low = play({ ...state, round: 6, shoe: state.shoe.slice(0, 10) }, rng, { type: 'bet', amount: 10 })
+    expect(low.state.shoe.map((c) => c.id.replace(/-\d+$/, ''))).toEqual(Array(308).fill('standard52.r7'))
+  })
+
   it('keeps every card id unique across a rigged shoe', () => {
     const { state } = rigged('split', 50)
     const ids = [...state.shoe, ...state.dealer, ...state.hands.flatMap((h) => h.cards)].map((c) => c.id)
@@ -406,5 +416,17 @@ describe('settle', () => {
     expect(second.view.round).toBe(2)
     expect(second.view.stack).toBe(1400)
     expect(second.view.result).toEqual({ wagered: 50, payout: 125, net: 75 })
+  })
+})
+
+describe('rules', () => {
+  it('registers as a chips game with a 5 minimum bet and no settings', () => {
+    expect(rules.definition).toBe(blackjack)
+    expect(rules.meta).toEqual({
+      title: 'Blackjack',
+      description: 'Beat the dealer to 21. Blackjack pays 3:2, dealer stands on all 17s.',
+      economy: 'chips',
+      minBet: 5,
+    })
   })
 })

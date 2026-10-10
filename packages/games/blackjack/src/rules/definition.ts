@@ -1,5 +1,4 @@
-import type { GameDefinition, Rng, Seat, SeatId, Settlement } from '@neon-cards/engine'
-import { buildShoe } from './shoe'
+import { buildShoe, ConfigError, IllegalActionError, type GameDefinition, type Rng, type Seat, type SeatId, type Settlement } from '@neon-cards/engine'
 import { handValue, isNatural, rankValue, standard52, type BlackjackCard, type BlackjackFace } from './cards'
 import { rigFaces } from './rigs'
 import {
@@ -14,13 +13,6 @@ import {
   type Outcome,
   type VisibleCard,
 } from './types'
-
-export class IllegalActionError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'IllegalActionError'
-  }
-}
 
 export const defaultConfig: BlackjackConfig = {
   decks: 6,
@@ -45,17 +37,21 @@ function seatsFor(): Seat[] {
 /** Clients may only pick a dev rig; the server sets `bankroll` from the wallet. Everything else is house rules. */
 function parseConfig(input: unknown): BlackjackConfig {
   if (input === undefined || input === null) return { ...defaultConfig }
-  if (typeof input !== 'object' || Array.isArray(input)) throw new Error('Config must be an object')
+  if (typeof input !== 'object' || Array.isArray(input)) throw new ConfigError('Config must be an object')
   const { rig, bankroll } = input as Record<string, unknown>
   const config: BlackjackConfig = { ...defaultConfig }
   if (rig !== undefined) {
-    if (typeof rig !== 'string' || !rig) throw new Error('rig must be a non-empty string')
-    rigFaces(rig)
+    if (typeof rig !== 'string' || !rig) throw new ConfigError('rig must be a non-empty string')
+    try {
+      rigFaces(rig)
+    } catch (err) {
+      throw new ConfigError(err instanceof Error ? err.message : String(err))
+    }
     config.rig = rig
   }
   if (bankroll !== undefined) {
     if (typeof bankroll !== 'number' || !Number.isInteger(bankroll) || bankroll < 0) {
-      throw new Error('bankroll must be a whole number of chips')
+      throw new ConfigError('bankroll must be a whole number of chips')
     }
     config.bankroll = bankroll
   }
@@ -149,7 +145,7 @@ class Table {
   }
 
   reshuffle() {
-    this.s.shoe = buildShoe(standard52, this.s.config.decks, this.rng)
+    this.s.shoe = buildShoe(standard52, this.s.config.decks, this.rng, `${standard52.id}.r${this.s.round}`)
     this.s.shoeSize = this.s.shoe.length
     this.emit({ type: 'shuffle', size: this.s.shoeSize })
   }

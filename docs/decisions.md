@@ -67,7 +67,8 @@ Append-only log. Every PR adds the decisions it made, dated, with who made the c
 - `legalActions` returns one suggested `bet` (the last bet, capped by the stack); `apply` validates the actual amount (whole number, at least 5, a multiple of 5, at most the stack) and throws `IllegalActionError` otherwise.
 - Hidden information: the hole card appears as `{id: 'hole', face: null}` in both `view()` and the `deal` event, so its real card id never reaches the client before the `reveal` event. The view exposes only the shoe's size and remaining count.
 - `config.rig` takes a named rig (the prototype's names plus `splitaces`, `bjpush`, `dealerbust`, `soft17`) or a literal card list such as `"AH,9C,KS,7D"`. It restacks the shoe at the start of every round, pulling those exact cards out of the shoe so card ids stay unique.
-- `buildShoe` and `shuffle` live in the blackjack package until the Engine PR ships the runtime helpers; the next blackjack PR swaps to the engine's.
+- Blackjack uses the engine's `buildShoe`, `standard52`, `createRng`, `IllegalActionError`, and `ConfigError` (bad config, including an unknown rig card, is a 400). A mid-session reshuffle uses the id prefix `standard52.r<round>`, so new card ids never repeat ones the table has already animated.
+- `rules.meta`: title "Blackjack", economy `chips`, minBet 5, no settings.
 
 ## Worker API (Platform agent, 2026-10-11)
 - The D1 schema is hand-written SQL in `apps/worker/migrations` (wrangler applies it, tests apply it), with a Drizzle mirror in `apps/worker/src/db/schema.ts` used for every query. No drizzle-kit: its generated file names and `meta/` journal don't match the `NNNN_name.sql` convention, and one hand-kept mirror is simpler to review.

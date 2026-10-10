@@ -1,19 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
-import type { Rng } from '@neon-cards/engine'
+import { createRng, type Rng } from '@neon-cards/engine'
 import { blackjack, type BlackjackAction, type BlackjackState, type BlackjackView } from '../rules'
 import type { EventBatch, TableProps } from './contract'
-
-function mulberry32(seed: number): Rng {
-  let a = seed >>> 0
-  const next = () => {
-    a = (a + 0x6d2b79f5) >>> 0
-    let t = a
-    t = Math.imul(t ^ (t >>> 15), t | 1)
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-  return { next, int: (n: number) => Math.floor(next() * n), state: () => String(a) }
-}
 
 interface LocalSession {
   rng: Rng
@@ -26,7 +14,7 @@ interface LocalSession {
  */
 export function useLocalSession(config: unknown, seed: number): TableProps<BlackjackView, BlackjackAction> {
   const [session] = useState<LocalSession>(() => {
-    const rng = mulberry32(seed)
+    const rng = createRng(String(seed))
     const parsed = blackjack.parseConfig(config)
     return { rng, state: blackjack.setup(parsed, blackjack.seatsFor(parsed), rng) }
   })

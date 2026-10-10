@@ -1,22 +1,10 @@
-import type { Card, DeckSpec } from '@neon-cards/engine'
+import { RANKS, SUITS, type Card, type Rank, type StandardFace, type Suit } from '@neon-cards/engine'
 
-export const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'] as const
-export const SUITS = ['H', 'D', 'S', 'C'] as const
+export { RANKS, SUITS, standard52, type Rank, type Suit } from '@neon-cards/engine'
 
-export type Rank = (typeof RANKS)[number]
-export type Suit = (typeof SUITS)[number]
-
-export interface BlackjackFace {
-  rank: Rank
-  suit: Suit
-}
+export type BlackjackFace = StandardFace
 
 export type BlackjackCard = Card<BlackjackFace>
-
-export const standard52: DeckSpec<BlackjackFace> = {
-  id: 'standard52',
-  build: () => SUITS.flatMap((suit) => RANKS.map((rank) => ({ rank, suit }))),
-}
 
 export function rankValue(rank: Rank): number {
   if (rank === 'A') return 11
