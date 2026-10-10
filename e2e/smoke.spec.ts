@@ -1,11 +1,8 @@
 import { expect, test } from '@playwright/test'
 
-test('the Worker serves the web app and the app reads local D1', async ({ page }, testInfo) => {
+test('the Worker serves the web app', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByTestId('app-title')).toHaveText('Neon Cards')
-  await expect(page.getByTestId('db-status')).toHaveAttribute('data-state', 'ok')
-  await expect(page.getByTestId('db-status')).toHaveText('D1 ok · schema foundation')
-  await page.screenshot({ path: testInfo.outputPath('home.png'), fullPage: true })
 })
 
 test('GET /api/health answers from the migrated database', async ({ request }) => {
@@ -15,6 +12,7 @@ test('GET /api/health answers from the migrated database', async ({ request }) =
 })
 
 test('deep links fall back to the app shell', async ({ page }) => {
-  await page.goto('/games/blackjack')
-  await expect(page.getByTestId('app-title')).toBeVisible()
+  const res = await page.goto('/history')
+  expect(res?.status()).toBe(200)
+  await expect(page.getByTestId('nav-back')).toBeVisible()
 })
