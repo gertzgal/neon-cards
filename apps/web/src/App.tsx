@@ -20,9 +20,13 @@ export function App() {
   useEffect(() => {
     getAudio().update({ muted: settings.muted, music: settings.music, sfx: settings.sfx })
   }, [settings.muted, settings.music, settings.sfx])
+  useEffect(() => {
+    getAudio().startMusic()
+    return () => getAudio().stopMusic()
+  }, [])
 
   return (
-    <NeonRoot>
+    <NeonRoot swirl={reduced ? 'static' : 'auto'}>
       <WalletProvider>
         <Screen route={route} />
       </WalletProvider>
