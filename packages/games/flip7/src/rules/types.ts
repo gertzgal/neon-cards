@@ -120,6 +120,8 @@ export interface Flip7View {
   limbo: Flip7Face[]
   /** The innermost running Flip Three. */
   flipThree: { seat: SeatId; remaining: number; setAside: F7Card[] } | null
+  /** The innermost Flip Three's set-aside cards, or the ones still to be handed out after it. */
+  setAside: F7Card[]
   pending: Pending | null
   /** Seats the pending decision may pick (targets, recipients). */
   legalTargets: SeatId[]

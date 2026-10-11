@@ -3,12 +3,20 @@
   "private": true,
   "type": "module",
   "exports": {
+    ".": "./src/index.ts",
     "./rules": "./src/rules/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@neon-cards/engine": "workspace:*"
+    "@neon-cards/engine": "workspace:*",
+    "@neon-cards/ui": "workspace:*",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0"
   }
 }

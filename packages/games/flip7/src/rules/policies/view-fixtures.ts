@@ -65,6 +65,7 @@ export function makeView(spec: ViewSpec): Flip7View {
     discard,
     limbo,
     flipThree: null,
+    setAside: [],
     pending,
     legalTargets,
     lastScores: null,

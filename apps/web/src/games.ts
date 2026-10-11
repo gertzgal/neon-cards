@@ -1,5 +1,6 @@
 import { createElement } from 'react'
 import { BlackjackTable, createSfx, rules as blackjackRules } from '@neon-cards/game-blackjack'
+import { plugin as flip7 } from '@neon-cards/game-flip7'
 import { definePlugin, standardFaceRenderer, type GamePlugin } from '@neon-cards/ui'
 import { blackjackRecap } from './blackjack-recap'
 import { highCardPlugin } from './dev/high-card'
@@ -17,6 +18,7 @@ export const games: GamePlugin[] = [
     juice: {},
     recap: blackjackRecap,
   }),
+  flip7,
 ]
 
 /** Routable by URL but never listed. The Worker serves them only with DEV_RIG=1 (local stacks, e2e, verify). */

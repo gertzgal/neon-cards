@@ -495,6 +495,7 @@ function limbo(s: Flip7State): Flip7Face[] {
 
 function view(s: Flip7State, me: SeatId): Flip7View {
   const frame = [...s.stack].reverse().find((t) => t.t === 'flip3')
+  const tray = [...s.stack].reverse().find((t) => t.t === 'flip3' || t.t === 'assign')
   return {
     me,
     order: s.order,
@@ -511,6 +512,7 @@ function view(s: Flip7State, me: SeatId): Flip7View {
     discard: s.discard.map((c) => c.face),
     limbo: limbo(s),
     flipThree: frame?.t === 'flip3' ? { seat: frame.seat, remaining: frame.remaining, setAside: frame.setAside } : null,
+    setAside: tray?.t === 'flip3' ? tray.setAside : tray?.t === 'assign' ? tray.cards : [],
     pending: s.pending,
     legalTargets: legalTargets(s),
     lastScores: s.lastScores,
