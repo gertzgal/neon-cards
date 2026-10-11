@@ -3,18 +3,28 @@ import { expect, test, type Page } from '@playwright/test'
 // The engine's test-only High Card game, served with DEV_RIG=1, proves the Flip 7 readiness path in the
 // real shell: pre-game settings -> config -> seatsFor, server-side CPU seats, paced playback, opponent rows.
 
-const actingSeats = (page: Page) =>
+// e2e is typed without the DOM lib, so the page-side code names the few browser APIs it uses.
+type PageGlobals = {
+  document: { body: unknown; querySelector(selector: string): { getAttribute(name: string): string | null } | null }
+  MutationObserver: new (callback: () => void) => { observe(target: unknown, options: object): void }
+  __acting: string[]
+}
+
+/** Starts recording each seat the table marks as acting, in order. */
+const recordActing = (page: Page) =>
   page.evaluate(() => {
+    const g = globalThis as unknown as PageGlobals
     const seen: string[] = []
-    const table = document.querySelector('[data-testid="high-card-table"]')
     const record = () => {
-      const seat = table?.getAttribute('data-acting')
+      const seat = g.document.querySelector('[data-testid="high-card-table"]')?.getAttribute('data-acting')
       if (seat && seen.at(-1) !== seat) seen.push(seat)
     }
     record()
-    new MutationObserver(record).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['data-acting'] })
-    ;(window as unknown as { __acting: string[] }).__acting = seen
+    new g.MutationObserver(record).observe(g.document.body, { subtree: true, attributes: true, attributeFilter: ['data-acting'] })
+    g.__acting = seen
   })
+
+const acted = (page: Page) => page.evaluate(() => (globalThis as unknown as PageGlobals).__acting)
 
 test('settings flow from the pre-game sheet to the seats, and CPU turns play paced', async ({ page }, testInfo) => {
   await page.goto('/games/high-card')
@@ -34,7 +44,7 @@ test('settings flow from the pre-game sheet to the seats, and CPU turns play pac
   const table = page.getByTestId('high-card-table')
   await expect(table).toBeVisible()
   const t0 = Date.now()
-  await actingSeats(page)
+  await recordActing(page)
   await expect(page.getByTestId('opponent-rows')).toHaveAttribute('data-count', '3')
   for (const id of ['cpu-1', 'cpu-2', 'cpu-3']) {
     await expect(page.getByTestId(`seat-${id}`)).toBeVisible()
@@ -44,7 +54,7 @@ test('settings flow from the pre-game sheet to the seats, and CPU turns play pac
   await page.screenshot({ path: testInfo.outputPath('2-cpu-thinking.png') })
   await expect(page.getByTestId('round-status')).toHaveText('YOUR TURN')
   expect(Date.now() - t0).toBeGreaterThan(1000)
-  expect(await page.evaluate(() => (window as unknown as { __acting: string[] }).__acting)).toEqual(['cpu-1', 'cpu-2', 'cpu-3'])
+  expect(await acted(page)).toEqual(['cpu-1', 'cpu-2', 'cpu-3'])
   for (const id of ['cpu-1', 'cpu-2', 'cpu-3']) await expect(page.getByTestId(`seat-${id}-status`)).toHaveText(/KEEP|SWAP/)
   await page.screenshot({ path: testInfo.outputPath('3-your-turn.png') })
 
@@ -85,10 +95,10 @@ test('a single easy opponent sits after the human', async ({ page }, testInfo) =
   await expect(page.getByTestId('round-status')).toHaveText('YOUR TURN')
 
   // The CPU acts after the human inside the same response; its thinking beat plays before the reveal.
-  await actingSeats(page)
+  await recordActing(page)
   await page.getByTestId('action-swap').click()
   await expect(page.getByTestId('seat-cpu-1-status')).toHaveText('THINKING')
   await expect(page.getByTestId('high-card-table')).toHaveAttribute('data-phase', 'settling')
-  expect(await page.evaluate(() => (window as unknown as { __acting: string[] }).__acting)).toContain('cpu-1')
+  expect(await acted(page)).toContain('cpu-1')
   await page.screenshot({ path: testInfo.outputPath('heads-up.png') })
 })
