@@ -1,0 +1,14 @@
+{
+  "name": "@neon-cards/game-flip7",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./rules": "./src/rules/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@neon-cards/engine": "workspace:*"
+  }
+}
