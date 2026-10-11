@@ -52,27 +52,48 @@ export function dealerRoom(size: TableSize): number {
   return size.width - 16 - 2 * (badge + 16) - size.dw * 0.44
 }
 
-/** Player hands fan out with a slight arc; the dealer's row lies flat with a gap between cards. */
+/** A covered player card keeps at least this share of its width in view, down to the smallest card. */
+const MIN_SHOWN = 0.3
+const MIN_SHRINK = 0.6
+
+/**
+ * Player hands fan out with a slight arc; the dealer's row lies flat with a gap between cards.
+ * A long player hand shrinks its cards (down to 60%) rather than burying them, so it stays inside the
+ * screen and above the action buttons.
+ */
 export function layoutHand(size: TableSize, kind: 'player' | 'dealer', count: number, split: boolean): HandLayout {
   const scale = kind === 'dealer' || !split ? 1 : size.phone ? 0.62 : 0.78
-  const w = (kind === 'dealer' ? size.dw : size.pw) * scale
-  const h = (kind === 'dealer' ? size.dh : size.ph) * scale
   const maxW =
     kind === 'dealer'
-      ? Math.max(w * 2 + 8, Math.min(size.width * 0.62, 700, dealerRoom(size)))
+      ? Math.max(size.dw * 2 + 8, Math.min(size.width * 0.62, 700, dealerRoom(size)))
       : split
         ? size.phone
           ? (size.width - 48) / 2
           : Math.min(size.width * 0.36, 420)
         : Math.min(size.width * 0.64, 760)
+  const full = size.pw * scale
+  const shrink = kind === 'dealer' || count < 2 ? 1 : Math.max(MIN_SHRINK, Math.min(1, maxW / (full * (1 + MIN_SHOWN * (count - 1)))))
+  const w = (kind === 'dealer' ? size.dw : size.pw) * scale * shrink
+  const h = (kind === 'dealer' ? size.dh : size.ph) * scale * shrink
   const natural = kind === 'dealer' ? w + 8 : w * 0.86
   const step = count > 1 ? Math.min(natural, (maxW - w) / (count - 1)) : 0
   const mid = (count - 1) / 2
+  const tilt = count > 2 ? Math.min(5, 20 / (count - 1)) : 8
   const slots = Array.from({ length: count }, (_, i) => ({
     x: i * step,
     y: kind === 'dealer' ? 0 : Math.abs(i - mid) * h * 0.03,
-    rot: kind === 'dealer' ? 0 : (i - mid) * (count > 2 ? 5 : 8),
+    rot: kind === 'dealer' ? 0 : (i - mid) * tilt,
   }))
+  if (kind === 'player' && count > 3) {
+    // How far a slot's lowest corner hangs below an upright card's bottom edge.
+    const hang = (s: Slot) => {
+      const a = (Math.abs(s.rot) * Math.PI) / 180
+      return s.y + (w / 2) * Math.sin(a) - (h / 2) * (1 - Math.cos(a))
+    }
+    const threeCards = hang({ x: 0, y: h * 0.03, rot: 5 })
+    const raise = Math.max(0, ...slots.map(hang)) - threeCards
+    if (raise > 0) for (const s of slots) s.y -= raise
+  }
   const fanned = w + step * Math.max(0, count - 1)
   return { w, h, width: kind === 'dealer' ? Math.max(fanned, w * 2 + 8) : fanned, slots }
 }
