@@ -9,7 +9,8 @@ The maintained source for verifying what a Neon Cards player can see and do. Rea
 | Wallet API and player identity | [wallet-api.md](wallet-api.md) | live (Worker API) |
 | UI kit gallery (table primitives, opponent rows) | [ui-gallery.md](ui-gallery.md) | live (UI kit) |
 | Sessions, actions, CPU seats, history API | [sessions-api.md](sessions-api.md) | live (Worker API) |
-| Blackjack round in the shell | [app-shell.md](app-shell.md) (`shell-play`) | live (Shell); table moments owned by the Blackjack project |
+| Blackjack round in the shell | [app-shell.md](app-shell.md) (`shell-play`) | live (Shell) |
+| Blackjack table: betting, every moment, juice, refill, resume | [blackjack.md](blackjack.md) | live (Blackjack) |
 | Multi-seat play: settings sheet, CPU seats, paced turns, opponent rows | [multi-seat.md](multi-seat.md) | live (dev game `/games/high-card`, needs `DEV_RIG=1`) |
 
 ## Baseline preconditions
