@@ -39,6 +39,15 @@ function initialDisplay(view: BlackjackView): Display {
   return view.phase === 'settling' ? clearedTable(d) : d
 }
 
+/** The last settled round, kept on the table root after the felt is swept so tests and tools can read it. */
+interface LastRound {
+  n: number
+  outcomes: string
+  statuses: string
+  net: number
+  dealer: string
+}
+
 export function BlackjackTable({ view, events, act: send, busy: sending, sfx = silent, hudIcons }: BlackjackTableProps) {
   const size = useTableSize()
   const [initialView] = useState(view)
@@ -49,6 +58,9 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
   const [animating, setAnimating] = useState(false)
   const busy = sending || animating
   const [shownStack, setShownStack] = useState(initialView.stack)
+  const [lastRound, setLastRound] = useState<LastRound | null>(null)
+  const roundCount = useRef(0)
+  const dealerNote = useRef('')
 
   const displayRef = useRef(display)
   const potRef = useRef(potChips)
@@ -160,6 +172,15 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
     }
     setPot([])
     commit(e)
+    roundCount.current++
+    setLastRound({
+      n: roundCount.current,
+      outcomes: d.hands.map((h) => h.outcome ?? '').join(','),
+      statuses: d.hands.map((h) => h.status).join(','),
+      net: e.net,
+      dealer: dealerNote.current,
+    })
+    dealerNote.current = ''
     await sleep(anyBlackjack ? 900 : 520)
   }
 
@@ -210,6 +231,7 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
         commit(e)
         return sleep(160)
       case 'dealerBlackjack':
+        dealerNote.current = 'blackjack'
         commit(e)
         sfx.play('lose')
         blink(q('[data-testid="dealer-total"]'))
@@ -241,6 +263,7 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
         return sleep(480)
       }
       case 'dealerBust':
+        dealerNote.current = 'bust'
         commit(e)
         blink(q('[data-testid="dealer-total"]'))
         void flash(q('.bj-tray-flash'), 0.8, 600)
@@ -370,6 +393,12 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
       data-testid="blackjack-table"
       data-stage={display.stage}
       data-busy={busy ? 'true' : 'false'}
+      data-animating={animating ? 'true' : 'false'}
+      data-rounds={lastRound?.n ?? 0}
+      data-last-outcomes={lastRound?.outcomes ?? ''}
+      data-last-statuses={lastRound?.statuses ?? ''}
+      data-last-net={lastRound?.net ?? ''}
+      data-last-dealer={lastRound?.dealer ?? ''}
       data-layout={size.phone ? 'phone' : 'desktop'}
       style={cssVars}
     >
