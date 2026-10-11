@@ -1,6 +1,29 @@
-// Palette from docs/look-and-feel-brief.md. The UI kit PR replaces this with full theme tokens.
-export const palette = {
-  table: '#0b0b12',
-  pink: '#ff2e88',
-  cyan: '#2ef2ff',
-} as const
+import '@fontsource/jersey-10'
+import './theme/theme.css'
+import './primitives/primitives.css'
+
+export * from './theme/tokens'
+export * from './api'
+
+export { NeonRoot, CrtOverlay, type NeonRootProps } from './backdrop/neon-root'
+export { EdgeSwirl, type EdgeSwirlProps } from './backdrop/edge-swirl'
+
+export { PlayingCard, CornerRanks, cardFrameStyle } from './primitives/playing-card'
+export { Hand, handLayout, type SlotPlacement } from './primitives/hand'
+export { ScoreBadge, StatusBadge, type StatusBadgeProps } from './primitives/badge'
+export { DealerTray } from './primitives/dealer-tray'
+export { OpponentRows, DifficultyPip } from './primitives/opponent-rows'
+export { Chip, ChipStack, ChipRack, chipsFor, chipMarkup, chipSvgMarkup, formatMoney } from './primitives/chips'
+export { ActionBar, BetControls, NeonButton, SegmentedControl, type NeonButtonProps } from './primitives/controls'
+export { Hud, IconButton, useCountUp, type IconButtonProps } from './primitives/hud'
+export { SoundIcon, GearIcon, CloseIcon, BackIcon } from './primitives/icons'
+export { TableLayout, PlayerSpot, PlayerRow, type PlayerSpotProps } from './primitives/table-layout'
+export { PixelSprite, bitmaps, bitmapRects, pixelScale, type Bitmap, type PixelSpriteProps } from './primitives/pixel'
+export { standardFaceRenderer } from './primitives/standard-face'
+export { useTableMetrics, tableMetrics, MetricsProvider, type TableMetrics, type Size } from './primitives/metrics'
+export { useReducedMotion, prefersReducedMotion } from './primitives/motion'
+export { JuiceProvider, useJuice, usePlayback, useBatchPlayback, type JuiceProviderProps } from './juice/provider'
+export { createJuiceKit, type ControlledKit, type KitHost } from './juice/kit'
+export { runPlayback, type PlaybackDeps } from './juice/playback'
+export { createAudioManager, getAudio, defaultAudioSettings, type AudioManagerOptions } from './audio/manager'
+export { useAudioSettings, useSoundToggle } from './audio/use-audio'

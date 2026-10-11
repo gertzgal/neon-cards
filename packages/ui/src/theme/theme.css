@@ -1,0 +1,45 @@
+:root {
+  color-scheme: dark;
+  --nc-bg: #050409;
+  --nc-table: #0b0b12;
+  --nc-pink: #ff2e88;
+  --nc-pink-soft: #ff7ab4;
+  --nc-cyan: #2ef2ff;
+  --nc-violet: #a64dff;
+  --nc-gold: #ffd23f;
+  --nc-bust: #ff2e5a;
+  --nc-ink: #f4f0ff;
+  --nc-dim: #8d87a8;
+  --nc-card-face: #0e0b16;
+  --nc-panel: rgba(10, 8, 18, 0.88);
+  --nc-panel-rim: #241f36;
+  --nc-font: 'Jersey 10', ui-monospace, monospace;
+  --nc-glow-pink: 0 0 10px rgba(255, 46, 136, 0.55), inset 0 0 6px rgba(255, 46, 136, 0.3);
+  --nc-glow-cyan: 0 0 10px rgba(46, 242, 255, 0.55), inset 0 0 6px rgba(46, 242, 255, 0.3);
+}
+
+.nc-root {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--nc-bg);
+  color: var(--nc-ink);
+  font-family: var(--nc-font);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:where(.nc-root) *,
+:where(.nc-root) *::before,
+:where(.nc-root) *::after {
+  box-sizing: border-box;
+}
+
+:where(.nc-root) button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
