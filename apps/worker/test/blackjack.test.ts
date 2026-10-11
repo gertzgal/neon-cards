@@ -83,6 +83,49 @@ describe('blackjack through the API (chips economy)', () => {
     expect((await json<Res>(p.get(`/api/sessions/${fresh.sessionId}`))).status).toBe('active')
   })
 
+  it('forfeits the bet of a hand left mid-play when a new session starts, and records the lost round', async () => {
+    const p = client()
+    const old = await sit(p, 'bust')
+    const dealt = await json<Res>(p.post(`/api/sessions/${old.sessionId}/actions`, { action: { type: 'bet', amount: 500 }, seq: 0 }))
+    expect([dealt.view.phase, dealt.view.stack]).toEqual(['playing', 750])
+    const fresh = await sit(p, 'win')
+    expect([fresh.wallet, fresh.view.stack]).toEqual([750, 750])
+    expect(await json(p.get('/api/wallet'))).toEqual({ balance: 750 })
+    expect(await ledger(p.playerId())).toEqual(['start:1250', 'forfeit:-500'])
+    const { rounds } = await json<{ rounds: { sessionId: string; roundNo: number; net: number; summary: Record<string, unknown> }[] }>(
+      p.get('/api/history?gameId=blackjack'),
+    )
+    expect(rounds.map((r) => [r.sessionId, r.roundNo, r.net, r.summary.settlements, r.summary.forfeit])).toEqual([
+      [old.sessionId, 1, -500, [{ seat: 'player', delta: -500 }], true],
+    ])
+    expect((rounds[0]?.summary.view as BlackjackView).hands[0]?.total).toBe(16)
+  })
+
+  it('forfeits doubled and split stakes, and closes a settled session for free', async () => {
+    const p = client()
+    const split = await sit(p, 'split')
+    const url = `/api/sessions/${split.sessionId}/actions`
+    await p.post(url, { action: { type: 'bet', amount: 100 }, seq: 0 })
+    await p.post(url, { action: { type: 'split' }, seq: 1 })
+    const doubled = await json<Res>(p.post(url, { action: { type: 'double' }, seq: 2 }))
+    expect([doubled.view.phase, doubled.view.stack]).toEqual(['playing', 950])
+    const settled = await sit(p, 'win')
+    expect(settled.wallet).toBe(950)
+    const won = await json<Res>(p.post(`/api/sessions/${settled.sessionId}/actions`, { action: { type: 'bet', amount: 25 }, seq: 0 }))
+    await p.post(`/api/sessions/${settled.sessionId}/actions`, { action: { type: 'stand' }, seq: won.seq })
+    expect((await sit(p, 'win')).wallet).toBe(975)
+    expect(await ledger(p.playerId())).toEqual(['start:1250', 'forfeit:-300', 'round:25'])
+  })
+
+  it('refills once when the forfeited hand was all-in', async () => {
+    const p = client()
+    const old = await sit(p, 'bust')
+    await p.post(`/api/sessions/${old.sessionId}/actions`, { action: { type: 'bet', amount: 1250 }, seq: 0 })
+    const fresh = await sit(p, 'win')
+    expect([fresh.wallet, fresh.view.stack]).toEqual([1250, 1250])
+    expect(await ledger(p.playerId())).toEqual(['start:1250', 'forfeit:-1250', 'refill:1250'])
+  })
+
   it('rejects an illegal bet with 400 and logs nothing', async () => {
     const p = client()
     const s = await sit(p, 'win')

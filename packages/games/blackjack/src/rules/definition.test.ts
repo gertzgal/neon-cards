@@ -438,3 +438,21 @@ describe('rules', () => {
     })
   })
 })
+
+describe('staked', () => {
+  const staked = (state: Parameters<typeof blackjack.view>[0], seat = SEAT) => blackjack.staked?.(state, seat)
+
+  it('counts every chip committed to the round in play, doubles and splits included', () => {
+    expect(staked(newGame().state)).toBe(0)
+    expect(staked(rigged('win', 50).state)).toBe(50)
+    expect(staked(rigged('split', 50, ['split']).state)).toBe(100)
+    expect(staked(rigged('split', 50, ['split', 'double']).state)).toBe(150)
+    expect(staked(rigged('split', 50, ['split']).state, 'dealer')).toBe(0)
+  })
+
+  it('is 0 once the round settles', () => {
+    expect(staked(rigged('win', 50, ['stand']).state)).toBe(0)
+    expect(staked(rigged('dealerbj', 50).state)).toBe(0)
+    expect(staked(rigged('blackjack', 50).state)).toBe(0)
+  })
+})

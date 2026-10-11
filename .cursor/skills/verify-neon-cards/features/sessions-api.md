@@ -8,6 +8,7 @@ A game session lives on the server. `POST /api/sessions {gameId, config}` parses
 - `session-action`: 200 with events and the next `seq`; 400 for an illegal action, 409 for a stale or ahead `seq` or an over session, 404 for another player's session.
 - `session-idempotent`: re-posting a used human `seq` returns byte-identical JSON.
 - `chips-settle`: a Blackjack round's net lands in the wallet and in history.
+- `chips-forfeit`: starting a new chips session while a hand is dealt (New game, a second tab, a `?rig=` URL) forfeits that hand's stake: a history row with the negative net and `summary.forfeit: true`, and a `forfeit` wallet ledger row.
 - `cpu-seats`: proven in `apps/worker/test/sessions.test.ts` with the engine's test-only High Card game (not in the production registry).
 
 ## How to get to it (user POV)
@@ -36,5 +37,5 @@ $C "$U/history?gameId=blackjack" | jq '.rounds[] | {roundNo, net}'
 ## Gotchas
 
 - `seq` counts CPU actions too, so never compute it client-side; use the last response's.
-- Starting a new chips session closes the player's other active chips sessions (actions on them are 409).
+- Starting a new chips session closes the player's other active chips sessions (actions on them are 409) and forfeits any chips staked on a dealt, unsettled hand. Undealt chips on the felt are client-only and cost nothing.
 - Without `DEV_RIG=1` (production), `config.rig` and `seed` are 400s.

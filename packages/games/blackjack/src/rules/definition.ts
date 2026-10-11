@@ -438,6 +438,11 @@ function settle(state: BlackjackState): Settlement[] {
   return [{ seat: state.seat, delta: state.result.net }]
 }
 
+function staked(state: BlackjackState, seat: SeatId): number {
+  if (state.phase !== 'playing' || seat !== state.seat) return 0
+  return state.hands.reduce((total, hand) => total + hand.bet, 0)
+}
+
 export const blackjack: GameDefinition<
   BlackjackConfig,
   BlackjackState,
@@ -461,4 +466,5 @@ export const blackjack: GameDefinition<
   view,
   phase: (state) => state.phase,
   settle,
+  staked,
 }

@@ -169,7 +169,12 @@ export async function createSession(
   const now = Date.now()
   let config: unknown
   let wallet: number | null = null
-  if (isChips(rules)) wallet = (await readWallet(db, playerId, now)).balance
+  const live = isChips(rules) ? await liveChipsSessions(db, games, playerId) : []
+  if (isChips(rules)) {
+    // The bankroll the wallet will hold once the live sessions below are closed and their stakes forfeited.
+    const balance = (await readBalance(db, playerId)) - live.reduce((sum, s) => sum + s.staked, 0)
+    wallet = balance + refillAmount(balance)
+  }
   try {
     const raw = input.config ?? {}
     if (typeof raw !== 'object' || Array.isArray(raw)) throw new Error('config must be an object')
@@ -186,17 +191,8 @@ export async function createSession(
     throw toApiError(err)
   }
   if (isChips(rules)) {
-    // One live chips session per player: its stack mirrors the wallet, so older ones are closed.
-    await db
-      .update(schema.sessions)
-      .set({ status: 'over' })
-      .where(
-        and(
-          eq(schema.sessions.playerId, playerId),
-          eq(schema.sessions.status, 'active'),
-          inArray(schema.sessions.gameId, chipsGames(games)),
-        ),
-      )
+    await closeSessions(db, playerId, live, now)
+    wallet = (await readWallet(db, playerId, now)).balance
   }
   await db.insert(schema.sessions).values({
     id: sessionId,
@@ -229,6 +225,61 @@ export async function createSession(
 
 function chipsGames(games: Registry): string[] {
   return [...games.values()].filter(isChips).map((g) => g.definition.id)
+}
+
+interface LiveSession {
+  id: string
+  rules: GameRules
+  match: Match
+  /** Chips the human has on an unsettled round. */
+  staked: number
+}
+
+async function liveChipsSessions(db: Db, games: Registry, playerId: string): Promise<LiveSession[]> {
+  const rows = await db
+    .select({ id: schema.sessions.id, gameId: schema.sessions.gameId, stateJson: schema.sessions.stateJson })
+    .from(schema.sessions)
+    .where(
+      and(
+        eq(schema.sessions.playerId, playerId),
+        eq(schema.sessions.status, 'active'),
+        inArray(schema.sessions.gameId, chipsGames(games)),
+      ),
+    )
+    .all()
+  return rows.map((row) => {
+    const rules = rulesFor(games, row.gameId)
+    const match = JSON.parse(row.stateJson) as Match
+    return { id: row.id, rules, match, staked: rules.definition.staked?.(match.state, humanSeat(match).id) ?? 0 }
+  })
+}
+
+/**
+ * One live chips session per player: its stack mirrors the wallet, so older ones are closed. A closed session
+ * forfeits the chips on its unsettled round, recorded as a lost round, so walking away never undoes a bet.
+ */
+async function closeSessions(db: Db, playerId: string, live: LiveSession[], now: number) {
+  for (const s of live) {
+    const close = db.update(schema.sessions).set({ status: 'over' }).where(eq(schema.sessions.id, s.id))
+    if (!s.staked) {
+      await close
+      continue
+    }
+    const played = await db.select({ n: count() }).from(schema.rounds).where(eq(schema.rounds.sessionId, s.id)).get()
+    const roundNo = (played?.n ?? 0) + 1
+    const id = `${s.id}:${roundNo}`
+    const human = humanSeat(s.match).id
+    const summary = {
+      settlements: [{ seat: human, delta: -s.staked }],
+      view: s.rules.definition.view(s.match.state, human),
+      forfeit: true,
+    }
+    await db.batch([
+      close,
+      db.insert(schema.rounds).values({ id, sessionId: s.id, roundNo, summaryJson: JSON.stringify(summary), net: -s.staked, createdAt: now }),
+      ...walletDelta(db, playerId, -s.staked, 'forfeit', id, now),
+    ])
+  }
 }
 
 async function loadSession(db: Db, playerId: string, sessionId: string) {
