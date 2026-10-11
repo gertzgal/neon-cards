@@ -155,11 +155,11 @@ export function BlackjackTable({ seats, view, events, act: send, busy: sending, 
       kit.sfx('blackjack')
       void kit.flash('gold')
       void kit.chipBurst({ at: 'hand-0', ceiling: 'dealer-tray' })
-      void kit.numberPop('+' + formatMoney(e.net), { tier: 'big', tone: 'gold' })
+      void kit.numberPop('+' + formatMoney(e.net), { tier: 'big', tone: 'gold', ceiling: 'dealer-tray' })
       await kit.wait(650)
     } else if (e.net > 0) {
       kit.sfx('win')
-      void kit.numberPop('+' + formatMoney(e.net), { tone: 'pink' })
+      void kit.numberPop('+' + formatMoney(e.net), { tone: 'pink', ceiling: 'dealer-tray' })
       d.hands.forEach((h, i) => h.outcome === 'win' && void kit.badgePulse(`hand-${i}-total`))
       await kit.wait(380)
     } else if (e.net < 0) {
@@ -332,21 +332,34 @@ export function BlackjackTable({ seats, view, events, act: send, busy: sending, 
             <DealerTray cards={display.dealer} renderer={standardFaceRenderer} total={totalLabel(display.dealer) || null} />
           </div>
         }
-        middle={<ChipStack chips={pot} />}
+        middle={
+          <div className="bj-bet" data-testid="bet-amount" data-value={bet}>
+            <ChipStack chips={pot} />
+          </div>
+        }
         bottom={
           <PlayerRow>
             {display.hands.map((hand, i) => {
               const state = handState(hand, i, display.active, display.stage, split)
               const stateProp = state ? { state } : {}
               return (
-                <PlayerSpot
+                <div
                   key={i}
-                  testId={`hand-${i}`}
-                  {...stateProp}
-                  badge={<ScoreBadge value={totalLabel(hand.cards) || null} testId={`hand-${i}-total`} {...stateProp} />}
+                  className="bj-hand"
+                  data-testid={`hand-${i}`}
+                  data-status={hand.status}
+                  data-outcome={hand.outcome ?? ''}
+                  data-active={i === display.active ? 'true' : 'false'}
+                  data-bet={hand.bet}
                 >
-                  <Hand cards={hand.cards} renderer={standardFaceRenderer} {...stateProp} {...(split ? { maxWidth: splitWidth } : {})} />
-                </PlayerSpot>
+                  <PlayerSpot
+                    testId={`hand-${i}-spot`}
+                    {...stateProp}
+                    badge={<ScoreBadge value={totalLabel(hand.cards) || null} testId={`hand-${i}-total`} {...stateProp} />}
+                  >
+                    <Hand cards={hand.cards} renderer={standardFaceRenderer} {...stateProp} {...(split ? { maxWidth: splitWidth } : {})} />
+                  </PlayerSpot>
+                </div>
               )
             })}
           </PlayerRow>

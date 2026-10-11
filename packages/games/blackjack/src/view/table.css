@@ -11,6 +11,11 @@
   min-height: calc(var(--nc-hand-h) * 1.06);
 }
 
+/* Effects flash over a hand group. */
+.bj-hand {
+  position: relative;
+}
+
 /* No empty tray while betting: the dealer appears with the first card and keeps its space. */
 .bj-dealer {
   transition:

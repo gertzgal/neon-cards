@@ -61,7 +61,6 @@ const cardFaces = async (hand: Locator) =>
   (await hand.locator('[data-testid^="card-"]').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label') ?? ''))).map((label) =>
     label === 'face-down card' ? 'hidden' : label.slice(0, -1) + (SUIT[label.slice(-1)] ?? '?'),
   )
-const potAmount = (page: Page) => page.getByTestId('pot-amount')
 const pop = (page: Page, text: string) => page.getByTestId('number-pop').filter({ hasText: text })
 
 test('betting: chips build the bet, clear empties it, and the bankroll follows', async ({ page }, testInfo) => {
@@ -72,14 +71,14 @@ test('betting: chips build the bet, clear empties it, and the bankroll follows',
   await expect(page.getByTestId('action-deal')).toBeDisabled()
 
   await placeBet(page, 5, 25, 100)
-  await expect(potAmount(page)).toHaveText('$130')
+  await expect(page.getByTestId('bet-amount')).toHaveAttribute('data-value', '130')
   await expect(bankroll(page)).toHaveAttribute('data-value', '1120')
   await page.getByTestId('action-clear').click()
-  await expect(potAmount(page)).toHaveText('')
+  await expect(page.getByTestId('bet-amount')).toHaveAttribute('data-value', '0')
   await expect(bankroll(page)).toHaveAttribute('data-value', '1250')
 
   await placeBet(page, 25, 25)
-  await expect(potAmount(page)).toHaveText('$50')
+  await expect(page.getByTestId('bet-amount')).toHaveAttribute('data-value', '50')
   await expect(page.getByTestId('action-deal')).toBeEnabled()
   await page.waitForTimeout(500)
   await shot(page, testInfo, '01-betting')
@@ -103,7 +102,7 @@ test('deal and stand: a 19 beats the dealer 17 and pays 1:1', async ({ page }, t
   await idle(table)
   await expectRound(table, { outcomes: 'win', net: 50 })
   await expect(bankroll(page)).toHaveAttribute('data-value', '1250')
-  await expect(potAmount(page)).toHaveText('$50')
+  await expect(page.getByTestId('bet-amount')).toHaveAttribute('data-value', '50')
 })
 
 test('hit: 11 draws a ten to 21, stands itself, and wins', async ({ page }, testInfo) => {
@@ -126,7 +125,8 @@ test('double: the bet doubles, one card comes, and it pays on the doubled bet', 
   await deal(page, table)
   await expect(page.getByTestId('action-double')).toBeEnabled()
   await page.getByTestId('action-double').click()
-  await expect(potAmount(page)).toHaveText('$100')
+  await expect(page.getByTestId('hand-0')).toHaveAttribute('data-bet', '100')
+  await expect(page.getByTestId('bet-amount')).toHaveAttribute('data-value', '100')
   await expect(page.getByTestId('hand-0-total')).toHaveText('21')
   await shot(page, testInfo, '05-double')
   await idle(table)
@@ -142,14 +142,14 @@ test('split: two eights become two hands, double after split, both win', async (
   await act(page, table, 'split')
   expect(await cardFaces(page.getByTestId('hand-0'))).toEqual(['8H', '3C'])
   expect(await cardFaces(page.getByTestId('hand-1'))).toEqual(['8S', '10D'])
-  await expect(page.getByTestId('hand-0')).toHaveAttribute('data-state', 'active')
-  await expect(page.getByTestId('hand-1')).toHaveAttribute('data-state', 'waiting')
+  await expect(page.getByTestId('hand-0')).toHaveAttribute('data-active', 'true')
+  await expect(page.getByTestId('hand-1-spot')).toHaveAttribute('data-state', 'waiting')
   await expect(page.getByTestId('action-split')).toBeDisabled()
   await shot(page, testInfo, '06-split')
 
   await act(page, table, 'double')
   await expect(page.getByTestId('hand-0-total')).toHaveText('13')
-  await expect(page.getByTestId('hand-1')).toHaveAttribute('data-state', 'active')
+  await expect(page.getByTestId('hand-1-spot')).toHaveAttribute('data-state', 'active')
   await page.getByTestId('action-stand').click()
   await idle(table)
   await expectRound(table, { outcomes: 'win,win', net: 150 })
@@ -162,7 +162,8 @@ test('bust: hitting 16 into a king busts and loses the bet', async ({ page }, te
   await deal(page, table)
   await expect(page.getByTestId('hand-0-total')).toHaveText('16')
   await page.getByTestId('action-hit').click()
-  await expect(page.getByTestId('hand-0')).toHaveAttribute('data-state', 'bust')
+  await expect(page.getByTestId('hand-0')).toHaveAttribute('data-status', 'bust')
+  await expect(page.getByTestId('hand-0-spot')).toHaveAttribute('data-state', 'bust')
   await expect(page.getByTestId('hand-0-total')).toHaveText('26')
   await shot(page, testInfo, '07-bust')
   await idle(table)
