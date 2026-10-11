@@ -7,3 +7,4 @@ test-results/
 playwright-report/
 artifacts/
 .DS_Store
+wrangler.deploy.toml
