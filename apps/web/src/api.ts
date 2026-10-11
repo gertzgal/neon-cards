@@ -9,11 +9,25 @@ export class ApiError extends Error {
   }
 }
 
+// The Worker mints the anonymous player cookie on the first cookieless request. Concurrent
+// first requests would each mint a different player, so every call waits for the first one.
+let identity: Promise<unknown> | null = null
+
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`/api${path}`, {
-    ...init,
-    ...(init?.body ? { headers: { 'content-type': 'application/json' } } : {}),
-  })
+  const request = () =>
+    fetch(`/api${path}`, {
+      ...init,
+      ...(init?.body ? { headers: { 'content-type': 'application/json' } } : {}),
+    })
+  let res: Response
+  if (identity) {
+    await identity
+    res = await request()
+  } else {
+    const first = request()
+    identity = first.catch(() => (identity = null))
+    res = await first
+  }
   const body = (await res.json().catch(() => null)) as (T & { error?: string }) | null
   if (!res.ok || body === null) throw new ApiError(res.status, body?.error ?? `${res.status} ${res.statusText}`)
   return body
@@ -36,6 +50,7 @@ export interface SessionState {
   view: unknown
   seq: number
   status: string
+  wallet?: number
 }
 
 export interface ActionResult {
