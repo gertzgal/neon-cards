@@ -160,3 +160,13 @@ Append-only log. Every PR adds the decisions it made, dated, with who made the c
 - Errors map by `name`: `IllegalActionError` is 400 and `NotYourTurnError` is 409 (also matched when a game throws its own subclass); a `parseConfig` throw is 400; anything else is a logged 500 `{error: 'internal error'}`. Error bodies are `{error: string}`.
 - Sessions created by an older `definition.version` answer 409 on new actions instead of running new rules over old state.
 - Local stacks set `DEV_RIG=1` through `wrangler dev --var` in `apps/worker` scripts, so rigged e2e rounds work in `pnpm dev`, `pnpm start`, Playwright, and the verify skill, and production never has it. The dev-only `seed` request field rides the same switch.
+
+## UI kit juice (Platform UI agent, 2026-10-11)
+- Juice is a `JuiceMap` from event `type` to a handler `(event, kit) => void | Promise<void>`, and `usePlayback`/`useBatchPlayback` run the queue: apply the event to the display (inside `flushSync`, so the DOM is current), then await its juice. Unmapped types apply with no effect. Handlers are bivariant, so a game can type `event` as its own union.
+- The kit addresses elements by `data-testid` within the NeonRoot stage, or by element. Games reuse the test ids the primitives already set (`card-<id>`, `seat-<id>`, `pot`, `player-total`) and need no refs.
+- A `turn` event on a CPU seat (from `PlaybackOptions.seats`) gets a 500ms thinking beat with `actingSeat`/`thinking` set, so the Table can show the glow and a THINKING status. A human `turn` sets `actingSeat` with no beat.
+- Flips happen after apply: the face is already in the DOM, a card-back cover scales out, and the face stretches in. Event application stays a pure model update, with no midpoint callback to coordinate.
+- A tap anywhere while playing skips: running animations finish, waits resolve, the fx layer clears, and the remaining events apply with no juice. Playback never blocks input for longer than one tap.
+- Under reduced motion, deal and flip become short fades, pops and flashes stay (they carry information), and shake, slide, and chip bursts are skipped.
+- `chipBurst` takes a `ceiling` target, and its chips never rise above that element's bottom. That keeps the Blackjack win burst off the dealer tray.
+- NeonRoot finds its stage and fx layer through a `useId` `data-nc-root` attribute instead of refs, which keeps the React compiler's ref rules clean and lets several roots coexist.

@@ -67,3 +67,40 @@ test.describe('UI kit gallery', () => {
     await page.screenshot({ path: testInfo.outputPath('gallery-sheet.png'), fullPage: true })
   })
 })
+
+test.describe('UI kit juice', () => {
+  test('a round plays paced: deals, CPU turns with thinking beats, reveal, then the win', async ({ page }, testInfo) => {
+    await page.goto('/ui-gallery.html?scene=juice')
+    const demo = page.getByTestId('juice-demo')
+    await page.getByTestId('action-deal').click()
+    await expect(demo).toHaveAttribute('data-playing', 'true')
+    await expect(page.getByTestId('seat-cpu1-status')).toHaveText('THINKING')
+    await expect(demo).toHaveAttribute('data-acting', 'cpu2', { timeout: 10_000 })
+    await expect(page.getByTestId('seat-cpu1-status')).toHaveText('BUST')
+    await expect(demo).toHaveAttribute('data-playing', 'false', { timeout: 10_000 })
+    await expect(page.getByTestId('dealer-hand').getByLabel('7♠')).toBeVisible()
+    await expect(page.getByTestId('seat-cpu2-status')).toHaveText('STAND')
+    await expect(page.getByTestId('fx-layer')).toBeEmpty({ timeout: 5_000 })
+    await page.screenshot({ path: testInfo.outputPath('gallery-juice.png') })
+  })
+
+  test('a tap during playback skips to the end state', async ({ page }) => {
+    await page.goto('/ui-gallery.html?scene=juice')
+    await page.getByTestId('action-deal').click()
+    await expect(page.getByTestId('juice-demo')).toHaveAttribute('data-playing', 'true')
+    await page.getByTestId('table').click({ position: { x: 10, y: 200 } })
+    await expect(page.getByTestId('juice-demo')).toHaveAttribute('data-playing', 'false', { timeout: 1_500 })
+    await expect(page.getByTestId('player-hand').locator('[data-testid^="card-"]')).toHaveCount(2)
+    await expect(page.getByTestId('dealer-hand').getByLabel('7♠')).toBeVisible()
+    await expect(page.getByTestId('fx-layer')).toBeEmpty()
+  })
+
+  test('reduced motion still reaches the same end state', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.goto('/ui-gallery.html?scene=juice')
+    await page.getByTestId('action-deal').click()
+    await expect(page.getByTestId('juice-demo')).toHaveAttribute('data-playing', 'false', { timeout: 10_000 })
+    await expect(page.getByTestId('seat-cpu1-status')).toHaveText('BUST')
+    await expect(page.getByTestId('dealer-hand').getByLabel('7♠')).toBeVisible()
+  })
+})

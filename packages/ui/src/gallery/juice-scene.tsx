@@ -104,10 +104,10 @@ export function JuiceScene() {
     <div data-testid="juice-demo" data-playing={playback.playing} data-acting={playback.actingSeat ?? ''} style={{ display: 'contents' }}>
       <TableLayout
         top={
-          <>
+          <div className="nc-gallery-stack">
             <OpponentRows seats={opponents} renderer={standardFaceRenderer} />
             <DealerTray cards={model.hands.house ?? []} renderer={standardFaceRenderer} placeholder="PRESS DEAL" />
-          </>
+          </div>
         }
         middle={done ? <StatusBadge tone="gold">YOU WIN</StatusBadge> : <ChipStack chips={[25, 25]} />}
         bottom={
