@@ -33,11 +33,16 @@ export function walletDelta(db: Db, playerId: string, delta: number, reason: Led
   ] as const
 }
 
+/** Chips that bring a broke balance back to the starting bankroll; 0 when not broke. */
+export function refillAmount(balance: number): number {
+  return balance < BROKE_BELOW ? STARTING_BANKROLL - balance : 0
+}
+
 /** Reads the wallet, refilling a broke player to the starting bankroll and recording the refill. */
 export async function readWallet(db: Db, playerId: string, now = Date.now()): Promise<Wallet> {
   const balance = await readBalance(db, playerId)
-  if (balance >= BROKE_BELOW) return { balance }
-  const refilled = STARTING_BANKROLL - balance
+  const refilled = refillAmount(balance)
+  if (!refilled) return { balance }
   await db.batch(walletDelta(db, playerId, refilled, 'refill', null, now))
   return { balance: STARTING_BANKROLL, refilled }
 }
