@@ -161,6 +161,8 @@ Append-only log. Every PR adds the decisions it made, dated, with who made the c
 - Sessions created by an older `definition.version` answer 409 on new actions instead of running new rules over old state.
 - Local stacks set `DEV_RIG=1` through `wrangler dev --var` in `apps/worker` scripts, so rigged e2e rounds work in `pnpm dev`, `pnpm start`, Playwright, and the verify skill, and production never has it. The dev-only `seed` request field rides the same switch.
 
+## Pixel font (Blackjack agent, 2026-10-11)
+- The theme names `'Jersey 10'` everywhere, but the shell never loaded it (only `packages/ui`, which the shell doesn't import yet, pulls in `@fontsource/jersey-10`), so the built app fell back to the system monospace. `apps/web/src/main.tsx` now imports `@fontsource/jersey-10` too, the same package and version range as the UI kit, so the font is bundled and self-hosted with no CDN. Done as a small platform PR because the Blackjack screenshots need it.
 ## UI kit juice (Platform UI agent, 2026-10-11)
 - Juice is a `JuiceMap` from event `type` to a handler `(event, kit) => void | Promise<void>`, and `usePlayback`/`useBatchPlayback` run the queue: apply the event to the display (inside `flushSync`, so the DOM is current), then await its juice. Unmapped types apply with no effect. Handlers are bivariant, so a game can type `event` as its own union.
 - The kit addresses elements by `data-testid` within the NeonRoot stage, or by element. Games reuse the test ids the primitives already set (`card-<id>`, `seat-<id>`, `pot`, `player-total`) and need no refs.
