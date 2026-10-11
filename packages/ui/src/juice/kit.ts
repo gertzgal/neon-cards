@@ -251,12 +251,16 @@ export function createJuiceKit(host: KitHost): ControlledKit {
       const { size, ms } = popStyle[tier]
       const look = popColor[opts?.tone ?? (tier === 'big' ? 'gold' : 'pink')]
       const at = point(opts?.at ?? 'table-middle') ?? { x: window.innerWidth / 2, y: window.innerHeight / 2 }
+      const ceilingEl = find(opts?.ceiling)
+      // The pop rises to 0.9 of its height above `at` as it fades, so that much room must stay clear of the ceiling.
+      const room = ceilingEl ? (at.y - ceilingEl.getBoundingClientRect().bottom) / 0.9 : Infinity
+      const px = Math.max(24, Math.min(size(window.innerWidth), room))
       const p = spawn('', 'nc-pop')
       if (!p) return
       p.textContent = text
       p.dataset['testid'] = 'number-pop'
       p.dataset['tier'] = tier
-      Object.assign(p.style, { left: `${at.x}px`, top: `${at.y}px`, fontSize: `${size(window.innerWidth)}px`, color: look.color, textShadow: look.glow })
+      Object.assign(p.style, { left: `${at.x}px`, top: `${at.y}px`, fontSize: `${px}px`, color: look.color, textShadow: look.glow })
       const frames = host.reducedMotion()
         ? [{ opacity: 0 }, { opacity: 1, offset: 0.15 }, { opacity: 1, offset: 0.75 }, { opacity: 0 }]
         : [

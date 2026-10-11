@@ -190,7 +190,8 @@ export interface JuiceKit {
   slide(target: JuiceTarget, from: Point | JuiceTarget): Promise<void>
   shake(size?: ShakeSize, target?: JuiceTarget): Promise<void>
   flash(tone: FlashTone, target?: JuiceTarget): Promise<void>
-  numberPop(text: string, opts?: { tier?: PopTier; tone?: FlashTone; at?: JuiceTarget }): Promise<void>
+  /** Pops `text` at `at` (default: the table's middle zone). With `ceiling`, it shrinks so it never rises above that element's bottom. */
+  numberPop(text: string, opts?: { tier?: PopTier; tone?: FlashTone; at?: JuiceTarget; ceiling?: JuiceTarget }): Promise<void>
   /** Chips spray out of `at` and fall. They never rise above the bottom of `ceiling` (e.g. the dealer tray). */
   chipBurst(opts?: { at?: JuiceTarget; count?: number; ceiling?: JuiceTarget }): Promise<void>
   chipsToPot(chips: ChipValue[], opts: { from: JuiceTarget; to: JuiceTarget }): Promise<void>
