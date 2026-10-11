@@ -104,3 +104,31 @@ test.describe('UI kit juice', () => {
     await expect(page.getByTestId('dealer-hand').getByLabel('7♠')).toBeVisible()
   })
 })
+
+test.describe('UI kit audio', () => {
+  test('the first gesture unlocks audio and the HUD toggle mutes the shared manager', async ({ page }) => {
+    await page.addInitScript(() => {
+      const Real = window.AudioContext
+      const w = window as unknown as { __audioStates: string[] }
+      w.__audioStates = []
+      window.AudioContext = class extends Real {
+        constructor() {
+          super()
+          w.__audioStates.push('created')
+        }
+      }
+    })
+    await page.goto('/ui-gallery.html?scene=juice')
+    const states = () => page.evaluate(() => (window as unknown as { __audioStates: string[] }).__audioStates)
+    expect(await states()).toEqual([])
+    const sound = page.getByTestId('hud-sound')
+    await expect(sound).toHaveAttribute('aria-label', 'Mute')
+    await sound.click()
+    await expect(sound).toHaveAttribute('aria-label', 'Unmute')
+    expect(await states()).toEqual(['created'])
+    await sound.click()
+    await expect(sound).toHaveAttribute('aria-label', 'Mute')
+    await page.getByTestId('action-deal').click()
+    await expect(page.getByTestId('juice-demo')).toHaveAttribute('data-playing', 'false', { timeout: 10_000 })
+  })
+})

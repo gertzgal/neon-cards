@@ -170,3 +170,10 @@ Append-only log. Every PR adds the decisions it made, dated, with who made the c
 - Under reduced motion, deal and flip become short fades, pops and flashes stay (they carry information), and shake, slide, and chip bursts are skipped.
 - `chipBurst` takes a `ceiling` target, and its chips never rise above that element's bottom. That keeps the Blackjack win burst off the dealer tray.
 - NeonRoot finds its stage and fx layer through a `useId` `data-nc-root` attribute instead of refs, which keeps the React compiler's ref rules clean and lets several roots coexist.
+
+## UI kit audio (Platform UI agent, 2026-10-11)
+- `getAudio()` returns one app-wide `AudioManager`, and the music loop and every sound effect are synthesized with WebAudio, so there are no audio assets to load. Effects port the prototype's `snd()` tones, plus `click` and a two-note `turn` chime. The loop is a 100 bpm synthwave bar cycle (Am, F, C, G): triangle bass, square arpeggio, low-passed saw pads, and a sine kick with noise snare and hats. It's scheduled 120ms ahead on a 25ms tick, so it doesn't drift with frame rate.
+- Persistence stays with the shell (`apps/web/src/settings.ts` already stores `muted`/`music`/`sfx`). The manager holds `{muted, music, sfx, volume}` in memory, and the shell pushes changes with `update()`. One source of truth, no second localStorage key.
+- No AudioContext exists before the first `pointerdown` or `keydown` (capture phase) or an explicit `unlock()`. That satisfies autoplay rules, and `play()` is a silent no-op until then. `startMusic()` before the unlock is remembered and starts once unlocked.
+- Gains: master is `volume`, or 0 when muted; the music bus is 0.55 or 0; the sfx bus is 1 or 0. Changes ramp with `setTargetAtTime`, so toggles never click.
+- NeonRoot routes juice `sfx` to the shared manager by default. `useSoundToggle()` gives the Hud's `sound` prop from the same manager.

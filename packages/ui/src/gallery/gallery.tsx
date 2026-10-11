@@ -1,6 +1,7 @@
 import type { CardView, Seat, StandardFace } from '@neon-cards/engine'
 import { useState, type ReactNode } from 'react'
 import type { OpponentSeatModel } from '../api'
+import { useSoundToggle } from '../audio/use-audio'
 import { NeonRoot } from '../backdrop/neon-root'
 import { ScoreBadge, StatusBadge } from '../primitives/badge'
 import { PlayingCard } from '../primitives/playing-card'
@@ -27,13 +28,9 @@ function f7(face: Flip7Face): CardView<Flip7Face> {
 }
 const num = (value: number): CardView<Flip7Face> => f7({ kind: 'number', value })
 
-function useSound() {
-  const [on, setOn] = useState(true)
-  return { on, toggle: () => setOn((v) => !v) }
-}
 
 function BlackjackScene() {
-  const sound = useSound()
+  const sound = useSoundToggle()
   return (
     <TableLayout
       hud={<Hud bankroll={1250} sound={sound} onSettings={() => {}} />}
@@ -60,7 +57,7 @@ function BlackjackScene() {
 }
 
 function BettingScene() {
-  const sound = useSound()
+  const sound = useSoundToggle()
   const [pot, setPot] = useState<(typeof chipValues)[number][]>([25, 25])
   const bank = 1250 - pot.reduce<number>((a, b) => a + b, 0)
   return (
@@ -88,7 +85,7 @@ const bix: Seat = { id: 'cpu2', kind: 'cpu', name: 'BIX', difficulty: 'medium' }
 const cy: Seat = { id: 'cpu3', kind: 'cpu', name: 'CY-9', difficulty: 'hard' }
 
 function OpponentsScene({ count }: { count: number }) {
-  const sound = useSound()
+  const sound = useSoundToggle()
   const all: OpponentSeatModel<Flip7Face>[] = [
     { seat: ada, cards: [num(7), num(3), f7({ kind: 'modifier', op: 'add', value: 4 })], total: 14, status: 'THINKING', state: 'active' },
     { seat: bix, cards: [num(12), num(9)], total: 21, status: 'STAYED', state: 'waiting' },

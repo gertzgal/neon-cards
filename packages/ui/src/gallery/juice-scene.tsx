@@ -1,6 +1,9 @@
 import type { CardView, GameEvent, Seat, SeatId, StandardFace } from '@neon-cards/engine'
 import { useState } from 'react'
 import type { JuiceMap, OpponentSeatModel } from '../api'
+import { getAudio } from '../audio/manager'
+import { useSoundToggle } from '../audio/use-audio'
+import { Hud } from '../primitives/hud'
 import { useBatchPlayback } from '../juice/provider'
 import { ScoreBadge, StatusBadge } from '../primitives/badge'
 import { ChipStack } from '../primitives/chips'
@@ -84,7 +87,9 @@ export function JuiceScene() {
   const [model, setModel] = useState(empty)
   const [batch, setBatch] = useState({ id: 0, events: [] as GameEvent[] })
   const playback = useBatchPlayback(batch, { juice, seats, apply: (e) => setModel((m) => applyEvent(m, e)) })
+  const sound = useSoundToggle()
   const replay = () => {
+    getAudio().startMusic()
     setModel(empty())
     setBatch((b) => ({ id: b.id + 1, events: round }))
   }
@@ -103,6 +108,7 @@ export function JuiceScene() {
   return (
     <div data-testid="juice-demo" data-playing={playback.playing} data-acting={playback.actingSeat ?? ''} style={{ display: 'contents' }}>
       <TableLayout
+        hud={<Hud bankroll={null} sound={sound} />}
         top={
           <div className="nc-gallery-stack">
             <OpponentRows seats={opponents} renderer={standardFaceRenderer} />
