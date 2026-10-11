@@ -42,6 +42,16 @@ export interface HandLayout {
   slots: Slot[]
 }
 
+/**
+ * The widest dealer hand that keeps the dealer row on screen: the row is a badge-sized spacer, the
+ * tray (hand plus its side padding), and the total badge, 16px apart. These numbers mirror
+ * `.bj-dealer-row`, `.bj-tray`, and `.bj-badge-dealer` in table.css; a soft total is about 2.4em wide.
+ */
+export function dealerRoom(size: TableSize): number {
+  const badge = size.dh * 0.26 * 2.4
+  return size.width - 16 - 2 * (badge + 16) - size.dw * 0.44
+}
+
 /** Player hands fan out with a slight arc; the dealer's row lies flat with a gap between cards. */
 export function layoutHand(size: TableSize, kind: 'player' | 'dealer', count: number, split: boolean): HandLayout {
   const scale = kind === 'dealer' || !split ? 1 : size.phone ? 0.62 : 0.78
@@ -49,7 +59,7 @@ export function layoutHand(size: TableSize, kind: 'player' | 'dealer', count: nu
   const h = (kind === 'dealer' ? size.dh : size.ph) * scale
   const maxW =
     kind === 'dealer'
-      ? Math.min(size.width * 0.62, 700)
+      ? Math.max(w * 2 + 8, Math.min(size.width * 0.62, 700, dealerRoom(size)))
       : split
         ? size.phone
           ? (size.width - 48) / 2
