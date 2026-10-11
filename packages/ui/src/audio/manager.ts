@@ -10,7 +10,12 @@ export interface AudioManagerOptions {
   createContext?: () => AudioContext
   /** Where the first-gesture unlock listens. Defaults to `window` when there is one. */
   gestureTarget?: EventTarget | null
+  /** Pauses the loop while hidden (`visibilitychange`). Defaults to `document` when there is one. */
+  page?: (EventTarget & { readonly hidden: boolean }) | null
 }
+
+/** iOS Safari only resumes audio from touchend/click, Chrome from pointerdown or keydown. */
+const gestureEvents = ['pointerdown', 'touchend', 'click', 'keydown'] as const
 
 const bpm = 100
 const step = 60 / bpm / 4
@@ -131,8 +136,12 @@ export function createAudioManager(options: AudioManagerOptions = {}): AudioMana
     }
   }
 
+  const page = options.page === undefined ? (typeof document === 'undefined' ? null : document) : options.page
+
+  /** The loop is only scheduled while it can be heard, so mute and the music switch cost nothing. */
   const syncMusic = () => {
-    const on = wantMusic && ctx !== null && ctx.state === 'running'
+    const audible = !settings.muted && settings.music && settings.volume > 0 && !page?.hidden
+    const on = wantMusic && audible && ctx !== null && ctx.state === 'running'
     if (on && timer === null && ctx) {
       nextAt = ctx.currentTime + 0.05
       stepNo = 0
@@ -148,6 +157,17 @@ export function createAudioManager(options: AudioManagerOptions = {}): AudioMana
   const onGesture = () => {
     void manager.unlock()
   }
+  const listenForGesture = (on: boolean) => {
+    for (const type of gestureEvents) {
+      if (on) gestureTarget?.addEventListener(type, onGesture, true)
+      else gestureTarget?.removeEventListener(type, onGesture, true)
+    }
+  }
+  const onStateChange = () => {
+    // A suspended or interrupted context (iOS after a call, a lock screen) needs a fresh gesture to resume.
+    listenForGesture(ctx?.state !== 'running')
+    syncMusic()
+  }
 
   const manager: AudioManager = {
     get settings() {
@@ -159,6 +179,7 @@ export function createAudioManager(options: AudioManagerOptions = {}): AudioMana
     update(patch) {
       settings = { ...settings, ...patch }
       applyLevels()
+      syncMusic()
       for (const l of listeners) l(settings)
     },
     subscribe(listener) {
@@ -183,11 +204,16 @@ export function createAudioManager(options: AudioManagerOptions = {}): AudioMana
         const data = noise.getChannelData(0)
         for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1
         applyLevels()
+        ctx.addEventListener('statechange', onStateChange)
       }
-      if (ctx.state !== 'running') await ctx.resume()
-      gestureTarget?.removeEventListener('pointerdown', onGesture, true)
-      gestureTarget?.removeEventListener('keydown', onGesture, true)
-      syncMusic()
+      if (ctx.state !== 'running') {
+        try {
+          await ctx.resume()
+        } catch {
+          // Not a qualifying gesture; the listeners stay for the next one.
+        }
+      }
+      onStateChange()
       for (const l of listeners) l(settings)
     },
     play(name: SfxName) {
@@ -244,8 +270,8 @@ export function createAudioManager(options: AudioManagerOptions = {}): AudioMana
     },
   }
 
-  gestureTarget?.addEventListener('pointerdown', onGesture, true)
-  gestureTarget?.addEventListener('keydown', onGesture, true)
+  listenForGesture(true)
+  page?.addEventListener('visibilitychange', syncMusic)
   return manager
 }
 

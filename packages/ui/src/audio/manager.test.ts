@@ -32,15 +32,22 @@ class FakeNode {
   stop() {}
 }
 
-function fakeContext() {
+function fakeContext({ refuseResumes = 0 } = {}) {
   const nodes: FakeNode[] = []
   const make = (kind: string) => {
     const n = new FakeNode(kind)
     nodes.push(n)
     return n
   }
+  let refusals = refuseResumes
+  const events = new EventTarget()
   const ctx = {
     state: 'suspended',
+    addEventListener: events.addEventListener.bind(events),
+    setState(state: string) {
+      ctx.state = state
+      events.dispatchEvent(new Event('statechange'))
+    },
     currentTime: 0,
     sampleRate: 8000,
     destination: make('destination'),
@@ -50,17 +57,40 @@ function fakeContext() {
     createBufferSource: () => make('noise'),
     createBuffer: (_c: number, length: number) => ({ getChannelData: () => new Float32Array(length) }),
     resume: async () => {
-      ctx.state = 'running'
+      if (refusals-- > 0) throw new Error('not allowed to start')
+      ctx.setState('running')
     },
   }
   return { ctx, nodes, oscs: () => nodes.filter((n) => n.kind === 'osc') }
 }
 
-function setup(initial = {}) {
-  const fake = fakeContext()
+class FakePage extends EventTarget {
+  hidden = false
+  setHidden(hidden: boolean) {
+    this.hidden = hidden
+    this.dispatchEvent(new Event('visibilitychange'))
+  }
+}
+
+function setup(initial = {}, contextOptions = {}) {
+  const fake = fakeContext(contextOptions)
   const gestures = new EventTarget()
-  const audio = createAudioManager({ initial, gestureTarget: gestures, createContext: () => fake.ctx as unknown as AudioContext })
-  return { audio, fake, gestures }
+  const page = new FakePage()
+  const audio = createAudioManager({
+    initial,
+    gestureTarget: gestures,
+    page,
+    createContext: () => fake.ctx as unknown as AudioContext,
+  })
+  return { audio, fake, gestures, page }
+}
+
+/** Oscillators the loop schedules over the next second of audio time. */
+function loopNotes(fake: ReturnType<typeof fakeContext>) {
+  const before = fake.oscs().length
+  fake.ctx.currentTime += 1
+  vi.advanceTimersByTime(30)
+  return fake.oscs().length - before
 }
 
 afterEach(() => {
@@ -125,5 +155,61 @@ describe('createAudioManager', () => {
     fake.ctx.currentTime = 2
     vi.advanceTimersByTime(100)
     expect(fake.oscs()).toHaveLength(later)
+  })
+
+  it('a startMusic before the first gesture starts the loop on that gesture', async () => {
+    vi.useFakeTimers()
+    const { audio, fake, gestures } = setup()
+    audio.startMusic()
+    expect(fake.oscs()).toHaveLength(0)
+    gestures.dispatchEvent(new Event('touchend'))
+    await vi.waitFor(() => expect(audio.unlocked).toBe(true))
+    expect(loopNotes(fake)).toBeGreaterThan(0)
+  })
+
+  it('schedules nothing while muted or with music off, and picks the loop back up when heard again', async () => {
+    vi.useFakeTimers()
+    const { audio, fake } = setup({ muted: true })
+    audio.startMusic()
+    await audio.unlock()
+    expect(loopNotes(fake)).toBe(0)
+
+    audio.update({ muted: false })
+    expect(loopNotes(fake)).toBeGreaterThan(0)
+
+    audio.update({ music: false })
+    expect(loopNotes(fake)).toBe(0)
+    audio.update({ music: true })
+    expect(loopNotes(fake)).toBeGreaterThan(0)
+  })
+
+  it('pauses the loop while the page is hidden', async () => {
+    vi.useFakeTimers()
+    const { audio, fake, page } = setup()
+    audio.startMusic()
+    await audio.unlock()
+    page.setHidden(true)
+    expect(loopNotes(fake)).toBe(0)
+    page.setHidden(false)
+    expect(loopNotes(fake)).toBeGreaterThan(0)
+  })
+
+  it('keeps listening when a gesture fails to start audio, and after the context is interrupted', async () => {
+    vi.useFakeTimers()
+    const { audio, fake, gestures } = setup({}, { refuseResumes: 1 })
+    audio.startMusic()
+    gestures.dispatchEvent(new Event('pointerdown'))
+    await vi.waitFor(() => expect(fake.ctx.state).toBe('suspended'))
+    expect(audio.unlocked).toBe(false)
+
+    gestures.dispatchEvent(new Event('click'))
+    await vi.waitFor(() => expect(audio.unlocked).toBe(true))
+    expect(loopNotes(fake)).toBeGreaterThan(0)
+
+    fake.ctx.setState('interrupted')
+    expect(loopNotes(fake)).toBe(0)
+    gestures.dispatchEvent(new Event('keydown'))
+    await vi.waitFor(() => expect(audio.unlocked).toBe(true))
+    expect(loopNotes(fake)).toBeGreaterThan(0)
   })
 })
