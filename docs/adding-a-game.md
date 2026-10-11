@@ -1,6 +1,6 @@
 # Adding a game
 
-How to add a game to Neon Cards, written for Flip 7 but true for any game. `docs/architecture.md` is the contract; this guide is the order to do it in and the files to touch. Blackjack (`packages/games/blackjack`) is the worked example for a house game, and the test-only High Card game (`packages/engine/src/testing/high-card.ts`) is the worked example for CPU seats and settings.
+How to add a game to Neon Cards, written for Flip 7 but true for any game. `docs/architecture.md` is the contract; this guide is the order to do it in and the files to touch. Blackjack (`packages/games/blackjack`) is the worked example for a house game, and the test-only High Card game (`packages/engine/src/testing/high-card.ts`) is the worked example for CPU seats and settings. Its dev table (`apps/web/src/dev/high-card.tsx`, playable at `/games/high-card` on local stacks) and `e2e/shell-multiseat.spec.ts` show a multi-seat table on `OpponentRows` with paced CPU turns, and the e2e to copy.
 
 The examples use `flip7` as the id. Replace it with yours.
 
