@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { loadGameSettings, saveGameSettings, type GameSettings } from './game-settings'
-import type { GamePlugin } from './plugin'
+import type { GamePlugin } from '@neon-cards/ui'
 import { useGameSession } from './session'
 import { Hud, HudIcons } from './shell/Hud'
 import { Segmented } from './shell/Segmented'

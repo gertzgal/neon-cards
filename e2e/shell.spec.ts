@@ -5,15 +5,18 @@ test('home shows the lobby, the wallet pill, and the HUD icons', async ({ page }
   await expect(page.getByTestId('app-title')).toHaveText('Neon Cards')
   await expect(page.getByTestId('game-blackjack')).toContainText('Blackjack')
   await expect(page.getByTestId('game-blackjack')).toContainText('Chips')
-  await expect(page.getByTestId('wallet')).not.toHaveAttribute('data-state', 'loading')
-  await expect(page.getByTestId('sound-toggle')).toBeVisible()
-  await expect(page.getByTestId('open-settings')).toBeVisible()
+  await expect(page.getByTestId('hud-bankroll')).toHaveAttribute('data-value', /^\d+$/)
+  await expect(page.getByTestId('hud-sound')).toBeVisible()
+  await expect(page.getByTestId('hud-settings')).toBeVisible()
+  await expect(page.getByTestId('neon-root')).toHaveCount(1)
+  await expect(page.getByTestId('crt-overlay')).toHaveCount(1)
+  expect(await page.evaluate<number>(`document.fonts.load('16px "Jersey 10"').then((faces) => faces.length)`)).toBeGreaterThan(0)
   await page.screenshot({ path: testInfo.outputPath('home.png'), fullPage: true })
 })
 
 test('settings persist across a reload', async ({ page }, testInfo) => {
   await page.goto('/')
-  await page.getByTestId('open-settings').click()
+  await page.getByTestId('hud-settings').click()
   const sheet = page.getByTestId('settings')
   await expect(sheet).toBeVisible()
   await expect(page.getByTestId('setting-music')).toHaveAttribute('data-value', 'on')
@@ -28,7 +31,7 @@ test('settings persist across a reload', async ({ page }, testInfo) => {
 
   await page.reload()
   await expect(page.locator('html')).toHaveAttribute('data-motion', 'reduced')
-  await page.getByTestId('open-settings').click()
+  await page.getByTestId('hud-settings').click()
   await expect(page.getByTestId('setting-music')).toHaveAttribute('data-value', 'off')
   await expect(page.getByTestId('setting-sfx')).toHaveAttribute('data-value', 'on')
   await expect(page.getByTestId('setting-motion')).toHaveAttribute('data-value', 'reduced')
@@ -38,14 +41,14 @@ test('settings persist across a reload', async ({ page }, testInfo) => {
 
 test('the HUD sound icon mutes and unmutes, and remembers it', async ({ page }) => {
   await page.goto('/')
-  const sound = page.getByTestId('sound-toggle')
-  await expect(sound).toHaveAttribute('data-state', 'on')
+  const sound = page.getByTestId('hud-sound')
+  await expect(sound).toHaveAttribute('aria-pressed', 'false')
   await sound.click()
-  await expect(sound).toHaveAttribute('data-state', 'muted')
+  await expect(sound).toHaveAttribute('aria-pressed', 'true')
   await page.reload()
-  await expect(sound).toHaveAttribute('data-state', 'muted')
+  await expect(sound).toHaveAttribute('aria-pressed', 'true')
   await sound.click()
-  await expect(sound).toHaveAttribute('data-state', 'on')
+  await expect(sound).toHaveAttribute('aria-pressed', 'false')
 })
 
 test('history opens from the HUD and goes back to the lobby', async ({ page }, testInfo) => {

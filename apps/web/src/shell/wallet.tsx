@@ -32,14 +32,3 @@ export function useWallet(): WalletApi {
   if (!value) throw new Error('useWallet outside WalletProvider')
   return value
 }
-
-export const formatChips = (amount: number) => `$${amount.toLocaleString('en-US')}`
-
-export function WalletPill() {
-  const { wallet } = useWallet()
-  return (
-    <div className="pill wallet" data-testid="wallet" data-state={wallet.status}>
-      {wallet.status === 'ok' ? formatChips(wallet.balance) : wallet.status === 'loading' ? '$…' : '$—'}
-    </div>
-  )
-}

@@ -1,19 +1,12 @@
+/* Colours, font, CRT and HUD come from @neon-cards/ui; these aliases keep shell rules short. */
 :root {
-  color-scheme: dark;
-  --table: #0b0b12;
-  --ink: #f4f0ff;
-  --dim: #8c84a8;
-  --pink: #ff2e88;
-  --cyan: #2ef2ff;
-  --gold: #ffd23f;
-  --panel: rgba(10, 8, 18, 0.88);
-  --rim: #241f36;
-  --font: 'Jersey 10', ui-monospace, 'SFMono-Regular', Menlo, monospace;
-}
-
-* {
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
+  --ink: var(--nc-ink);
+  --dim: var(--nc-dim);
+  --pink: var(--nc-pink);
+  --cyan: var(--nc-cyan);
+  --gold: var(--nc-gold);
+  --panel: var(--nc-panel);
+  --rim: var(--nc-panel-rim);
 }
 
 html,
@@ -23,11 +16,19 @@ body,
   margin: 0;
 }
 
+/* Sheets portal to body, outside .nc-root, so body carries the kit look too. */
 body {
-  background: var(--table);
+  background: var(--nc-bg);
   color: var(--ink);
-  font-family: var(--font);
+  font-family: var(--nc-font);
   user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body *,
+body *::before,
+body *::after {
+  box-sizing: border-box;
 }
 
 button {
@@ -35,6 +36,7 @@ button {
   color: inherit;
   background: none;
   border: 0;
+  padding: 0;
   cursor: pointer;
 }
 
@@ -43,74 +45,17 @@ a {
   text-decoration: none;
 }
 
+a.nc-icon-btn {
+  display: block;
+}
+
+/* The kit stage is fixed and clips, so each screen scrolls itself. */
 .screen {
-  position: relative;
-  min-height: 100%;
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  background:
-    radial-gradient(ellipse at 0% 100%, rgba(255, 46, 136, 0.16), transparent 45%),
-    radial-gradient(ellipse at 100% 0%, rgba(46, 242, 255, 0.12), transparent 45%),
-    var(--table);
-}
-
-.screen::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 40;
-  background:
-    radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.5) 100%),
-    repeating-linear-gradient(to bottom, transparent 0 2px, rgba(0, 0, 0, 0.18) 2px 3px);
-}
-
-/* HUD */
-.hud {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 16px 0;
-  min-height: 58px;
-  position: relative;
-  z-index: 6;
-}
-
-.hud-side {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.pill {
-  background: var(--panel);
-  border: 1px solid var(--rim);
-  border-radius: 999px;
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.4);
-  line-height: 1;
-}
-
-.wallet {
-  padding: 6px 14px 5px;
-  font-size: 27px;
-  letter-spacing: 1px;
-  font-variant-numeric: tabular-nums;
-}
-
-.pill.icon,
-.pill.icons {
-  display: flex;
-  gap: 12px;
-  padding: 6px 12px;
-  color: var(--cyan);
-}
-
-.pill.icon svg,
-.pill.icons svg {
-  display: block;
-  width: 24px;
-  height: 24px;
-  filter: drop-shadow(0 0 4px rgba(46, 242, 255, 0.7));
 }
 
 /* Lobby */
@@ -148,7 +93,8 @@ a {
 
 @media (min-width: 700px) {
   .game-list {
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(300px, 350px));
+    justify-content: center;
   }
 }
 
@@ -188,6 +134,8 @@ a {
 }
 
 .game-tag {
+  grid-row: 1;
+  grid-column: 2;
   align-self: start;
   font-size: 16px;
   padding: 3px 8px 2px;
@@ -439,24 +387,6 @@ a {
 
 .round-net.loss {
   color: var(--cyan);
-}
-
-@media (min-width: 700px) {
-  .hud {
-    padding: 20px 26px 0;
-    min-height: 70px;
-  }
-
-  .wallet {
-    font-size: 30px;
-    padding: 7px 18px 6px;
-  }
-
-  .pill.icon svg,
-  .pill.icons svg {
-    width: 28px;
-    height: 28px;
-  }
 }
 
 [data-motion='reduced'] *,

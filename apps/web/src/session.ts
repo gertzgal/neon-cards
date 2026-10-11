@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Seat, SeatId } from '@neon-cards/engine'
 import { api } from './api'
-import type { EventBatch, GamePlugin } from './plugin'
+import type { EventBatch, GamePlugin } from '@neon-cards/ui'
 
 export type SessionState =
   | { status: 'loading' }
