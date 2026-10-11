@@ -11,6 +11,7 @@ import {
   chipsFor,
   displayFromView,
   formatMoney,
+  rebetChips,
   totalLabel,
   type ChipValue,
   type Display,
@@ -290,8 +291,8 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
       void send({ type: 'refill' })
       return
     }
-    const again = lastChips.current
-    if (v.legal.includes('bet') && !potRef.current.length && again.length && sum(again) <= v.stack) {
+    const again = rebetChips(v, lastChips.current)
+    if (!potRef.current.length && again.length) {
       setPot([...again])
       sfx.play('chip')
     }

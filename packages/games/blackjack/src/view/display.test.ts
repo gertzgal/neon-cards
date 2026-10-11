@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { blackjack, parseFace, type BlackjackAction, type VisibleCard } from '../rules'
-import { newGame, play, SEAT } from '../rules/test-helpers'
-import { applyEvent, chipsFor, displayFromView, formatMoney, totalLabel } from './display'
+import { newGame, play, rigged, SEAT } from '../rules/test-helpers'
+import { applyEvent, chipsFor, displayFromView, formatMoney, rebetChips, totalLabel } from './display'
 
 const cards = (...codes: string[]): VisibleCard[] =>
   codes.map((c, i) => (c === '??' ? { id: 'hole', deck: 'standard52', face: null } : { id: String(i), deck: 'standard52', face: parseFace(c) }))
@@ -15,6 +15,29 @@ describe('chipsFor', () => {
     [0, []],
   ])('%i breaks into %j', (amount, chips) => {
     expect(chipsFor(amount)).toEqual(chips)
+  })
+})
+
+describe('rebetChips', () => {
+  it('puts the last bet back after a round, keeping the chips the player used', () => {
+    const won = rigged('win', 50, ['stand'])
+    expect(rebetChips(won.view, [25, 5, 5, 5, 5, 5])).toEqual([25, 5, 5, 5, 5, 5])
+    expect(rebetChips(won.view, [])).toEqual([25, 25])
+  })
+
+  it('places nothing when the stack no longer covers the last bet', () => {
+    const lost = rigged('lose', 500, ['stand'], { bankroll: 600 })
+    expect(lost.view.stack).toBe(100)
+    expect(rebetChips(lost.view, [500])).toEqual([])
+  })
+
+  it('places nothing after going broke on an all-in and refilling', () => {
+    const allIn = [500, 500, 100, 100, 25, 25] as const
+    const broke = rigged('lose', 1250, ['stand'])
+    expect(rebetChips(broke.view, allIn)).toEqual([])
+    const refilled = play(broke.state, broke.rng, { type: 'refill' })
+    expect(refilled.view.stack).toBe(1250)
+    expect(rebetChips(refilled.view, allIn)).toEqual([])
   })
 })
 

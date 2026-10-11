@@ -17,6 +17,13 @@ export function chipsFor(amount: number): ChipValue[] {
   return out
 }
 
+/** The chips the table puts back on the felt when a round is over: the last bet, if the rules still offer it and the stack covers it. */
+export function rebetChips(view: BlackjackView, remembered: readonly ChipValue[]): ChipValue[] {
+  if (!view.legal.includes('bet') || !view.lastBet || view.lastBet > view.stack) return []
+  const total = remembered.reduce((a, b) => a + b, 0)
+  return total === view.lastBet ? [...remembered] : chipsFor(view.lastBet)
+}
+
 /** What the table shows. The event player steps it one server event at a time. */
 export type Stage = 'betting' | 'dealing' | 'playing' | 'dealer' | 'settling'
 
