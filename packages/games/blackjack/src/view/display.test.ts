@@ -25,6 +25,13 @@ describe('rebetChips', () => {
     expect(rebetChips(won.view, [])).toEqual([25, 25])
   })
 
+  it('rebuilds the rebet from the view alone when the table remounts with no chip memory', () => {
+    const resumed = blackjack.view(rigged('push', 130, ['stand']).state, SEAT)
+    expect(resumed.phase).toBe('settling')
+    expect(rebetChips(resumed, [])).toEqual([100, 25, 5])
+    expect(rebetChips(blackjack.view(newGame().state, SEAT), [])).toEqual([])
+  })
+
   it('places nothing when the stack no longer covers the last bet', () => {
     const lost = rigged('lose', 500, ['stand'], { bankroll: 600 })
     expect(lost.view.stack).toBe(100)

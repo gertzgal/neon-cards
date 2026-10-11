@@ -308,7 +308,6 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
   }, [events, view])
 
   useEffect(() => {
-    if (!initialView.legal.includes('refill')) return
     const t = setTimeout(() => afterBatch(initialView), 0)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
