@@ -197,3 +197,7 @@ Append-only log. Every PR adds the decisions it made, dated, with who made the c
 
 ## Shell swirl and music (Blackjack agent, 2026-10-11)
 - Platform's shell-on-the-kit change landed the `NeonRoot` stage and audio-level sync first, so this PR only adds what was still missing. The swirl is `static` when the shell's motion setting resolves to reduced, because the kit's `auto` mode only reads the OS media query and misses the in-app toggle. The shell also calls `startMusic()` once. The manager waits for the first gesture to create its AudioContext, so the synthwave loop starts on the first tap. Blackjack keeps its own table sfx, as Platform wired it.
+## Adding a game guide (Platform agent, 2026-10-11)
+- `docs/adding-a-game.md` is ordered the way a game is built: package, rules, DeckSpec, seats, CPU policies, settings, React plugin, the two registry lines, e2e. It points at Blackjack for house games and at the engine's test-only High Card for CPU seats and settings, because Flip 7 has no worked example yet.
+- The guide asks each game to export its browser plugin as `plugin` (built with `definePlugin`) next to `rules`, so the web registry line is one import. Blackjack predates this and is wrapped in `apps/web/src/games.ts`.
+- The pre-game settings sheet is built but no registered game has `meta.settings`, so its e2e is the first such game's job (Flip 7). The verify map now documents its test ids (`shell-pregame`) instead of listing it as planned.
