@@ -16,9 +16,10 @@ import {
   type ChipValue,
   type Display,
 } from './display'
-import { center, chipBurst, flash, flyChip, hop, numberPop, pulse, riffle, shake, sleep, type Point } from './juice'
+import { center, chipBurst, flash, flyChip, hop, numberPop, pulse, riffle, shake, type Point, type PopStyle } from './juice'
 import { layoutHand, useTableSize, type TableSize } from './layout'
 import { createSfx, type Sfx } from './sfx'
+import { createSkip, finishAnimations } from './skip'
 import { useCardTilt } from './tilt'
 
 export interface BlackjackTableProps extends TableProps<BlackjackView, BlackjackAction> {
@@ -30,6 +31,12 @@ export interface BlackjackTableProps extends TableProps<BlackjackView, Blackjack
 const silent = createSfx(() => true)
 
 const ORIGIN = { x: 0, y: 0, rot: 0 }
+
+/** After a skip lands on a finished round, its result stays readable this long (another tap ends it). */
+const SKIP_HOLD_MS = 450
+const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'Tab'])
+
+type RoundEnd = Extract<BlackjackEvent, { type: 'roundEnd' }>
 
 const sum = (xs: readonly number[]) => xs.reduce((a, b) => a + b, 0)
 
@@ -77,6 +84,16 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
   const fx = useRef<HTMLDivElement>(null)
   const burst = useRef<HTMLDivElement>(null)
   const goldFlash = useRef<HTMLDivElement>(null)
+  const [skip] = useState(createSkip)
+  const wait = (ms: number) => skip.wait(ms)
+  /** Jump the playing batch to its end: effects finish now, and the rest of the batch applies with no juice. */
+  const hurry = () => {
+    finishAnimations(root.current?.getAnimations({ subtree: true }) ?? [])
+    fx.current?.replaceChildren()
+    burst.current?.replaceChildren()
+    skip.skip()
+  }
+  const popped = useRef(false)
 
   const q = <T extends Element = HTMLElement>(sel: string) => root.current?.querySelector<T>(sel) ?? null
   const fxLayer = () => fx.current ?? document.body
@@ -110,13 +127,54 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
     return { x: innerWidth / 2, y: (tray.bottom + player.top) / 2 }
   }
 
-  async function resultMoment(e: Extract<BlackjackEvent, { type: 'roundEnd' }>) {
-    const d = displayRef.current
-    const anyBlackjack = d.hands.some((h) => h.outcome === 'blackjack')
-    const allBust = d.hands.every((h) => h.status === 'bust')
+  const hasBlackjack = () => displayRef.current.hands.some((h) => h.outcome === 'blackjack')
+
+  /** The round's number pop. `duration` overrides the tier's own, for the short hold after a skip. */
+  function resultPop(e: RoundEnd, duration?: number) {
+    popped.current = true
     const at = popAt()
     const W = innerWidth
-    await sleep(120)
+    const ceiling = q('.bj-dealer-row')?.getBoundingClientRect().bottom ?? 0
+    const [text, style]: [string, PopStyle] = hasBlackjack()
+      ? [
+          '+' + formatMoney(e.net),
+          {
+            kind: 'blackjack',
+            color: '#fffbe6',
+            size: Math.min(W * 0.24, 180, (at.y - ceiling) * 1.6),
+            glow: '0 0 6px #fff,0 0 18px #ffd23f,0 0 40px #ffb020,0 4px 0 #b06a00',
+            duration: 1900,
+          },
+        ]
+      : e.net > 0
+        ? ['+' + formatMoney(e.net), { kind: 'win', color: '#ff7ab4', size: Math.min(W * 0.18, 110), glow: '0 0 10px #ff2e88,0 0 24px #ff2e88', duration: 1100 }]
+        : e.net < 0
+          ? ['-' + formatMoney(-e.net), { kind: 'lose', color: '#8d87a8', size: Math.min(W * 0.13, 72), glow: 'none', duration: 900 }]
+          : ['±$0', { kind: 'push', color: '#7ff7ff', size: Math.min(W * 0.14, 80), glow: '0 0 10px #2ef2ff', duration: 900 }]
+    void numberPop(fxLayer(), at, text, duration ? { ...style, duration } : style)
+  }
+
+  function settleRound(e: RoundEnd) {
+    const d = displayRef.current
+    setPot([])
+    commit(e)
+    roundCount.current++
+    setLastRound({
+      n: roundCount.current,
+      outcomes: d.hands.map((h) => h.outcome ?? '').join(','),
+      statuses: d.hands.map((h) => h.status).join(','),
+      net: e.net,
+      dealer: dealerNote.current,
+    })
+    dealerNote.current = ''
+  }
+
+  async function resultMoment(e: RoundEnd) {
+    const d = displayRef.current
+    const anyBlackjack = hasBlackjack()
+    const allBust = d.hands.every((h) => h.status === 'bust')
+    await wait(120)
+    if (skip.skipped) return settleRound(e)
     if (anyBlackjack) {
       setFx('blackjack')
       sfx.play('blackjack')
@@ -137,83 +195,57 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
       // Spray from the gap between the two hands, not from on top of the player's cards.
       const origin = hand ? { x: innerWidth / 2, y: (ceiling + hand.top) / 2 } : center(q('.bj-pot-area'))
       void chipBurst(burst.current ?? fxLayer(), origin, ceiling, 24, hand)
-      void numberPop(fxLayer(), at, '+' + formatMoney(e.net), {
-        kind: 'blackjack',
-        color: '#fffbe6',
-        size: Math.min(W * 0.24, 180, (at.y - ceiling) * 1.6),
-        glow: '0 0 6px #fff,0 0 18px #ffd23f,0 0 40px #ffb020,0 4px 0 #b06a00',
-        duration: 1900,
-      })
-      await sleep(650)
+      resultPop(e)
+      await wait(650)
     } else if (e.net > 0) {
       setFx('win')
       sfx.play('win')
-      void numberPop(fxLayer(), at, '+' + formatMoney(e.net), {
-        kind: 'win',
-        color: '#ff7ab4',
-        size: Math.min(W * 0.18, 110),
-        glow: '0 0 10px #ff2e88,0 0 24px #ff2e88',
-        duration: 1100,
-      })
+      resultPop(e)
       d.hands.forEach((h, i) => h.outcome === 'win' && void hop(q(`[data-testid="hand-${i}"] .bj-hand`)))
-      await sleep(380)
+      await wait(380)
     } else if (e.net < 0) {
       setFx('lose')
       if (!allBust) sfx.play('lose')
-      void numberPop(fxLayer(), at, '-' + formatMoney(-e.net), {
-        kind: 'lose',
-        color: '#8d87a8',
-        size: Math.min(W * 0.13, 72),
-        glow: 'none',
-        duration: 900,
-      })
-      await sleep(380)
+      resultPop(e)
+      await wait(380)
     } else {
       setFx('push')
       sfx.play('push')
-      void numberPop(fxLayer(), at, '±$0', {
-        kind: 'push',
-        color: '#7ff7ff',
-        size: Math.min(W * 0.14, 80),
-        glow: '0 0 10px #2ef2ff',
-        duration: 900,
-      })
-      await sleep(380)
+      resultPop(e)
+      await wait(380)
     }
 
-    const from = center(q('.bj-pot'))
-    if (e.payout > 0) {
-      void flyChips(e.payout, from, center(q('[data-testid="hud-bankroll"]')), 35)
-      sfx.play('chip')
-    } else {
-      void flyChips(e.wagered, from, center(q('.bj-tray')), 30)
+    if (!skip.skipped) {
+      const from = center(q('.bj-pot'))
+      if (e.payout > 0) {
+        void flyChips(e.payout, from, center(q('[data-testid="hud-bankroll"]')), 35)
+        sfx.play('chip')
+      } else {
+        void flyChips(e.wagered, from, center(q('.bj-tray')), 30)
+      }
     }
-    setPot([])
-    commit(e)
-    roundCount.current++
-    setLastRound({
-      n: roundCount.current,
-      outcomes: d.hands.map((h) => h.outcome ?? '').join(','),
-      statuses: d.hands.map((h) => h.status).join(','),
-      net: e.net,
-      dealer: dealerNote.current,
-    })
-    dealerNote.current = ''
-    await sleep(anyBlackjack ? 900 : 520)
+    settleRound(e)
+    await wait(anyBlackjack ? 900 : 520)
   }
 
-  async function sweep() {
+  async function sweep(fast: boolean) {
     const slots = [...(root.current?.querySelectorAll<HTMLElement>('.bj-slot') ?? [])]
     // The tray and its badge leave with the cards. The row's hidden state then applies with no transition of its own.
+    const cardMs = fast ? 120 : 200
+    const stagger = fast ? 0 : 20
     const tray = q('.bj-dealer-row')?.animate([{ opacity: 1 }, { opacity: 0, transform: 'translateY(-14px) scale(.94)' }], {
-      duration: 200 + Math.max(0, slots.length - 1) * 20,
+      duration: cardMs + Math.max(0, slots.length - 1) * stagger,
       easing: 'ease-out',
       fill: 'forwards',
     })
     await Promise.all([
       ...slots.map((el, i) =>
         el
-          .animate([{ opacity: 1 }, { opacity: 0, translate: '0 -40px' }], { duration: 200, delay: i * 20, fill: 'forwards' })
+          .animate([{ opacity: 1 }, { opacity: 0, translate: '0 -40px' }], {
+            duration: cardMs,
+            delay: i * stagger,
+            fill: 'forwards',
+          })
           .finished.catch(() => undefined),
       ),
       tray?.finished.catch(() => undefined),
@@ -231,12 +263,12 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
         memory.clear()
         commit(e)
         sfx.play('chip')
-        return sleep(140)
+        return wait(140)
       case 'deal':
-        if (e.seat === 'dealer' && d.stage === 'dealer') await sleep(300)
+        if (e.seat === 'dealer' && d.stage === 'dealer') await wait(300)
         commit(e)
         sfx.play('card')
-        return sleep(290)
+        return wait(290)
       case 'peek': {
         commit(e)
         sfx.play('peek')
@@ -244,7 +276,7 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
           [{ transform: 'none' }, { transform: 'translateY(-9px) rotate(-4deg)' }, { transform: 'none' }],
           { duration: 320, easing: 'ease-in-out' },
         )
-        return sleep(360)
+        return wait(360)
       }
       case 'reveal':
         await q('[data-testid="dealer-card-1"] .bj-card')
@@ -252,10 +284,10 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
           .finished.catch(() => undefined)
         commit(e)
         sfx.play('flip')
-        return sleep(280)
+        return wait(280)
       case 'blackjack':
         commit(e)
-        return sleep(160)
+        return wait(160)
       case 'dealerBlackjack':
         dealerNote.current = 'blackjack'
         commit(e)
@@ -263,14 +295,14 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
         blink(q('[data-testid="dealer-total"]'))
         void flash(q('.bj-tray-flash'), 1, 800)
         void shake(stage.current)
-        return sleep(520)
+        return wait(520)
       case 'turn':
         commit(e)
-        return sleep(60)
+        return wait(60)
       case 'stand':
         commit(e)
         sfx.play('tap')
-        return sleep(140)
+        return wait(140)
       case 'double':
       case 'split': {
         const bank = center(q('[data-testid="hud-bankroll"]'))
@@ -278,7 +310,7 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
         sfx.play('chip')
         setPot([...potRef.current, ...chipsFor(e.amount)])
         commit(e)
-        return sleep(e.type === 'split' ? 260 : 120)
+        return wait(e.type === 'split' ? 260 : 120)
       }
       case 'bust': {
         commit(e)
@@ -286,14 +318,14 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
         void shake(stage.current)
         void flash(q(`[data-testid="hand-${e.hand}"] .bj-hflash`), 1, 700)
         blink(q(`[data-testid="hand-${e.hand}-total"]`))
-        return sleep(480)
+        return wait(480)
       }
       case 'dealerBust':
         dealerNote.current = 'bust'
         commit(e)
         blink(q('[data-testid="dealer-total"]'))
         void flash(q('.bj-tray-flash'), 0.8, 600)
-        return sleep(380)
+        return wait(380)
       case 'roundEnd':
         return resultMoment(e)
       case 'refill': {
@@ -308,13 +340,13 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
         })
         const bank = center(q('[data-testid="hud-bankroll"]'))
         void flyChips(e.amount, { x: innerWidth / 2, y: -40 }, bank, 45)
-        return sleep(900)
+        return wait(900)
       }
       case 'shuffle': {
         commit(e)
         sfx.play('shuffle')
         await riffle(fxLayer(), center(q('.bj-tray-wrap')), dealerLayout.w, dealerLayout.h, DEAL_FROM())
-        return sleep(80)
+        return wait(80)
       }
       default:
         commit(e)
@@ -323,13 +355,39 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
 
   const chain = useRef<Promise<void>>(Promise.resolve())
 
+  /** An event's state change with no juice: what a skip applies for the events it jumps over. */
+  function applyQuietly(e: BlackjackEvent) {
+    if (e.type === 'bet') memory.clear()
+    if (e.type === 'dealerBlackjack') dealerNote.current = 'blackjack'
+    if (e.type === 'dealerBust') dealerNote.current = 'bust'
+    if (e.type === 'double' || e.type === 'split') setPot([...potRef.current, ...chipsFor(e.amount)])
+    if (e.type === 'roundEnd') settleRound(e)
+    else commit(e)
+  }
+
   async function playBatch(batch: EventBatch, v: BlackjackView) {
+    skip.reset()
+    popped.current = false
     setAnimating(true)
     setStartedId(batch.id)
     try {
-      for (const e of batch.events as BlackjackEvent[]) await step(e)
+      let result: RoundEnd | null = null
+      for (const e of batch.events as BlackjackEvent[]) {
+        if (e.type === 'roundEnd') result = e
+        if (skip.skipped) applyQuietly(e)
+        else await step(e)
+      }
+      const hurried = skip.skipped
+      if (hurried) {
+        hurry()
+        if (result && !popped.current) {
+          skip.reset()
+          resultPop(result, SKIP_HOLD_MS * 1.4)
+          await wait(SKIP_HOLD_MS)
+        }
+      }
       if (v.phase === 'settling') {
-        await sweep()
+        await sweep(hurried)
         commitDisplay(clearedTable(displayFromView(v)))
       } else {
         commitDisplay(displayFromView(v))
@@ -392,10 +450,23 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
     if (legal.includes(type)) void send({ type })
   }
 
-  const keys = useRef({ clearBet, deal, play })
+  const keys = useRef({ clearBet, deal, play, hurry })
   useLayoutEffect(() => {
-    keys.current = { clearBet, deal, play }
+    keys.current = { clearBet, deal, play, hurry }
   })
+  useEffect(() => {
+    if (!animating) return
+    const onTap = () => keys.current.hurry()
+    const onKey = (ev: KeyboardEvent) => {
+      if (!MODIFIER_KEYS.has(ev.key)) keys.current.hurry()
+    }
+    addEventListener('pointerdown', onTap, { capture: true })
+    addEventListener('keydown', onKey, { capture: true })
+    return () => {
+      removeEventListener('pointerdown', onTap, { capture: true })
+      removeEventListener('keydown', onKey, { capture: true })
+    }
+  }, [animating])
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => {
       const k = ev.key.toLowerCase()
