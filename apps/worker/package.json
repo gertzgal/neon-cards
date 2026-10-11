@@ -6,7 +6,6 @@
     "dev": "wrangler dev --port ${WORKER_PORT:-8787} --var DEV_RIG:${DEV_RIG:-1}",
     "start": "wrangler d1 migrations apply DB --local --persist-to ${PERSIST_DIR:-.wrangler/state} && wrangler dev --port ${PORT:-8787} --var DEV_RIG:${DEV_RIG:-1} --persist-to ${PERSIST_DIR:-.wrangler/state}",
     "db:migrate": "wrangler d1 migrations apply DB --local",
-    "deploy": "wrangler d1 migrations apply DB --remote && wrangler deploy",
     "typegen": "wrangler types --include-runtime false",
     "typecheck": "tsc -p tsconfig.json"
   },
