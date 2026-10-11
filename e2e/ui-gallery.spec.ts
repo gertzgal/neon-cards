@@ -108,18 +108,18 @@ test.describe('UI kit juice', () => {
 test.describe('UI kit audio', () => {
   test('the first gesture unlocks audio and the HUD toggle mutes the shared manager', async ({ page }) => {
     await page.addInitScript(() => {
-      const Real = window.AudioContext
-      const w = window as unknown as { __audioStates: string[] }
-      w.__audioStates = []
-      window.AudioContext = class extends Real {
+      const g = globalThis as unknown as { AudioContext: new () => object; __audioStates: string[] }
+      const Real = g.AudioContext
+      g.__audioStates = []
+      g.AudioContext = class extends Real {
         constructor() {
           super()
-          w.__audioStates.push('created')
+          g.__audioStates.push('created')
         }
       }
     })
     await page.goto('/ui-gallery.html?scene=juice')
-    const states = () => page.evaluate(() => (window as unknown as { __audioStates: string[] }).__audioStates)
+    const states = () => page.evaluate(() => (globalThis as unknown as { __audioStates: string[] }).__audioStates)
     expect(await states()).toEqual([])
     const sound = page.getByTestId('hud-sound')
     await expect(sound).toHaveAttribute('aria-label', 'Mute')
