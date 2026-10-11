@@ -1,8 +1,0 @@
-/* Jersey 10 (SIL Open Font License, see OFL.txt), self-hosted so the pixel type never depends on a CDN. */
-@font-face {
-  font-family: 'Jersey 10';
-  font-style: normal;
-  font-weight: 400;
-  font-display: block;
-  src: url('./jersey10-latin.woff2') format('woff2');
-}
