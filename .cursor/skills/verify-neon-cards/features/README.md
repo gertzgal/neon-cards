@@ -11,6 +11,7 @@ The maintained source for verifying what a Neon Cards player can see and do. Rea
 | Sessions, actions, CPU seats, history API | [sessions-api.md](sessions-api.md) | live (Worker API) |
 | Blackjack round in the shell | [app-shell.md](app-shell.md) (`shell-play`) | live (Shell); table moments owned by the Blackjack project |
 | Multi-seat play: settings sheet, CPU seats, paced turns, opponent rows | [multi-seat.md](multi-seat.md) | live (dev game `/games/high-card`, needs `DEV_RIG=1`) |
+| Flip 7: setup, rounds, actions, FLIP 7!, scoring, win | [flip7.md](flip7.md) | live (Flip 7) |
 
 ## Baseline preconditions
 

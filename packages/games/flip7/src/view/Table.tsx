@@ -310,6 +310,7 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
               <div className="f7-extras">
                 <Hand cards={extrasOf(me)} renderer={flip7Face} size="compact" layout="row" testId="you-extras" />
               </div>
+              <Slots filled={me.status === 'busted' ? 0 : unique} gold={me.flip7} />
               <PlayerSpot
                 state={myState}
                 badge={
@@ -323,7 +324,6 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
               >
                 <Hand cards={cardsOf(humanSeat, me)} renderer={flip7Face} size="hand" testId="you-hand" state={myState} />
               </PlayerSpot>
-              <Slots filled={me.status === 'busted' ? 0 : unique} gold={me.flip7} />
             </div>
           )
         }

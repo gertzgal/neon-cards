@@ -241,13 +241,11 @@
 .f7-slots {
   display: flex;
   gap: 6px;
-  margin-top: calc(var(--nc-hand-h) * -0.06);
-  position: relative;
-  z-index: 5;
+  margin-bottom: 6px;
 }
 
 .f7-slots i {
-  width: 14px;
+  width: 18px;
   height: 8px;
   border: 2px solid rgba(255, 46, 136, 0.45);
   background: transparent;
