@@ -208,3 +208,6 @@ Append-only log. Every PR adds the decisions it made, dated, with who made the c
 - `docs/adding-a-game.md` is ordered the way a game is built: package, rules, DeckSpec, seats, CPU policies, settings, React plugin, the two registry lines, e2e. It points at Blackjack for house games and at the engine's test-only High Card for CPU seats and settings, because Flip 7 has no worked example yet.
 - The guide asks each game to export its browser plugin as `plugin` (built with `definePlugin`) next to `rules`, so the web registry line is one import. Blackjack predates this and is wrapped in `apps/web/src/games.ts`.
 - The pre-game settings sheet is built but no registered game has `meta.settings`, so its e2e is the first such game's job (Flip 7). The verify map now documents its test ids (`shell-pregame`) instead of listing it as planned.
+
+## Chip images (Blackjack agent, 2026-10-11)
+- Kit chips render as an `<img>` of a cached SVG data URL (`chipSrc`) instead of inline SVG with a few hundred rects. Inline SVG re-rasterizes while it moves: on a 4x-throttled phone, a 24-chip burst had an 83ms first frame with inline SVG and no frame over 17ms with images. The pixels and colors are unchanged. Done as a small UI PR ahead of moving the Blackjack table onto kit primitives, because the blackjack burst is the one big moment and the brief asks for 60fps on mobile.

@@ -41,20 +41,35 @@ export function chipSvgMarkup(value: ChipValue): string {
       if (fill) rects += `<rect x="${x}" y="${y}" width="1" height="1" fill="${fill}"/>`
     }
   }
-  const svg = `<svg viewBox="0 0 20 15" shape-rendering="crispEdges" aria-hidden="true">${rects}</svg>`
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 15" shape-rendering="crispEdges" aria-hidden="true">${rects}</svg>`
   markupCache.set(value, svg)
   return svg
 }
 
+const srcCache = new Map<ChipValue, string>()
+
+/**
+ * The coin as a data URL. An <img> rasterizes once and stays cached, while inline SVG with a few
+ * hundred rects re-rasterizes on every frame it moves, which drops frames in a 24-chip burst.
+ */
+export function chipSrc(value: ChipValue): string {
+  let src = srcCache.get(value)
+  if (!src) {
+    src = `data:image/svg+xml,${encodeURIComponent(chipSvgMarkup(value))}`
+    srcCache.set(value, src)
+  }
+  return src
+}
+
 /** Markup for a whole chip (coin plus value), for the juice layer's flying chips. */
 export function chipMarkup(value: ChipValue, size: 'sm' | 'md' | 'lg' = 'md'): string {
-  return `<div class="nc-chip nc-chip-${size}" style="--nc-cc:${chipColor[value]}">${chipSvgMarkup(value)}<span>${value}</span></div>`
+  return `<div class="nc-chip nc-chip-${size}" style="--nc-cc:${chipColor[value]}"><img src="${chipSrc(value)}" alt="" draggable="false"><span>${value}</span></div>`
 }
 
 export function Chip({ value, size = 'md' }: ChipProps) {
   return (
     <div className={`nc-chip nc-chip-${size}`} style={{ '--nc-cc': chipColor[value] } as CSSProperties} data-value={value}>
-      <i dangerouslySetInnerHTML={{ __html: chipSvgMarkup(value) }} />
+      <img src={chipSrc(value)} alt="" draggable={false} />
       <span>{value}</span>
     </div>
   )
