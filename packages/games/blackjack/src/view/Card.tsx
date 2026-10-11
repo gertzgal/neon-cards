@@ -18,7 +18,8 @@ interface CardProps {
   testId: string
 }
 
-const DEAL_FROM = () => ({ x: innerWidth / 2, y: -Math.min(innerHeight * 0.3, 240) })
+/** Where dealt cards fly in from: the shoe, just above the top edge. */
+export const DEAL_FROM = () => ({ x: innerWidth / 2, y: -Math.min(innerHeight * 0.3, 240) })
 
 export function PlayingCard({ card, slot, w, h, z, memory, memoryKey, testId }: CardProps) {
   const fly = useRef<HTMLDivElement>(null)

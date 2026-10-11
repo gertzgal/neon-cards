@@ -2,7 +2,7 @@ import './table.css'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import type { BlackjackAction, BlackjackEvent, BlackjackView } from '../rules'
-import { PlayingCard } from './Card'
+import { DEAL_FROM, PlayingCard } from './Card'
 import { Chip } from './Chip'
 import type { EventBatch, TableProps } from './contract'
 import {
@@ -15,7 +15,7 @@ import {
   type ChipValue,
   type Display,
 } from './display'
-import { center, chipBurst, flash, flyChip, hop, numberPop, pulse, shake, sleep, type Point } from './juice'
+import { center, chipBurst, flash, flyChip, hop, numberPop, pulse, riffle, shake, sleep, type Point } from './juice'
 import { layoutHand, useTableSize, type TableSize } from './layout'
 import { createSfx, type Sfx } from './sfx'
 import { useCardTilt } from './tilt'
@@ -286,6 +286,12 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
         const bank = center(q('[data-testid="hud-bankroll"]'))
         void flyChips(e.amount, { x: innerWidth / 2, y: -40 }, bank, 45)
         return sleep(900)
+      }
+      case 'shuffle': {
+        commit(e)
+        sfx.play('shuffle')
+        await riffle(fxLayer(), center(q('.bj-tray-wrap')), dealerLayout.w, dealerLayout.h, DEAL_FROM())
+        return sleep(80)
       }
       default:
         commit(e)
