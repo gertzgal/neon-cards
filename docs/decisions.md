@@ -212,3 +212,7 @@ Append-only log. Every PR adds the decisions it made, dated, with who made the c
 ## Prototype-review recheck (Quality agent, 2026-10-11)
 - Rechecked the four prototype-review fixes on the real app at 390x844 and 1440x900: no dealer tray during betting, the burst stays under the dealer's cards, the desktop HUD is 40px with 34px icons, and chips are 5 cyan, 25 pink, 100 violet, 500 gold in the rack, the pot, and every flying chip. All four were already on main.
 - One leftover burst bug: each burst chip waited out its stagger delay (up to about 280ms) untransformed at the burst layer's top-left corner, so chips flashed above the dealer row, behind the bankroll pill. The burst animation now uses `fill: 'backwards'`, so a chip holds its start pose at the player's hand until it launches. This is a one-word edit in the Blackjack project's `juice.ts`, made by Quality because it's the burst-placement fix from the prototype review.
+
+## Platform DoD audit (Platform agent, 2026-10-11)
+- `docs/platform-status.md` records each Platform Definition of done item as met or not met, with the test, e2e spec, or verify run that proves it, and what's left. `docs/plan.md` links it from the Definition of done. Every Platform item is met. The open items belong to other projects (Blackjack moment e2e, PR #21) or need Gal (a `CLOUDFLARE_API_TOKEN` secret to turn on CI deploys).
+- A Blackjack round played through the verify skill (unrigged, plus blackjack, split, and double rigs, at phone and desktop) found no platform-side breakage, so this audit has no fix PR for it.
