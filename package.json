@@ -15,7 +15,7 @@
     "test": "vitest run",
     "e2e": "playwright test",
     "verify": ".cursor/skills/verify-neon-cards/scripts/verify.sh",
-    "deploy": "pnpm build && pnpm --filter @neon-cards/worker run deploy"
+    "deploy": "scripts/deploy.sh"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
