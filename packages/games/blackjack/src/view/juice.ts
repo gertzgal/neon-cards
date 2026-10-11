@@ -89,6 +89,45 @@ export function flyChip(layer: HTMLElement, value: ChipValue, from: Point, to: P
 }
 
 /**
+ * The reshuffle beat: a short stack of card backs riffles apart, snaps back together, and flies up to
+ * the shoe the deal comes from. No text; the riffle sound carries the rest. Reduced motion only fades it.
+ */
+export function riffle(layer: HTMLElement, at: Point, w: number, h: number, shoe: Point) {
+  const n = 6
+  const reduced = reducedMotion()
+  const jobs: Promise<void>[] = []
+  for (let i = 0; i < n; i++) {
+    const el = document.createElement('div')
+    el.className = 'bj-riffle'
+    el.dataset.testid = 'shuffle-cue'
+    Object.assign(el.style, { width: `${w}px`, height: `${h}px` })
+    el.style.setProperty('--n', `${Math.max(4, w * 0.05)}px`)
+    el.style.setProperty('--bw', `${Math.max(3, Math.round(w * 0.025))}px`)
+    el.style.setProperty('--rk', `${h * 0.2}px`)
+    el.innerHTML = '<div class="bj-card" data-tone="back"><div class="bj-card-in"></div></div>'
+    layer.appendChild(el)
+    const x = at.x - w / 2
+    const y = at.y - h / 2 - i * 2
+    const side = i % 2 ? 1 : -1
+    const spread = side * w * (0.55 + (i >> 1) * 0.12)
+    const pos = (dx: number, dy: number, rest = '') => `translate(${x + dx}px,${y + dy}px) ${rest}`
+    const frames: Keyframe[] = reduced
+      ? [{ transform: pos(0, 0), opacity: 0 }, { transform: pos(0, 0), opacity: 1, offset: 0.3 }, { transform: pos(0, 0), opacity: 0 }]
+      : [
+          { transform: pos(0, 24, 'scale(.7)'), opacity: 0 },
+          { transform: pos(0, 0), opacity: 1, offset: 0.14 },
+          { transform: pos(spread, 6, `rotate(${side * 10}deg)`), opacity: 1, offset: 0.36, easing: 'cubic-bezier(.5,0,.2,1)' },
+          { transform: pos(0, -i * 2), opacity: 1, offset: 0.6 },
+          { transform: pos(0, -8 - i * 2, 'scale(1.06,.94)'), opacity: 1, offset: 0.68, easing: 'ease-in' },
+          { transform: `translate(${shoe.x - w / 2}px,${shoe.y - h / 2}px) rotate(-18deg) scale(.8)`, opacity: 0.4 },
+        ]
+    const delay = reduced ? 0 : (i % 2) * 22 + (i >> 1) * 10
+    jobs.push(done(el.animate(frames, { duration: reduced ? 420 : 720, delay, fill: 'both' })).then(() => el.remove()))
+  }
+  return Promise.all(jobs).then(() => undefined)
+}
+
+/**
  * The blackjack chip fountain. Chips spray sideways and fall, staying in the lower part of the
  * table so they never cover the dealer's cards above `ceiling`.
  */

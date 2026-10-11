@@ -1,4 +1,4 @@
-export type SfxName = 'card' | 'chip' | 'flip' | 'bust' | 'win' | 'lose' | 'push' | 'blackjack' | 'peek' | 'refill' | 'tap'
+export type SfxName = 'card' | 'chip' | 'flip' | 'bust' | 'win' | 'lose' | 'push' | 'blackjack' | 'peek' | 'refill' | 'tap' | 'shuffle'
 
 export interface Sfx {
   play(name: SfxName): void
@@ -33,6 +33,12 @@ const TONES: Record<SfxName, Tone[]> = {
   push: [[520, 0.1, 'triangle', 0.05]],
   blackjack: [523, 659, 784, 1046, 1318, 1568].map((f, i) => [f, 0.14, 'square', 0.035, i * 0.055] as Tone),
   refill: [392, 523, 659, 784].map((f, i) => [f, 0.1, 'triangle', 0.05, i * 0.06] as Tone),
+  // A riffle of card ticks that speeds up, then the snap of the squared deck.
+  shuffle: [
+    ...[0, 0.05, 0.095, 0.135, 0.17, 0.2, 0.225, 0.248, 0.268, 0.286].map((at, i) => [2200 + (i % 3) * 350, 0.018, 'square', 0.016, at] as Tone),
+    [1600, 0.035, 'square', 0.025, 0.42],
+    [500, 0.06, 'triangle', 0.06, 0.425, 180],
+  ],
 }
 
 /** Crunchy chiptune blips synthesized on the fly; no audio files to load. */

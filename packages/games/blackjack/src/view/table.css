@@ -126,6 +126,7 @@
 
 /* fx */
 .bj-fx { position: fixed; inset: 0; pointer-events: none; z-index: 31; }
+.bj-riffle { position: absolute; left: 0; top: 0; filter: drop-shadow(0 0 6px var(--cyan)); }
 .bj-gold-flash { position: fixed; inset: 0; pointer-events: none; z-index: 29; opacity: 0; background: radial-gradient(circle at 50% 70%, rgba(255, 255, 240, .95), rgba(255, 210, 63, .6) 35%, rgba(255, 170, 40, .15) 70%, transparent); mix-blend-mode: screen; }
 .bj-pop { position: fixed; transform: translate(-50%, -50%); white-space: nowrap; pointer-events: none; z-index: 31; line-height: 1; }
 
