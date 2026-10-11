@@ -9,7 +9,7 @@ export default defineConfig({
     cloudflareTest(async () => ({
       wrangler: { configPath: here('./wrangler.toml') },
       miniflare: {
-        bindings: { TEST_MIGRATIONS: await readD1Migrations(here('./migrations')) },
+        bindings: { TEST_MIGRATIONS: await readD1Migrations(here('./migrations')), DEV_RIG: '1' },
       },
     })),
   ],

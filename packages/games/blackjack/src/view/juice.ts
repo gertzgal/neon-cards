@@ -8,8 +8,13 @@ export interface Point {
 
 export const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
 
-export const reducedMotion = () =>
-  typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
+/** The shell's motion setting (`<html data-motion>`) wins; standalone, follow the OS. */
+export function reducedMotion(): boolean {
+  const setting = typeof document === 'undefined' ? undefined : document.documentElement.dataset['motion']
+  if (setting === 'reduced') return true
+  if (setting === 'full') return false
+  return typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
+}
 
 export function center(el: Element | null | undefined): Point {
   if (!el) return { x: innerWidth / 2, y: innerHeight / 2 }

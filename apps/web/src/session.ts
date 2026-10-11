@@ -32,7 +32,7 @@ const nextBatchId = (prev: SessionState) => (prev.status === 'playing' ? prev.ev
 
 /**
  * Owns one game's server session: resume after reload, start with config from
- * the pre-game sheet, and send human actions with an increasing `seq`.
+ * the pre-game sheet, and send each human action with the `seq` the server last returned.
  * Games without settings skip the sheet and start as soon as they open.
  */
 export function useGameSession(plugin: GamePlugin, onWallet: (balance: number) => void) {
@@ -57,7 +57,7 @@ export function useGameSession(plugin: GamePlugin, onWallet: (balance: number) =
             humanSeat: humanSeatOf(res.seats),
             view: res.view,
             events: { id: nextBatchId(prev), events: res.events },
-            seq: 0,
+            seq: res.seq,
             busy: false,
           }))
         },
@@ -111,11 +111,11 @@ export function useGameSession(plugin: GamePlugin, onWallet: (balance: number) =
       const { sessionId, seq } = state
       setState({ ...state, busy: true })
       try {
-        const res = await api.act(sessionId, action, seq + 1)
+        const res = await api.act(sessionId, action, seq)
         if (chips && res.wallet !== undefined) onWallet(res.wallet)
         setState((prev) =>
           prev.status === 'playing' && prev.sessionId === sessionId
-            ? { ...prev, view: res.view, events: { id: prev.events.id + 1, events: res.events }, seq: seq + 1, busy: false }
+            ? { ...prev, view: res.view, events: { id: prev.events.id + 1, events: res.events }, seq: res.seq, busy: false }
             : prev,
         )
       } catch {
