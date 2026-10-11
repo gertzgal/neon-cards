@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
+import { formatMoney } from '@neon-cards/ui'
 import { api, type Round } from './api'
 import { findGame, games } from './games'
 import { Link } from './router'
 import { Hud } from './shell/Hud'
-import { formatChips } from './shell/wallet'
 
 type Rounds = { status: 'loading' } | { status: 'ok'; rounds: Round[] } | { status: 'error'; message: string }
 
@@ -72,7 +72,7 @@ function RoundRow({ round }: { round: Round }) {
       <span className="round-game">{meta?.title ?? round.gameId}</span>
       <span className="round-when dim">{new Date(round.createdAt).toLocaleString()}</span>
       <span className={`round-net ${tone}`} data-testid="history-net">
-        {chips ? `${round.net > 0 ? '+' : round.net < 0 ? '-' : ''}${formatChips(Math.abs(round.net))}` : `Round ${round.roundNo}`}
+        {chips ? `${round.net > 0 ? '+' : ''}${formatMoney(round.net)}` : `Round ${round.roundNo}`}
       </span>
     </li>
   )

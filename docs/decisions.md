@@ -186,3 +186,11 @@ Append-only log. Every PR adds the decisions it made, dated, with who made the c
 - `?rig=` and `?seed=` on a game URL flow into `config` (matching the prototype's `?rig=`), so e2e and manual testing rig real server sessions. A rigged URL always starts a fresh session instead of resuming. Production rejects both with 400. (Web shell, 2026-10-11)
 - The API client serializes behind the very first request. On a fresh visit the lobby's wallet read and the game's session create raced cookieless, each minted a different anonymous player, and the session then 404'd as "session not found". Waiting for the first response (which sets the cookie) fixes it at the one place every call passes through. (Web shell, 2026-10-11)
 - Resuming a stored session that is no longer `active` (closed when a newer chips session started) drops it and deals a new one. (Web shell, 2026-10-11)
+
+## Web shell on the UI kit (Platform agent, 2026-10-11)
+- The shell renders inside the kit's `NeonRoot`, so the edge swirl, CRT pass, juice layer, and self-hosted Jersey 10 come from `@neon-cards/ui`. The shell's own copies of the plugin types (`apps/web/src/plugin.ts`), CRT overlay, background gradient, wallet pill, and HUD icons are deleted. PR #20 (self-hosting Jersey 10 inside `apps/web`) was closed as superseded.
+- The kit stage is fixed and clips overflow, so each shell screen is `position: absolute; inset: 0; overflow-y: auto` and scrolls on its own.
+- The shell HUD is the kit `Hud`. Bankroll is the kit pill (`hud-bankroll`), hidden while the wallet is loading or unreachable rather than showing `$—`, matching how a table hides it for `score` games. This replaces the earlier `$—` decision.
+- Shell settings stay the persisted source of truth (`neon-cards:settings`); App pushes `muted`, `music`, and `sfx` into the kit audio manager with `getAudio().update()`, so the kit's juice sounds honour the same switches as Blackjack's own sfx.
+- Tiny fix in `packages/ui`: `TableProps` gains `hudIcons?: ReactNode` so tables render the shell's sound and settings buttons in their own top bar (already in the architecture contract for Blackjack).
+- Tiny fix in `packages/ui`: `prefersReducedMotion` and `useReducedMotion` read `<html data-motion>` first, so the shell's Calm/Full setting drives kit juice and count-ups, not only the OS preference.
