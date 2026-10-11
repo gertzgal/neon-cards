@@ -113,7 +113,7 @@ export function chipBurst(layer: HTMLElement, origin: Point, ceiling: number, co
       { transform: `translate(${x0 + dx}px,${y0 + 160}px) scale(1) rotate(${spin()}deg)`, opacity: 1, offset: 0.75, easing: 'ease-in' },
       { transform: `translate(${x0 + dx * 1.08}px,${y0 + 320}px) scale(.9) rotate(${spin()}deg)`, opacity: 0 },
     ]
-    jobs.push(done(el.animate(frames, { duration: 1100 + Math.random() * 300, delay: i * 12 })).then(() => el.remove()))
+    jobs.push(done(el.animate(frames, { duration: 1100 + Math.random() * 300, delay: i * 12, fill: 'backwards' })).then(() => el.remove()))
   }
   return Promise.all(jobs).then(() => undefined)
 }
