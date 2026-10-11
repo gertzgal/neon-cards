@@ -184,3 +184,11 @@ Append-only log. Every PR adds the decisions it made, dated, with who made the c
 - `?rig=` and `?seed=` on a game URL flow into `config` (matching the prototype's `?rig=`), so e2e and manual testing rig real server sessions. A rigged URL always starts a fresh session instead of resuming. Production rejects both with 400. (Web shell, 2026-10-11)
 - The API client serializes behind the very first request. On a fresh visit the lobby's wallet read and the game's session create raced cookieless, each minted a different anonymous player, and the session then 404'd as "session not found". Waiting for the first response (which sets the cookie) fixes it at the one place every call passes through. (Web shell, 2026-10-11)
 - Resuming a stored session that is no longer `active` (closed when a newer chips session started) drops it and deals a new one. (Web shell, 2026-10-11)
+
+## Blackjack e2e (Blackjack agent, 2026-10-11)
+- `e2e/blackjack.spec.ts` plays every moment through the shell and the real Worker on phone and desktop: betting, deal, stand, hit, double, split (with double after split), bust, blackjack, push, dealer blackjack, refill, resume after reload, and history. Each test is a fresh browser context, so a fresh player with a 1,250 wallet. Shoes are stacked with `/games/blackjack?rig=<name>`, the sanctioned DEV_RIG path.
+- The table root keeps the last settled round as `data-rounds`, `data-last-outcomes`, `data-last-statuses`, `data-last-net`, and `data-last-dealer`, plus `data-animating`. The felt is swept after every round, so assertions need a result that outlives the animation.
+- The blackjack test checks the prototype-review fix directly: every burst chip's top edge stays below the dealer hand's bottom edge.
+- Screenshots: one CSS-scale JPEG (quality 85) per moment and viewport, saved to the test output (CI artifact `playwright`). With `SCREENS_DIR=docs/reference/screens` the same image is also written there and committed. JPEG because the CRT grain makes PNGs about 370 KB each.
+- The dealer row is `visibility: hidden` while empty (after its fade-out), not just transparent, so it's truly absent during betting.
+- Rebet: after a reload, the table re-places the last bet from `view.lastBet`, because the chip memory is gone. It never rebets right after a refill, so a fresh 1,250 isn't staked automatically.

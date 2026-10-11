@@ -26,7 +26,7 @@
 
 /* dealer */
 .bj-dealer-row { display: flex; align-items: center; justify-content: center; gap: 16px; flex: none; margin-top: 4px; position: relative; z-index: 6; transition: opacity .25s ease-out, transform .25s cubic-bezier(.2, .9, .3, 1); }
-.bj-dealer-row[data-visible='false'] { opacity: 0; transform: translateY(-14px) scale(.94); pointer-events: none; }
+.bj-dealer-row[data-visible='false'] { opacity: 0; visibility: hidden; transform: translateY(-14px) scale(.94); pointer-events: none; transition: opacity .25s ease-out, transform .25s cubic-bezier(.2, .9, .3, 1), visibility 0s .25s; }
 .bj-tray-wrap { position: relative; filter: drop-shadow(0 0 7px rgba(46, 242, 255, .55)); }
 .bj-tray-wrap::after { content: ''; position: absolute; left: 8%; right: 8%; bottom: -26px; height: 30px; background: radial-gradient(ellipse at 50% 0, rgba(46, 242, 255, .35), transparent 70%); filter: blur(4px); }
 .bj-tray { position: relative; padding: calc(var(--dh) * .14) calc(var(--dw) * .22) calc(var(--dh) * .16); }
