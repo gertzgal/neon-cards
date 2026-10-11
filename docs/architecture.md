@@ -194,7 +194,7 @@ replay(rules, { seed, config, log, version? }): Step  // rebuilds the match from
 ```
 The CPU loop stops when `toAct` is null or not a `cpu` seat. It throws if a CPU seat has no policy for its difficulty or chooses an action outside `legalActions`.
 
-The test-only multi-seat game ("high card", 1 human + 1 to 3 CPUs, a trivial policy per difficulty) ships from `@neon-cards/engine/testing` so Worker tests can register it next to the real games. It is never in a production registry.
+The test-only multi-seat game ("high card", 1 human + 1 to 3 CPUs, a trivial policy per difficulty) ships from `@neon-cards/engine/testing` so Worker tests can register it next to the real games. It is never in a production registry. It is a dev game: the Worker's `devGames` list joins the registry only on requests with `DEV_RIG=1`, and the shell's `devGames` (with a small table built from packages/ui) make it routable at `/games/high-card` without listing it in the lobby, so e2e and the verify skill prove multi-seat play in the real app. A deployed Worker answers 404 for it.
 
 ## Table primitives (packages/ui)
 One table composition scales from phone to desktop and from heads-up to a full table. Top to bottom:

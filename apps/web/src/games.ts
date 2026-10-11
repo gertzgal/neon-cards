@@ -1,6 +1,7 @@
 import { createElement } from 'react'
 import { BlackjackTable, createSfx, rules as blackjackRules } from '@neon-cards/game-blackjack'
 import { definePlugin, standardFaceRenderer, type GamePlugin } from '@neon-cards/ui'
+import { highCardPlugin } from './dev/high-card'
 import { audioLevels, readSettings } from './settings'
 
 const blackjackSfx = createSfx(() => !audioLevels(readSettings()).sfx)
@@ -16,4 +17,7 @@ export const games: GamePlugin[] = [
   }),
 ]
 
-export const findGame = (id: string) => games.find((game) => game.rules.definition.id === id)
+/** Routable by URL but never listed. The Worker serves them only with DEV_RIG=1 (local stacks, e2e, verify). */
+export const devGames: GamePlugin[] = [highCardPlugin]
+
+export const findGame = (id: string) => [...games, ...devGames].find((game) => game.rules.definition.id === id)

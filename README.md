@@ -24,11 +24,13 @@ Other commands are in [AGENTS.md](AGENTS.md#commands). Requires Node 22 and pnpm
 
 ## Deploy
 
-Deploy is one command once a Cloudflare account is set up:
+Deploy is one command once you're logged in to Cloudflare:
 
 ```sh
-pnpm exec wrangler login                              # or export CLOUDFLARE_API_TOKEN
-pnpm --filter @neon-cards/worker exec wrangler d1 create neon-cards
-# paste the printed database_id into apps/worker/wrangler.toml
-pnpm run deploy                                       # builds the web app, applies remote migrations, deploys the Worker
+pnpm --filter @neon-cards/worker exec wrangler login   # or export CLOUDFLARE_API_TOKEN (and CLOUDFLARE_ACCOUNT_ID)
+pnpm run deploy
 ```
+
+`pnpm run deploy` (`scripts/deploy.sh`) builds the web app, finds or creates the `neon-cards` D1 database, applies the remote migrations, and deploys the Worker. `apps/worker/wrangler.toml` keeps a placeholder database id for local dev; the script deploys from a generated copy with the real id, so no tracked file changes. Production never sets `DEV_RIG`.
+
+CI deploys automatically: the `deploy` job runs after `checks` and `e2e` on every push to `main` when the repository has a `CLOUDFLARE_API_TOKEN` secret (optionally `CLOUDFLARE_ACCOUNT_ID`). On every run it reports whether the secret is present, never its value.

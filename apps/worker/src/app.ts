@@ -18,9 +18,14 @@ async function jsonBody(req: Request): Promise<Record<string, unknown>> {
   return body as Record<string, unknown>
 }
 
-/** The API over a game registry. Production passes apps/worker/src/games.ts; tests add test-only games. */
-export function createApp(games: readonly GameRules[]) {
-  const reg = registry(games)
+/**
+ * The API over a game registry. Production passes apps/worker/src/games.ts; tests add test-only games.
+ * `devGames` join the registry only on requests to a Worker with DEV_RIG=1.
+ */
+export function createApp(games: readonly GameRules[], devGames: readonly GameRules[] = []) {
+  const prodReg = registry(games)
+  const devReg = registry([...games, ...devGames])
+  const regFor = (env: AppEnv['Bindings']) => (env.DEV_RIG === '1' ? devReg : prodReg)
   const app = new Hono<AppEnv>().basePath('/api')
 
   app.onError((err, c) => {
@@ -54,7 +59,7 @@ export function createApp(games: readonly GameRules[]) {
     if (body.seed !== undefined && (!devRig || typeof body.seed !== 'string')) {
       throw new ApiError(400, 'seed is a dev-only string (DEV_RIG=1)')
     }
-    const created = await createSession(c.var.db, reg, c.var.playerId, {
+    const created = await createSession(c.var.db, regFor(c.env), c.var.playerId, {
       gameId: body.gameId,
       config,
       seed: body.seed as string | undefined,
@@ -63,7 +68,7 @@ export function createApp(games: readonly GameRules[]) {
   })
 
   app.get('/sessions/:id', withPlayer, async (c) =>
-    c.json(await getSession(c.var.db, reg, c.var.playerId, c.req.param('id'))),
+    c.json(await getSession(c.var.db, regFor(c.env), c.var.playerId, c.req.param('id'))),
   )
 
   app.post('/sessions/:id/actions', withPlayer, async (c) => {
@@ -71,7 +76,7 @@ export function createApp(games: readonly GameRules[]) {
     if (!Number.isInteger(body.seq) || (body.seq as number) < 0) throw new ApiError(400, 'seq must be a whole number')
     if (body.action === undefined) throw new ApiError(400, 'action is required')
     return c.json(
-      await postAction(c.var.db, reg, c.var.playerId, c.req.param('id'), { action: body.action, seq: body.seq as number }),
+      await postAction(c.var.db, regFor(c.env), c.var.playerId, c.req.param('id'), { action: body.action, seq: body.seq as number }),
     )
   })
 
