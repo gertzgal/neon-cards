@@ -11,7 +11,7 @@ export interface Wallet {
   refilled?: number
 }
 
-export type LedgerReason = 'start' | 'refill' | 'round'
+export type LedgerReason = 'start' | 'refill' | 'round' | 'forfeit'
 
 export async function readBalance(db: Db, playerId: string): Promise<number> {
   const row = await db

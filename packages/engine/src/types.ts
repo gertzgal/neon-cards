@@ -70,6 +70,11 @@ export interface GameDefinition<Config, State, Action, View, Face> {
   phase(state: State): GamePhase
   /** Valid once phase is 'settling', or 'over' reached straight from play. */
   settle(state: State): Settlement[]
+  /**
+   * Chips `seat` has committed to a round that has not settled yet, which it forfeits if the session is
+   * abandoned; 0 when no round is in play. Required for 'chips' games.
+   */
+  staked?(state: State, seat: SeatId): number
 }
 
 export interface Policy<View, Action> {

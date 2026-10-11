@@ -42,6 +42,21 @@ test('a full won round: bet, deal, stand, settle, wallet and history update', as
   await page.screenshot({ path: testInfo.outputPath('3-history.png') })
 })
 
+test('New game mid-hand forfeits the dealt bet and records it as a lost round', async ({ page }, testInfo) => {
+  await openRigged(page, 'bust')
+  await bet25AndDeal(page)
+  await expect(page.getByTestId('hand-0-total')).toHaveText('16')
+  await expect(page.getByTestId('blackjack-table')).toHaveAttribute('data-busy', 'false')
+
+  await page.getByTestId('hud-settings').click()
+  await page.getByTestId('new-game').click()
+  await expect(page.getByTestId('blackjack-table')).toHaveAttribute('data-stage', 'betting')
+  await expect(page.getByTestId('hud-bankroll')).toHaveText('$1,225')
+  await page.screenshot({ path: testInfo.outputPath('after-new-game.png') })
+
+  await expectWalletAndHistory(page, '$1,225', '-$25')
+})
+
 test('a lost round after a hit busts, and the session resumes when reopened', async ({ page }, testInfo) => {
   await openRigged(page, 'bust')
   await bet25AndDeal(page)
