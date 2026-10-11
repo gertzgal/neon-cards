@@ -28,6 +28,7 @@ Single player against 1 to 3 CPU opponents with Easy, Medium, and Hard policies;
 Plays the real game end to end in a browser on phone and desktop, compares it against the reference mock and prototype, files and fixes bugs and UX rough spots in small PRs, and keeps the e2e suite and the verify skill trustworthy.
 
 ## Definition of done (by morning)
+Platform status against this list, with evidence: [platform-status.md](platform-status.md).
 - main is green, and `pnpm i && pnpm dev` runs the full stack locally (Worker + local D1 + web).
 - Blackjack is fully playable with the approved design, every juice moment, sound, and saved history, verified by Playwright on phone and desktop with screenshots.
 - A new game can be added by following docs/adding-a-game.md.
