@@ -1,22 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { blackjack, parseFace, type BlackjackAction, type VisibleCard } from '../rules'
 import { newGame, play, SEAT } from '../rules/test-helpers'
-import { applyEvent, chipsFor, displayFromView, formatMoney, totalLabel } from './display'
+import { applyEvent, displayFromView, totalLabel } from './display'
 
 const cards = (...codes: string[]): VisibleCard[] =>
   codes.map((c, i) => (c === '??' ? { id: 'hole', deck: 'standard52', face: null } : { id: String(i), deck: 'standard52', face: parseFace(c) }))
-
-describe('chipsFor', () => {
-  it.each([
-    [5, [5]],
-    [50, [25, 25]],
-    [130, [100, 25, 5]],
-    [1250, [500, 500, 100, 100, 25, 25]],
-    [0, []],
-  ])('%i breaks into %j', (amount, chips) => {
-    expect(chipsFor(amount)).toEqual(chips)
-  })
-})
 
 describe('totalLabel', () => {
   it.each([
@@ -29,13 +17,6 @@ describe('totalLabel', () => {
     [[], ''],
   ])('%j reads %s', (codes, label) => {
     expect(totalLabel(cards(...codes))).toBe(label)
-  })
-})
-
-describe('formatMoney', () => {
-  it('formats with thousands separators and a sign', () => {
-    expect(formatMoney(1250)).toBe('$1,250')
-    expect(formatMoney(-75)).toBe('-$75')
   })
 })
 

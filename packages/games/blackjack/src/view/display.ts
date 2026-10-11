@@ -1,22 +1,6 @@
 import { handValue, type BlackjackFace } from '../rules'
 import type { BlackjackEvent, BlackjackView, HandStatus, Outcome, RoundResult, VisibleCard } from '../rules'
 
-export const CHIP_VALUES = [5, 25, 100, 500] as const
-export type ChipValue = (typeof CHIP_VALUES)[number]
-
-/** Greedy breakdown of an amount into chips, largest first. */
-export function chipsFor(amount: number): ChipValue[] {
-  const out: ChipValue[] = []
-  let left = amount
-  for (const v of [...CHIP_VALUES].reverse()) {
-    while (left >= v) {
-      out.push(v)
-      left -= v
-    }
-  }
-  return out
-}
-
 /** What the table shows. The event player steps it one server event at a time. */
 export type Stage = 'betting' | 'dealing' | 'playing' | 'dealer' | 'settling'
 
@@ -115,9 +99,3 @@ export function totalLabel(cards: VisibleCard[]): string {
   const { total, soft } = handValue(faces)
   return soft && total < 21 && faces.length === cards.length ? `${total - 10}/${total}` : String(total)
 }
-
-export function totalOf(cards: VisibleCard[]): number {
-  return handValue(shown(cards)).total
-}
-
-export const formatMoney = (n: number) => (n < 0 ? '-' : '') + '$' + Math.abs(n).toLocaleString('en-US')

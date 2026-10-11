@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import { createRng, type Rng } from '@neon-cards/engine'
 import { blackjack, type BlackjackAction, type BlackjackState, type BlackjackView } from '../rules'
-import type { EventBatch, TableProps } from './contract'
+import type { EventBatch, TableProps } from '@neon-cards/ui'
 
 interface LocalSession {
   rng: Rng

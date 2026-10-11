@@ -1,36 +1,24 @@
-import { useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BlackjackTable, createSfx, useLocalSession } from '../src/view'
-import { Backdrop } from './Backdrop'
+import { getAudio, NeonRoot, SoundIcon, useSoundToggle, IconButton } from '@neon-cards/ui'
+import { BlackjackTable, useLocalSession } from '../src/view'
 
 const params = new URLSearchParams(location.search)
-let muted = params.has('mute')
-const sfx = createSfx(() => muted)
 const config = { ...(params.get('rig') ? { rig: params.get('rig') } : {}), bankroll: Number(params.get('bankroll') ?? 1250) }
 const seed = Number(params.get('seed') ?? Date.now())
+if (params.has('mute')) getAudio().update({ muted: true })
 
 function App() {
   const session = useLocalSession(config, seed)
-  const [isMuted, setMuted] = useState(muted)
+  const sound = useSoundToggle()
   const icons = (
-    <button
-      aria-label={isMuted ? 'Unmute' : 'Mute'}
-      onClick={() => {
-        muted = !muted
-        setMuted(muted)
-      }}
-    >
-      <svg viewBox="0 0 16 16" fill="currentColor">
-        <path d="M2 6h3l4-3h1v10H9L5 10H2z" />
-        {!isMuted && <path d="M11 6h1v4h-1zM13 4h1v8h-1zM12 5h1v1h-1zM12 10h1v1h-1z" />}
-      </svg>
-    </button>
+    <IconButton label={sound.on ? 'Mute' : 'Unmute'} pressed={!sound.on} onClick={sound.toggle}>
+      <SoundIcon on={sound.on} />
+    </IconButton>
   )
   return (
-    <>
-      <Backdrop />
-      <BlackjackTable {...session} sfx={sfx} hudIcons={icons} />
-    </>
+    <NeonRoot>
+      <BlackjackTable {...session} hudIcons={icons} />
+    </NeonRoot>
   )
 }
 

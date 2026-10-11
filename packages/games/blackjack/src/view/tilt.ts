@@ -1,5 +1,5 @@
 import { useEffect, type RefObject } from 'react'
-import { reducedMotion } from './juice'
+import { prefersReducedMotion } from '@neon-cards/ui'
 
 const MAX_DEG = 9
 const REACH = 1.6
@@ -14,8 +14,8 @@ export function useCardTilt(root: RefObject<HTMLElement | null>) {
 
     const paint = () => {
       frame = 0
-      const at = reducedMotion() ? null : pointer
-      for (const card of el.querySelectorAll<HTMLElement>('.bj-hand-player .bj-card')) {
+      const at = prefersReducedMotion() ? null : pointer
+      for (const card of el.querySelectorAll<HTMLElement>('.nc-player .nc-card')) {
         if (!at) {
           card.style.removeProperty('--rx')
           card.style.removeProperty('--ry')

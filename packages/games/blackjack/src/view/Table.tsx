@@ -1,34 +1,38 @@
 import './table.css'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { flushSync } from 'react-dom'
-import type { BlackjackAction, BlackjackEvent, BlackjackView } from '../rules'
-import { PlayingCard } from './Card'
-import { Chip } from './Chip'
-import type { EventBatch, TableProps } from './contract'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import type { GameEvent } from '@neon-cards/engine'
 import {
-  applyEvent,
-  CHIP_VALUES,
+  ActionBar,
+  BetControls,
+  ChipStack,
   chipsFor,
-  displayFromView,
+  DealerTray,
   formatMoney,
-  totalLabel,
+  Hand,
+  Hud,
+  PlayerRow,
+  PlayerSpot,
+  ScoreBadge,
+  standardFaceRenderer,
+  TableLayout,
+  useJuice,
+  usePlayback,
+  useTableMetrics,
   type ChipValue,
-  type Display,
-} from './display'
-import { center, chipBurst, flash, flyChip, hop, numberPop, pulse, shake, sleep, type Point } from './juice'
-import { layoutHand, useTableSize, type TableSize } from './layout'
-import { createSfx, type Sfx } from './sfx'
+  type EventBatch,
+  type JuiceKit,
+  type JuiceMap,
+  type Point,
+  type SeatState,
+  type TableProps,
+} from '@neon-cards/ui'
+import type { BlackjackAction, BlackjackEvent, BlackjackView } from '../rules'
+import { applyEvent, displayFromView, totalLabel, type Display, type DisplayHand, type Stage } from './display'
+import { juice as eventJuice } from './juice'
 import { useCardTilt } from './tilt'
 
-export interface BlackjackTableProps extends TableProps<BlackjackView, BlackjackAction> {
-  sfx?: Sfx
-  /** Rendered in the top bar, right side (sound and settings icons). */
-  hudIcons?: React.ReactNode
-}
-
-const silent = createSfx(() => true)
-
-const ORIGIN = { x: 0, y: 0, rot: 0 }
+type PlayAction = 'hit' | 'stand' | 'double' | 'split'
+const PLAY_ACTIONS: readonly PlayAction[] = ['hit', 'stand', 'double', 'split']
 
 const sum = (xs: readonly number[]) => xs.reduce((a, b) => a + b, 0)
 
@@ -37,6 +41,20 @@ const clearedTable = (d: Display): Display => ({ ...d, stage: 'betting', dealer:
 function initialDisplay(view: BlackjackView): Display {
   const d = displayFromView(view)
   return view.phase === 'settling' ? clearedTable(d) : d
+}
+
+function centerOf(el: Element | null | undefined): Point | null {
+  if (!el) return null
+  const r = el.getBoundingClientRect()
+  return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+}
+
+function handState(hand: DisplayHand, index: number, active: number, stage: Stage, split: boolean): SeatState | undefined {
+  if (hand.status === 'bust') return 'bust'
+  if (hand.outcome === 'blackjack' || hand.status === 'blackjack') return 'blackjack'
+  if (hand.outcome === 'win') return 'win'
+  if (split && stage === 'playing') return index === active ? 'active' : 'waiting'
+  return undefined
 }
 
 /** The last settled round, kept on the table root after the felt is swept so tests and tools can read it. */
@@ -48,145 +66,142 @@ interface LastRound {
   dealer: string
 }
 
-export function BlackjackTable({ view, events, act: send, busy: sending, sfx = silent, hudIcons }: BlackjackTableProps) {
-  const size = useTableSize()
+export function BlackjackTable({ seats, view, events, act: send, busy: sending, hudIcons }: TableProps<BlackjackView, BlackjackAction>) {
+  const metrics = useTableMetrics()
+  const kit = useJuice()
   const [initialView] = useState(view)
   const [display, setDisplay] = useState(() => initialDisplay(initialView))
-  const [potChips, setPotChips] = useState<ChipValue[]>(() =>
+  const [pot, setPotChips] = useState<ChipValue[]>(() =>
     initialView.phase === 'playing' ? chipsFor(sum(initialView.hands.map((h) => h.bet))) : [],
   )
   const [animating, setAnimating] = useState(false)
-  const busy = sending || animating
-  const [shownStack, setShownStack] = useState(initialView.stack)
+  const [bigMoment, setBigMoment] = useState(false)
   const [lastRound, setLastRound] = useState<LastRound | null>(null)
-  const roundCount = useRef(0)
-  const dealerNote = useRef('')
+  const busy = sending || animating
 
   const displayRef = useRef(display)
-  const potRef = useRef(potChips)
+  const potRef = useRef(pot)
   const lastChips = useRef<ChipValue[]>([])
   const refilled = useRef(false)
-  const [memory] = useState(() => new Map<string, DOMRect>())
+  const roundCount = useRef(0)
+  const dealerNote = useRef('')
+  const splitFrom = useRef<Point | null>(null)
   const root = useRef<HTMLDivElement>(null)
   useCardTilt(root)
-  const stage = useRef<HTMLDivElement>(null)
-  const fx = useRef<HTMLDivElement>(null)
-  const burst = useRef<HTMLDivElement>(null)
-  const goldFlash = useRef<HTMLDivElement>(null)
 
-  const q = <T extends Element = HTMLElement>(sel: string) => root.current?.querySelector<T>(sel) ?? null
-  const fxLayer = () => fx.current ?? document.body
-  const setFx = (kind: string) => {
-    if (root.current) root.current.dataset['fx'] = kind
-  }
-
-  const commitDisplay = (next: Display) => {
+  const show = (next: Display) => {
     displayRef.current = next
-    flushSync(() => setDisplay(next))
+    setDisplay(next)
   }
-  const commit = (e: BlackjackEvent) => commitDisplay(applyEvent(displayRef.current, e))
   const setPot = (chips: ChipValue[]) => {
     potRef.current = chips
-    flushSync(() => setPotChips(chips))
+    setPotChips(chips)
   }
 
   const betting = display.stage === 'betting'
-  const bet = sum(potChips)
+  const bet = sum(pot)
   const available = display.stack - (betting ? bet : 0)
 
-  useCountUp(available, setShownStack)
-
-  const flyChips = (amount: number, from: Point, to: Point, stagger = 40) =>
-    Promise.all(chipsFor(amount).slice(0, 12).map((v, i) => flyChip(fxLayer(), v, from, to, { delay: i * stagger })))
-
-  const popAt = () => {
-    const tray = q('.bj-dealer-row')?.getBoundingClientRect()
-    const player = q('.bj-player-row')?.getBoundingClientRect()
-    if (!tray || !player) return center(q('.bj-pot-area'))
-    return { x: innerWidth / 2, y: (tray.bottom + player.top) / 2 }
-  }
-
-  async function resultMoment(e: Extract<BlackjackEvent, { type: 'roundEnd' }>) {
+  /** Advances the shown table by one event. Playback calls it for every event, skipped or not. */
+  function apply(event: GameEvent) {
+    const e = event as BlackjackEvent
     const d = displayRef.current
-    const anyBlackjack = d.hands.some((h) => h.outcome === 'blackjack')
-    const allBust = d.hands.every((h) => h.status === 'bust')
-    const at = popAt()
-    const W = innerWidth
-    await sleep(120)
-    if (anyBlackjack) {
-      setFx('blackjack')
-      sfx.play('blackjack')
-      void flash(goldFlash.current, 0.9, 900)
-      void pulse(stage.current)
-      const ceiling = q('.bj-dealer-row')?.getBoundingClientRect().bottom ?? 0
-      void chipBurst(burst.current ?? fxLayer(), center(q('.bj-player-row .bj-hand')), ceiling)
-      void numberPop(fxLayer(), at, '+' + formatMoney(e.net), {
-        kind: 'blackjack',
-        color: '#fffbe6',
-        size: Math.min(W * 0.24, 180, (at.y - ceiling) * 1.6),
-        glow: '0 0 6px #fff,0 0 18px #ffd23f,0 0 40px #ffb020,0 4px 0 #b06a00',
-        duration: 1900,
-      })
-      await sleep(650)
-    } else if (e.net > 0) {
-      setFx('win')
-      sfx.play('win')
-      void numberPop(fxLayer(), at, '+' + formatMoney(e.net), {
-        kind: 'win',
-        color: '#ff7ab4',
-        size: Math.min(W * 0.18, 110),
-        glow: '0 0 10px #ff2e88,0 0 24px #ff2e88',
-        duration: 1100,
-      })
-      d.hands.forEach((h, i) => h.outcome === 'win' && void hop(q(`[data-testid="hand-${i}"] .bj-hand`)))
-      await sleep(380)
-    } else if (e.net < 0) {
-      setFx('lose')
-      if (!allBust) sfx.play('lose')
-      void numberPop(fxLayer(), at, '-' + formatMoney(-e.net), {
-        kind: 'lose',
-        color: '#8d87a8',
-        size: Math.min(W * 0.13, 72),
-        glow: 'none',
-        duration: 900,
-      })
-      await sleep(380)
-    } else {
-      setFx('push')
-      sfx.play('push')
-      void numberPop(fxLayer(), at, '±$0', {
-        kind: 'push',
-        color: '#7ff7ff',
-        size: Math.min(W * 0.14, 80),
-        glow: '0 0 10px #2ef2ff',
-        duration: 900,
-      })
-      await sleep(380)
+    switch (e.type) {
+      case 'bet':
+        if (!potRef.current.length) setPot(chipsFor(e.amount))
+        break
+      case 'split':
+        splitFrom.current = centerOf(root.current?.querySelector(`[data-testid="card-${d.hands[0]?.cards[1]?.id}"]`))
+        setPot([...potRef.current, ...chipsFor(e.amount)])
+        break
+      case 'double':
+        setPot([...potRef.current, ...chipsFor(e.amount)])
+        break
+      case 'dealerBlackjack':
+        dealerNote.current = 'blackjack'
+        break
+      case 'dealerBust':
+        dealerNote.current = 'bust'
+        break
+      case 'roundEnd': {
+        roundCount.current++
+        setLastRound({
+          n: roundCount.current,
+          outcomes: d.hands.map((h) => h.outcome ?? '').join(','),
+          statuses: d.hands.map((h) => h.status).join(','),
+          net: e.net,
+          dealer: dealerNote.current,
+        })
+        dealerNote.current = ''
+        // The bankroll waits for the payout chips; the result moment (or the end of a skipped batch) moves it.
+        show({ ...applyEvent(d, e), stack: d.stack })
+        return
+      }
+      case 'refill':
+        refilled.current = true
+        lastChips.current = []
+        break
     }
-
-    const from = center(q('.bj-pot'))
-    if (e.payout > 0) {
-      void flyChips(e.payout, from, center(q('[data-testid="hud-bankroll"]')), 35)
-      sfx.play('chip')
-    } else {
-      void flyChips(e.wagered, from, center(q('.bj-tray')), 30)
-    }
-    setPot([])
-    commit(e)
-    roundCount.current++
-    setLastRound({
-      n: roundCount.current,
-      outcomes: d.hands.map((h) => h.outcome ?? '').join(','),
-      statuses: d.hands.map((h) => h.status).join(','),
-      net: e.net,
-      dealer: dealerNote.current,
-    })
-    dealerNote.current = ''
-    await sleep(anyBlackjack ? 900 : 520)
+    show(applyEvent(d, e))
   }
+
+  async function roundEnd(e: Extract<BlackjackEvent, { type: 'roundEnd' }>, kit: JuiceKit) {
+    const d = displayRef.current
+    const blackjack = d.hands.some((h) => h.outcome === 'blackjack')
+    const allBust = d.hands.every((h) => h.status === 'bust')
+    await kit.wait(120)
+    if (blackjack) {
+      setBigMoment(true)
+      kit.sfx('blackjack')
+      void kit.flash('gold')
+      void kit.chipBurst({ at: 'hand-0', ceiling: 'dealer-tray' })
+      void kit.numberPop('+' + formatMoney(e.net), { tier: 'big', tone: 'gold' })
+      await kit.wait(650)
+    } else if (e.net > 0) {
+      kit.sfx('win')
+      void kit.numberPop('+' + formatMoney(e.net), { tone: 'pink' })
+      d.hands.forEach((h, i) => h.outcome === 'win' && void kit.badgePulse(`hand-${i}-total`))
+      await kit.wait(380)
+    } else if (e.net < 0) {
+      if (!allBust) kit.sfx('lose')
+      void kit.numberPop('-' + formatMoney(-e.net), { tier: 'small', tone: 'ink' })
+      await kit.wait(380)
+    } else {
+      kit.sfx('push')
+      void kit.numberPop('±$0', { tone: 'cyan' })
+      await kit.wait(380)
+    }
+    if (e.payout > 0) void kit.chipsToPlayer(chipsFor(e.payout), { from: 'pot', to: 'hud-bankroll' })
+    else void kit.chipsToPot(chipsFor(e.wagered), { from: 'pot', to: 'dealer-tray' })
+    setPot([])
+    show({ ...displayRef.current, stack: e.stack })
+    await kit.wait(blackjack ? 900 : 520)
+  }
+
+  async function splitSlide(e: Extract<BlackjackEvent, { type: 'split' }>, kit: JuiceKit) {
+    const from = splitFrom.current
+    splitFrom.current = null
+    const moved = displayRef.current.hands[1]?.cards[0]
+    await Promise.all([
+      kit.chipsToPot(chipsFor(e.amount), { from: 'hud-bankroll', to: 'pot' }),
+      from && moved ? kit.slide(`card-${moved.id}`, from) : undefined,
+    ])
+    await kit.wait(140)
+  }
+
+  async function refill(e: Extract<BlackjackEvent, { type: 'refill' }>, kit: JuiceKit) {
+    kit.sfx('win')
+    void kit.numberPop('+' + formatMoney(e.amount), { tone: 'cyan' })
+    void kit.chipsToPlayer(chipsFor(e.amount), { from: 'dealer-tray', to: 'hud-bankroll' })
+    await kit.wait(900)
+  }
+
+  const juice = { ...eventJuice, roundEnd, split: splitSlide, refill } as JuiceMap
+  const playback = usePlayback({ juice, seats, apply })
 
   async function sweep() {
-    const slots = [...(root.current?.querySelectorAll<HTMLElement>('.bj-slot') ?? [])]
+    const slots = [...(root.current?.querySelectorAll<HTMLElement>('.nc-slot') ?? [])]
+    if (kit.reducedMotion) return
     await Promise.all(
       slots.map((el, i) =>
         el
@@ -194,117 +209,20 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
           .finished.catch(() => undefined),
       ),
     )
-    memory.clear()
-    commitDisplay(clearedTable(displayRef.current))
-    if (root.current) delete root.current.dataset['fx']
   }
-
-  async function step(e: BlackjackEvent) {
-    const d = displayRef.current
-    switch (e.type) {
-      case 'bet':
-        memory.clear()
-        commit(e)
-        sfx.play('chip')
-        return sleep(140)
-      case 'deal':
-        if (e.seat === 'dealer' && d.stage === 'dealer') await sleep(300)
-        commit(e)
-        sfx.play('card')
-        return sleep(290)
-      case 'peek': {
-        commit(e)
-        sfx.play('peek')
-        q('[data-testid="dealer-card-1"] .bj-fly')?.animate(
-          [{ transform: 'none' }, { transform: 'translateY(-9px) rotate(-4deg)' }, { transform: 'none' }],
-          { duration: 320, easing: 'ease-in-out' },
-        )
-        return sleep(360)
-      }
-      case 'reveal':
-        await q('[data-testid="dealer-card-1"] .bj-card')
-          ?.animate([{ transform: 'none' }, { transform: 'scaleX(0) scaleY(1.08)' }], { duration: 110, easing: 'ease-in' })
-          .finished.catch(() => undefined)
-        commit(e)
-        sfx.play('flip')
-        return sleep(280)
-      case 'blackjack':
-        commit(e)
-        return sleep(160)
-      case 'dealerBlackjack':
-        dealerNote.current = 'blackjack'
-        commit(e)
-        sfx.play('lose')
-        blink(q('[data-testid="dealer-total"]'))
-        void flash(q('.bj-tray-flash'), 1, 800)
-        void shake(stage.current)
-        return sleep(520)
-      case 'turn':
-        commit(e)
-        return sleep(60)
-      case 'stand':
-        commit(e)
-        sfx.play('tap')
-        return sleep(140)
-      case 'double':
-      case 'split': {
-        const bank = center(q('[data-testid="hud-bankroll"]'))
-        await flyChips(e.amount, bank, center(q('.bj-pot')))
-        sfx.play('chip')
-        setPot([...potRef.current, ...chipsFor(e.amount)])
-        commit(e)
-        return sleep(e.type === 'split' ? 260 : 120)
-      }
-      case 'bust': {
-        commit(e)
-        sfx.play('bust')
-        void shake(stage.current)
-        void flash(q(`[data-testid="hand-${e.hand}"] .bj-hflash`), 1, 700)
-        blink(q(`[data-testid="hand-${e.hand}-total"]`))
-        return sleep(480)
-      }
-      case 'dealerBust':
-        dealerNote.current = 'bust'
-        commit(e)
-        blink(q('[data-testid="dealer-total"]'))
-        void flash(q('.bj-tray-flash'), 0.8, 600)
-        return sleep(380)
-      case 'roundEnd':
-        return resultMoment(e)
-      case 'refill': {
-        refilled.current = true
-        lastChips.current = []
-        commit(e)
-        sfx.play('refill')
-        void numberPop(fxLayer(), popAt(), '+' + formatMoney(e.amount), {
-          kind: 'refill',
-          color: '#7ff7ff',
-          size: Math.min(innerWidth * 0.16, 96),
-          glow: '0 0 10px #2ef2ff,0 0 24px #2ef2ff',
-          duration: 1300,
-        })
-        const bank = center(q('[data-testid="hud-bankroll"]'))
-        void flyChips(e.amount, { x: innerWidth / 2, y: -40 }, bank, 45)
-        return sleep(900)
-      }
-      default:
-        commit(e)
-    }
-  }
-
-  const lastBatch = useRef(events.id)
-  const chain = useRef<Promise<void>>(Promise.resolve())
 
   async function playBatch(batch: EventBatch, v: BlackjackView) {
     setAnimating(true)
     try {
-      for (const e of batch.events as BlackjackEvent[]) await step(e)
+      await playback.play(batch.events)
       if (v.phase === 'settling') {
         await sweep()
-        commitDisplay(clearedTable(displayFromView(v)))
+        setPot([])
+        show(clearedTable(displayFromView(v)))
       } else {
-        commitDisplay(displayFromView(v))
+        show(displayFromView(v))
       }
+      setBigMoment(false)
       afterBatch(v)
     } finally {
       setAnimating(false)
@@ -323,10 +241,12 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
     const again = lastChips.current.length ? lastChips.current : chipsFor(v.lastBet)
     if (v.legal.includes('bet') && !potRef.current.length && again.length && sum(again) <= v.stack) {
       setPot([...again])
-      sfx.play('chip')
+      kit.sfx('chip')
     }
   }
 
+  const lastBatch = useRef(events.id)
+  const chain = useRef<Promise<void>>(Promise.resolve())
   useEffect(() => {
     if (events.id === lastBatch.current) return
     lastBatch.current = events.id
@@ -348,15 +268,12 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
 
   const addChip = (v: ChipValue) => {
     if (!canBet || available < v) return
-    sfx.play('chip')
+    kit.sfx('chip')
     setPot([...potRef.current, v])
   }
   const clearBet = () => {
     if (!canBet || !potRef.current.length) return
-    const from = center(q('.bj-pot'))
-    const to = center(q('[data-testid="action-clear"]'))
-    potRef.current.slice(0, 12).forEach((v, i) => void flyChip(fxLayer(), v, from, to, { delay: i * 25, duration: 260 }))
-    sfx.play('chip')
+    void kit.chipsToPlayer(potRef.current, { from: 'pot', to: 'action-clear' })
     setPot([])
   }
   const deal = () => {
@@ -364,7 +281,7 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
     lastChips.current = [...potRef.current]
     void send({ type: 'bet', amount: sum(potRef.current) })
   }
-  const play = (type: 'hit' | 'stand' | 'double' | 'split') => {
+  const play = (type: PlayAction) => {
     if (legal.includes(type)) void send({ type })
   }
 
@@ -390,8 +307,7 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
   }, [])
 
   const split = display.hands.length > 1
-  const dealerLayout = layoutHand(size, 'dealer', display.dealer.length, false)
-  const cssVars = useMemo(() => sizeVars(size), [size])
+  const splitWidth = metrics.phone ? (metrics.width - 48) / 2 : Math.min(metrics.width * 0.64, 760) / 2
 
   return (
     <div
@@ -401,216 +317,58 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
       data-stage={display.stage}
       data-busy={busy ? 'true' : 'false'}
       data-animating={animating ? 'true' : 'false'}
+      data-split={split ? 'true' : 'false'}
+      data-big-moment={bigMoment ? 'true' : 'false'}
       data-rounds={lastRound?.n ?? 0}
       data-last-outcomes={lastRound?.outcomes ?? ''}
       data-last-statuses={lastRound?.statuses ?? ''}
       data-last-net={lastRound?.net ?? ''}
       data-last-dealer={lastRound?.dealer ?? ''}
-      data-layout={size.phone ? 'phone' : 'desktop'}
-      style={cssVars}
     >
-      <div className="bj-stage" ref={stage}>
-        <div className="bj-top">
-          <div className="bj-bank" data-testid="hud-bankroll" data-value={available}>
-            {formatMoney(shownStack)}
+      <TableLayout
+        hud={<Hud bankroll={available} right={hudIcons} />}
+        top={
+          <div className="bj-dealer" data-visible={display.dealer.length > 0 ? 'true' : 'false'}>
+            <DealerTray cards={display.dealer} renderer={standardFaceRenderer} total={totalLabel(display.dealer) || null} />
           </div>
-          <div className="bj-icons">{hudIcons}</div>
-        </div>
-
-        <div className="bj-burst" ref={burst} />
-
-        <div className="bj-dealer-row" data-visible={display.dealer.length > 0}>
-          <Badge kind="dealer" text="" spacer />
-          <div className="bj-tray-wrap">
-            <div className="bj-tray">
-              <div className="bj-tray-in" />
-              <div className="bj-tray-flash" />
-              <div className="bj-hand bj-hand-dealer" data-testid="dealer-hand" style={handVars(dealerLayout)}>
-                {display.dealer.map((card, i) => (
-                  <PlayingCard
-                    key={`d${i}`}
-                    card={card}
-                    slot={dealerLayout.slots[i] ?? ORIGIN}
-                    w={dealerLayout.w}
-                    h={dealerLayout.h}
-                    z={i}
-                    memory={memory}
-                    memoryKey={`d${i}`}
-                    testId={`dealer-card-${i}`}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-          <Badge kind="dealer" text={totalLabel(display.dealer)} testId="dealer-total" />
-        </div>
-
-        <div className="bj-pot-area">
-          <Pot chips={potChips} />
-          <div className="bj-pot-amt" data-testid="bet-amount" data-value={bet}>
-            {bet ? formatMoney(bet) : ''}
-          </div>
-        </div>
-
-        <div className="bj-player-row" data-split={split}>
-          {display.hands.map((hand, i) => {
-            const lay = layoutHand(size, 'player', hand.cards.length, split)
-            const idle = split && display.stage === 'playing' && i !== display.active
-            return (
-              <div
-                key={i}
-                className="bj-grp"
-                data-testid={`hand-${i}`}
-                data-status={hand.status}
-                data-outcome={hand.outcome ?? ''}
-                data-active={i === display.active}
-                data-idle={idle}
-                data-bet={hand.bet}
-              >
-                {!split && <Badge kind="player" text="" spacer />}
-                <div className="bj-hand bj-hand-player" style={handVars(lay)}>
-                  {hand.cards.map((card, j) => (
-                    <PlayingCard
-                      key={card.id}
-                      card={card}
-                      slot={lay.slots[j] ?? ORIGIN}
-                      w={lay.w}
-                      h={lay.h}
-                      z={j}
-                      memory={memory}
-                      memoryKey={card.id}
-                      testId={`hand-${i}-card-${j}`}
-                    />
-                  ))}
-                </div>
-                <Badge kind="player" text={totalLabel(hand.cards)} testId={`hand-${i}-total`} />
-                <div className="bj-hflash" />
-              </div>
-            )
-          })}
-        </div>
-
-        <div className="bj-felt">
-          <div className="bj-ctl">
-            {betting ? (
-              <div className="bj-row bj-bet-row">
-                {CHIP_VALUES.map((v) => (
-                  <button
-                    key={v}
-                    className="bj-rack-chip"
-                    data-testid={`chip-${v}`}
-                    style={{ gridArea: `c${v}` }}
-                    disabled={!canBet || available < v}
-                    onClick={() => addChip(v)}
-                    aria-label={`Add ${v}`}
-                  >
-                    <Chip value={v} className="big" />
-                  </button>
-                ))}
-                <button className="bj-btn bj-clear" data-testid="action-clear" disabled={!canBet || !bet} onClick={clearBet} aria-label="Clear bet">
-                  <svg viewBox="0 0 8 8" fill="currentColor" shapeRendering="crispEdges">
-                    <path d="M0 0h2v1h1v1h2V1h1V0h2v2H7v1H6v2h1v1h1v2H6V7H5V6H3v1H2v1H0V6h1V5h1V3H1V2H0z" />
-                  </svg>
-                </button>
-                <button className="bj-btn bj-main bj-deal" data-testid="action-deal" disabled={!canBet || !bet} onClick={deal}>
-                  DEAL
-                </button>
-              </div>
-            ) : (
-              <div className="bj-row bj-play-row">
-                {(['hit', 'stand', 'double', 'split'] as const).map((type) => (
-                  <button
-                    key={type}
-                    className={`bj-btn${type === 'hit' ? ' bj-main' : ''}`}
-                    data-testid={`action-${type}`}
-                    disabled={!legal.includes(type)}
-                    onClick={() => play(type)}
-                  >
-                    {type.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-      <div className="bj-gold-flash" ref={goldFlash} />
-      <div className="bj-fx" ref={fx} />
+        }
+        middle={<ChipStack chips={pot} />}
+        bottom={
+          <PlayerRow>
+            {display.hands.map((hand, i) => {
+              const state = handState(hand, i, display.active, display.stage, split)
+              const stateProp = state ? { state } : {}
+              return (
+                <PlayerSpot
+                  key={i}
+                  testId={`hand-${i}`}
+                  {...stateProp}
+                  badge={<ScoreBadge value={totalLabel(hand.cards) || null} testId={`hand-${i}-total`} {...stateProp} />}
+                >
+                  <Hand cards={hand.cards} renderer={standardFaceRenderer} {...stateProp} {...(split ? { maxWidth: splitWidth } : {})} />
+                </PlayerSpot>
+              )
+            })}
+          </PlayerRow>
+        }
+        controls={
+          betting ? (
+            <BetControls
+              onPick={addChip}
+              isDisabled={(v) => !canBet || available < v}
+              onClear={clearBet}
+              onDeal={deal}
+              canClear={canBet && bet > 0}
+              canDeal={canBet && bet > 0}
+            />
+          ) : (
+            <ActionBar
+              actions={PLAY_ACTIONS.map((id) => ({ id, label: id.toUpperCase(), primary: id === 'hit', disabled: !legal.includes(id) }))}
+              onAction={(id) => play(id as PlayAction)}
+            />
+          )
+        }
+      />
     </div>
   )
-}
-
-function blink(el: HTMLElement | null) {
-  if (!el) return
-  el.classList.remove('bj-blink')
-  void el.offsetWidth
-  el.classList.add('bj-blink')
-}
-
-function Badge({ kind, text, testId, spacer }: { kind: 'dealer' | 'player'; text: string; testId?: string; spacer?: boolean }) {
-  return (
-    <div className={`bj-badge bj-badge-${kind}${spacer ? ' bj-spacer' : ''}`} data-testid={testId} aria-hidden={spacer}>
-      {spacer ? '00' : text}
-    </div>
-  )
-}
-
-function Pot({ chips }: { chips: ChipValue[] }) {
-  if (chips.length <= 5) {
-    return (
-      <div className="bj-pot">
-        {chips.map((v, i) => (
-          <Chip key={i} value={v} className="bj-drop" />
-        ))}
-      </div>
-    )
-  }
-  const stacks = CHIP_VALUES.slice()
-    .reverse()
-    .map((v) => [v, chips.filter((c) => c === v).length] as const)
-    .filter(([, n]) => n > 0)
-  return (
-    <div className="bj-pot">
-      {stacks.map(([v, n]) => (
-        <div className="bj-stack" key={v}>
-          {Array.from({ length: Math.min(n, 8) }, (_, i) => (
-            <Chip key={i} value={v} className={i === Math.min(n, 8) - 1 ? 'bj-drop' : 'bj-under'} />
-          ))}
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function handVars(l: { w: number; h: number; width: number }): React.CSSProperties {
-  return {
-    width: l.width,
-    height: l.h,
-    '--n': `${Math.max(4, l.w * 0.05)}px`,
-    '--bw': `${Math.max(3, Math.round(l.w * 0.025))}px`,
-    '--rk': `${l.h * 0.2}px`,
-  } as React.CSSProperties
-}
-
-function sizeVars(s: TableSize): React.CSSProperties {
-  return { '--ph': `${s.ph}px`, '--pw': `${s.pw}px`, '--dh': `${s.dh}px`, '--dw': `${s.dw}px` } as React.CSSProperties
-}
-
-function useCountUp(target: number, set: (n: number) => void) {
-  const from = useRef(target)
-  useEffect(() => {
-    const start = from.current
-    if (start === target) return
-    const t0 = performance.now()
-    let raf = 0
-    const tick = (t: number) => {
-      const k = Math.min(1, (t - t0) / 400)
-      const n = Math.round(start + (target - start) * k)
-      from.current = n
-      set(n)
-      if (k < 1) raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  }, [target, set])
 }
