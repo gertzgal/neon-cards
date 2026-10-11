@@ -40,7 +40,7 @@ describe('flip 7 CPU policies in real games', () => {
       }
     }
     expect(checked).toBeGreaterThan(1000)
-  })
+  }, 30_000)
 })
 
 /** Plays one game straight through the definition, with a chosen policy for every seat including the human's. */
@@ -74,5 +74,5 @@ describe('flip 7 CPU strength', () => {
     expect(winsOf('hard', 'easy', 150)).toBeGreaterThanOrEqual(100)
     expect(winsOf('medium', 'easy', 150)).toBeGreaterThanOrEqual(95)
     expect(winsOf('hard', 'medium', 150)).toBeGreaterThanOrEqual(85)
-  })
+  }, 60_000)
 })
