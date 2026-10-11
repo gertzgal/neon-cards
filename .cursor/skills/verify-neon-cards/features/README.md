@@ -9,7 +9,7 @@ The maintained source for verifying what a Neon Cards player can see and do. Rea
 | Wallet API and player identity | [wallet-api.md](wallet-api.md) | live (Worker API) |
 | UI kit gallery (table primitives, opponent rows) | [ui-gallery.md](ui-gallery.md) | live (UI kit) |
 | Sessions, actions, CPU seats, history API | [sessions-api.md](sessions-api.md) | live (Worker API) |
-| Blackjack round | | planned (Blackjack project) |
+| Blackjack round in the shell | [app-shell.md](app-shell.md) (`shell-play`) | live (Shell); table moments owned by the Blackjack project |
 | Game settings sheet (opponents, difficulty) | | planned (Shell PR) |
 
 ## Baseline preconditions

@@ -3,7 +3,8 @@ import { expect, test } from '@playwright/test'
 test('home shows the lobby, the wallet pill, and the HUD icons', async ({ page }, testInfo) => {
   await page.goto('/')
   await expect(page.getByTestId('app-title')).toHaveText('Neon Cards')
-  await expect(page.getByTestId('game-list')).toBeAttached()
+  await expect(page.getByTestId('game-blackjack')).toContainText('Blackjack')
+  await expect(page.getByTestId('game-blackjack')).toContainText('Chips')
   await expect(page.getByTestId('wallet')).not.toHaveAttribute('data-state', 'loading')
   await expect(page.getByTestId('sound-toggle')).toBeVisible()
   await expect(page.getByTestId('open-settings')).toBeVisible()
@@ -67,4 +68,15 @@ test('unknown games and pages show a way back to the lobby', async ({ page }) =>
   await expect(page).toHaveURL(/\/$/)
   await page.goto('/nope')
   await expect(page.getByTestId('not-found')).toContainText('/nope is not a page.')
+})
+
+test('a lobby tile opens its game screen and the back arrow returns', async ({ page }) => {
+  await page.goto('/')
+  await page.getByTestId('game-blackjack').click()
+  await expect(page).toHaveURL(/\/games\/blackjack$/)
+  const screen = page.getByTestId('game-screen')
+  await expect(screen).toHaveAttribute('data-game', 'blackjack')
+  await expect(screen).toHaveAttribute('data-state', /^(playing|error)$/)
+  await page.goBack()
+  await expect(page.getByTestId('app-title')).toBeVisible()
 })

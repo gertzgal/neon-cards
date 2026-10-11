@@ -44,6 +44,9 @@ importers:
       '@neon-cards/engine':
         specifier: workspace:*
         version: link:../../packages/engine
+      '@neon-cards/game-blackjack':
+        specifier: workspace:*
+        version: link:../../packages/games/blackjack
       '@neon-cards/ui':
         specifier: workspace:*
         version: link:../../packages/ui

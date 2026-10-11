@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
 export function Sheet({
   testId,
@@ -18,7 +19,8 @@ export function Sheet({
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  return (
+  // Portaled so a table's transformed ancestors (screen shake) can't capture position: fixed.
+  return createPortal(
     <div className="sheet-backdrop" onClick={onClose}>
       <section
         className="sheet"
@@ -38,6 +40,7 @@ export function Sheet({
         </header>
         {children}
       </section>
-    </div>
+    </div>,
+    document.body,
   )
 }

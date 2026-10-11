@@ -34,7 +34,7 @@ export function parseSettings(raw: string | null): ShellSettings {
 const listeners = new Set<() => void>()
 let cached: { raw: string | null; settings: ShellSettings } | null = null
 
-function read(): ShellSettings {
+export function readSettings(): ShellSettings {
   const raw = localStorage.getItem(KEY)
   if (cached?.raw !== raw) cached = { raw, settings: parseSettings(raw) }
   return cached.settings
@@ -50,12 +50,12 @@ function subscribe(listener: () => void) {
 }
 
 export function updateSettings(patch: Partial<ShellSettings>) {
-  localStorage.setItem(KEY, JSON.stringify({ ...read(), ...patch }))
+  localStorage.setItem(KEY, JSON.stringify({ ...readSettings(), ...patch }))
   for (const listener of listeners) listener()
 }
 
 export function useSettings(): ShellSettings {
-  return useSyncExternalStore(subscribe, read)
+  return useSyncExternalStore(subscribe, readSettings)
 }
 
 const reducedQuery = () => window.matchMedia('(prefers-reduced-motion: reduce)')

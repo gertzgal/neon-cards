@@ -28,6 +28,12 @@ function humanSeatOf(seats: Seat[]): SeatId {
 
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err))
 
+/** `?rig=` and `?seed=` on the game URL, forwarded only to a Worker running with DEV_RIG=1 (production answers 400). */
+function devConfig(): Record<string, string> {
+  const params = new URLSearchParams(window.location.search)
+  return Object.fromEntries(['rig', 'seed'].flatMap((key) => (params.has(key) ? [[key, params.get(key) ?? '']] : [])))
+}
+
 const nextBatchId = (prev: SessionState) => (prev.status === 'playing' ? prev.events.id + 1 : 1)
 
 /**
@@ -40,13 +46,13 @@ export function useGameSession(plugin: GamePlugin, onWallet: (balance: number) =
   const autoStart = !plugin.rules.meta.settings?.length
   const chips = plugin.rules.meta.economy === 'chips'
   const [state, setState] = useState<SessionState>(() =>
-    localStorage.getItem(storeKey(gameId)) || autoStart ? { status: 'loading' } : { status: 'setup' },
+    (localStorage.getItem(storeKey(gameId)) && !Object.keys(devConfig()).length) || autoStart ? { status: 'loading' } : { status: 'setup' },
   )
   const booted = useRef(false)
 
   const create = useCallback(
     (config: unknown) =>
-      api.createSession(gameId, config).then(
+      api.createSession(gameId, { ...(config as object), ...devConfig() }).then(
         (res) => {
           localStorage.setItem(storeKey(gameId), res.sessionId)
           if (chips && res.wallet !== undefined) onWallet(res.wallet)
@@ -68,7 +74,9 @@ export function useGameSession(plugin: GamePlugin, onWallet: (balance: number) =
 
   const resume = useCallback(
     (sessionId: string) =>
-      api.session(sessionId).then((res) =>
+      api.session(sessionId).then((res) => {
+        if (res.status !== 'active') throw new Error(`session is ${res.status}`)
+        if (chips && res.wallet !== undefined) onWallet(res.wallet)
         setState((prev) => ({
           status: 'playing',
           sessionId,
@@ -78,9 +86,9 @@ export function useGameSession(plugin: GamePlugin, onWallet: (balance: number) =
           events: { id: nextBatchId(prev), events: [] },
           seq: res.seq,
           busy: false,
-        })),
-      ),
-    [],
+        }))
+      }),
+    [chips, onWallet],
   )
 
   const start = useCallback(
@@ -100,7 +108,7 @@ export function useGameSession(plugin: GamePlugin, onWallet: (balance: number) =
   useEffect(() => {
     if (booted.current) return
     booted.current = true
-    const stored = localStorage.getItem(storeKey(gameId))
+    const stored = Object.keys(devConfig()).length ? null : localStorage.getItem(storeKey(gameId))
     if (stored) resume(stored).catch(reset)
     else if (autoStart) void create({})
   }, [gameId, autoStart, create, resume, reset])
