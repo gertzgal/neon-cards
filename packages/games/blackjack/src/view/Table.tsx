@@ -11,6 +11,7 @@ import {
   chipsFor,
   displayFromView,
   formatMoney,
+  rebetChips,
   totalLabel,
   type ChipValue,
   type Display,
@@ -65,7 +66,6 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
   const displayRef = useRef(display)
   const potRef = useRef(potChips)
   const lastChips = useRef<ChipValue[]>([])
-  const refilled = useRef(false)
   const [memory] = useState(() => new Map<string, DOMRect>())
   const root = useRef<HTMLDivElement>(null)
   useCardTilt(root)
@@ -293,8 +293,6 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
       case 'roundEnd':
         return resultMoment(e)
       case 'refill': {
-        refilled.current = true
-        lastChips.current = []
         commit(e)
         sfx.play('refill')
         void numberPop(fxLayer(), popAt(), '+' + formatMoney(e.amount), {
@@ -343,12 +341,8 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
       void send({ type: 'refill' })
       return
     }
-    if (refilled.current) {
-      refilled.current = false
-      return
-    }
-    const again = lastChips.current.length ? lastChips.current : chipsFor(v.lastBet)
-    if (v.legal.includes('bet') && !potRef.current.length && again.length && sum(again) <= v.stack) {
+    const again = rebetChips(v, lastChips.current)
+    if (!potRef.current.length && again.length) {
       setPot([...again])
       sfx.play('chip')
     }

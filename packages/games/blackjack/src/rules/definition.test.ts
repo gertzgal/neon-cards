@@ -330,6 +330,14 @@ describe('refill', () => {
     expect(refilled.view.result).toBe(null)
   })
 
+  it('forgets the bet that went broke, so a fresh stack starts from the minimum bet', () => {
+    const broke = rigged('lose', 1250, ['stand'])
+    expect(broke.view.lastBet).toBe(1250)
+    const refilled = play(broke.state, broke.rng, { type: 'refill' })
+    expect(refilled.view.lastBet).toBe(0)
+    expect(blackjack.legalActions(refilled.state, SEAT)).toEqual([{ type: 'bet', amount: 5 }])
+  })
+
   it('tops a nearly broke stack up to the refill amount', () => {
     const { state, rng } = newGame({ bankroll: 3 })
     expect(play(state, rng, { type: 'refill' }).events).toEqual([{ type: 'refill', seat: SEAT, amount: 1247, stack: 1250 }])

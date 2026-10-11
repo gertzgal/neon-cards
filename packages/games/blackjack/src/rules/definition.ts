@@ -336,6 +336,7 @@ class Table {
     const s = this.s
     const amount = s.config.refillTo - s.stack
     s.stack = s.config.refillTo
+    s.lastBet = 0
     s.phase = 'betting'
     s.dealer = []
     s.hands = []
