@@ -13,6 +13,7 @@ import { OpponentRows } from '../primitives/opponent-rows'
 import { standardFaceRenderer } from '../primitives/standard-face'
 import { PlayerSpot, TableLayout } from '../primitives/table-layout'
 import { chipValues } from '../theme/tokens'
+import { JuiceScene } from './juice-scene'
 import { flip7FaceRenderer, type Flip7Face } from './flip7-face'
 
 let nextId = 0
@@ -202,6 +203,7 @@ export function Gallery({ scene, count }: { scene: string; count: number }) {
         {scene === 'opponents' && <OpponentsScene count={count} />}
         {scene === 'sheet' && <SheetScene />}
         {scene === 'table' && <BlackjackScene />}
+        {scene === 'juice' && <JuiceScene />}
       </div>
     </NeonRoot>
   )

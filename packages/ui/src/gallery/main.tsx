@@ -4,7 +4,7 @@ import '../index'
 import './gallery.css'
 import { Gallery } from './gallery'
 
-export const scenes = ['table', 'betting', 'opponents', 'sheet'] as const
+export const scenes = ['table', 'betting', 'opponents', 'sheet', 'juice'] as const
 
 /** Dev gallery: /ui-gallery.html?scene=table|betting|opponents|sheet[&n=1..3]. */
 export function mountGallery(el: HTMLElement) {

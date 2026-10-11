@@ -22,3 +22,6 @@ export { PixelSprite, bitmaps, bitmapRects, pixelScale, type Bitmap, type PixelS
 export { standardFaceRenderer } from './primitives/standard-face'
 export { useTableMetrics, tableMetrics, MetricsProvider, type TableMetrics, type Size } from './primitives/metrics'
 export { useReducedMotion, prefersReducedMotion } from './primitives/motion'
+export { JuiceProvider, useJuice, usePlayback, useBatchPlayback, type JuiceProviderProps } from './juice/provider'
+export { createJuiceKit, type ControlledKit, type KitHost } from './juice/kit'
+export { runPlayback, type PlaybackDeps } from './juice/playback'

@@ -180,14 +180,19 @@ export interface JuiceKit {
   readonly instant: boolean
   /** Fly-in from the shoe with a squash on landing. */
   deal(target: JuiceTarget, opts?: { from?: Point | JuiceTarget }): Promise<void>
-  /** Squash-and-stretch flip. `swap` runs at the midpoint, where the face should change. */
+  /**
+   * Squash-and-stretch flip of a card that is already face-up in the DOM (playback applies the
+   * event first): a card back covers it, shrinks away, and the face stretches in. With `swap`, no
+   * cover is drawn and `swap` runs at the midpoint instead.
+   */
   flip(target: JuiceTarget, swap?: () => void): Promise<void>
   /** Slide an element from a previous position (FLIP-style) to where it is now. */
   slide(target: JuiceTarget, from: Point | JuiceTarget): Promise<void>
   shake(size?: ShakeSize, target?: JuiceTarget): Promise<void>
   flash(tone: FlashTone, target?: JuiceTarget): Promise<void>
   numberPop(text: string, opts?: { tier?: PopTier; tone?: FlashTone; at?: JuiceTarget }): Promise<void>
-  chipBurst(opts?: { at?: JuiceTarget; count?: number }): Promise<void>
+  /** Chips spray out of `at` and fall. They never rise above the bottom of `ceiling` (e.g. the dealer tray). */
+  chipBurst(opts?: { at?: JuiceTarget; count?: number; ceiling?: JuiceTarget }): Promise<void>
   chipsToPot(chips: ChipValue[], opts: { from: JuiceTarget; to: JuiceTarget }): Promise<void>
   chipsToPlayer(chips: ChipValue[], opts: { from: JuiceTarget; to: JuiceTarget }): Promise<void>
   badgePulse(target: JuiceTarget): Promise<void>
@@ -195,12 +200,17 @@ export interface JuiceKit {
   wait(ms: number): Promise<void>
 }
 
-export type JuiceHandler<E extends GameEvent = GameEvent> = (event: E, kit: JuiceKit) => void | Promise<void>
+/** Runs after the event is applied to the display. Bivariant, so a game can type `event` as its own event. */
+export type JuiceHandler<E extends GameEvent = GameEvent> = {
+  bivarianceHack(event: E, kit: JuiceKit): void | Promise<void>
+}['bivarianceHack']
 /** Maps a game's GameEvent types to shared juice. Unmapped types play with no effect. */
 export type JuiceMap = Record<string, JuiceHandler>
 
 export interface PlaybackOptions {
   juice: JuiceMap
+  /** Which seats are CPUs: a `turn` event on a CPU seat gets the thinking beat. */
+  seats: Seat[]
   /** Advance the game's displayed model by one event. Runs before that event's juice, and for every event when skipping. */
   apply(event: GameEvent): void
 }

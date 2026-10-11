@@ -57,7 +57,7 @@ export const durations = {
   numberPopBig: 1900,
   chipFly: 320,
   chipBurst: 1300,
-  badgePulse: 960,
+  badgePulse: 320,
   thinkingBeat: 500,
   bankrollCount: 400,
 } as const

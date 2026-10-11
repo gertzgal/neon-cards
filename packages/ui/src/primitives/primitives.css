@@ -956,3 +956,59 @@
     filter: drop-shadow(0 0 10px rgba(255, 46, 136, 0.85));
   }
 }
+
+/* ---------- juice layer ---------- */
+
+.nc-fx {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 30;
+  overflow: hidden;
+}
+
+.nc-flychip {
+  position: fixed;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.nc-pop {
+  position: fixed;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  pointer-events: none;
+  line-height: 1;
+  z-index: 31;
+}
+
+.nc-flash {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  mix-blend-mode: screen;
+  z-index: -1;
+}
+
+.nc-hflash {
+  position: absolute;
+  inset: -18% -12%;
+  border-radius: 30%;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0;
+}
+
+.nc-sway {
+  position: relative;
+}
+
+.nc-flip-cover {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
