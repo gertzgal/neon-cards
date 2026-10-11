@@ -15,13 +15,13 @@ async function bet25AndDeal(page: Page) {
 
 async function expectWalletAndHistory(page: Page, balance: string, net: string) {
   expect(await (await page.request.get('/api/wallet')).json()).toMatchObject({ balance: Number(balance.replace(/\D/g, '')) })
-  await page.getByTestId('open-settings').click()
+  await page.getByTestId('hud-settings').click()
   await page.getByTestId('table-history').click()
   await expect(page).toHaveURL(/\/history\?game=blackjack$/)
   await expect(page.getByTestId('history-filter-blackjack')).toHaveClass(/on/)
   await expect(page.getByTestId('history-round')).toHaveCount(1)
   await expect(page.getByTestId('history-net')).toHaveText(net)
-  await expect(page.getByTestId('wallet')).toHaveText(balance)
+  await expect(page.getByTestId('hud-bankroll')).toHaveText(balance)
 }
 
 test('a full won round: bet, deal, stand, settle, wallet and history update', async ({ page }, testInfo) => {

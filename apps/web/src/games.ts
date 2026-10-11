@@ -1,26 +1,19 @@
 import { createElement } from 'react'
-import { BlackjackTable, rules as blackjackRules, type Sfx } from '@neon-cards/game-blackjack'
-import { getAudio, type SfxName } from '@neon-cards/ui'
-import { definePlugin, type GamePlugin } from './plugin'
+import { BlackjackTable, createSfx, rules as blackjackRules } from '@neon-cards/game-blackjack'
+import { definePlugin, standardFaceRenderer, type GamePlugin } from '@neon-cards/ui'
+import { audioLevels, readSettings } from './settings'
 
-const BLACKJACK_SFX: Record<Parameters<Sfx['play']>[0], SfxName> = {
-  card: 'card',
-  chip: 'chip',
-  flip: 'flip',
-  peek: 'turn',
-  tap: 'click',
-  bust: 'bust',
-  win: 'win',
-  lose: 'lose',
-  push: 'push',
-  blackjack: 'blackjack',
-  refill: 'win',
-}
-const blackjackSfx: Sfx = { play: (name) => getAudio().play(BLACKJACK_SFX[name]) }
+const blackjackSfx = createSfx(() => !audioLevels(readSettings()).sfx)
 
 /** One line per game. The lobby lists them in this order. */
 export const games: GamePlugin[] = [
-  definePlugin({ rules: blackjackRules, Table: (props) => createElement(BlackjackTable, { ...props, sfx: blackjackSfx }) }),
+  // Blackjack plays its own juice and sfx inside its table, so its juice map is empty.
+  definePlugin({
+    rules: blackjackRules,
+    Table: (props) => createElement(BlackjackTable, { ...props, sfx: blackjackSfx }),
+    faceRenderer: standardFaceRenderer,
+    juice: {},
+  }),
 ]
 
 export const findGame = (id: string) => games.find((game) => game.rules.definition.id === id)

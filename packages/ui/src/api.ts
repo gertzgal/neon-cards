@@ -272,6 +272,8 @@ export interface TableProps<View = unknown, Action = unknown> {
   act(action: Action): Promise<void>
   /** True while an action is in flight. */
   busy: boolean
+  /** The shell's sound and settings buttons. A table that draws its own top bar renders them at its right. */
+  hudIcons?: ReactNode
 }
 
 /** The browser plugin a game package exports. The shell reads title, settings and economy from `rules.meta`. */
