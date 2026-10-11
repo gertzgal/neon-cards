@@ -48,21 +48,11 @@ a {
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  background:
-    radial-gradient(ellipse at 0% 100%, rgba(255, 46, 136, 0.16), transparent 45%),
-    radial-gradient(ellipse at 100% 0%, rgba(46, 242, 255, 0.12), transparent 45%),
-    var(--table);
 }
 
-.screen::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 40;
-  background:
-    radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.5) 100%),
-    repeating-linear-gradient(to bottom, transparent 0 2px, rgba(0, 0, 0, 0.18) 2px 3px);
+/* Screens sit in the UI kit's NeonRoot: the edge swirl shows through, and its CRT pass covers everything. */
+.nc-stage {
+  overflow-y: auto;
 }
 
 /* HUD */
