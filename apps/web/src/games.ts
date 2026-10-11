@@ -1,6 +1,7 @@
 import { createElement } from 'react'
 import { BlackjackTable, createSfx, rules as blackjackRules } from '@neon-cards/game-blackjack'
 import { definePlugin, standardFaceRenderer, type GamePlugin } from '@neon-cards/ui'
+import { blackjackRecap } from './blackjack-recap'
 import { highCardPlugin } from './dev/high-card'
 import { audioLevels, readSettings } from './settings'
 
@@ -14,6 +15,7 @@ export const games: GamePlugin[] = [
     Table: (props) => createElement(BlackjackTable, { ...props, sfx: blackjackSfx }),
     faceRenderer: standardFaceRenderer,
     juice: {},
+    recap: blackjackRecap,
   }),
 ]
 

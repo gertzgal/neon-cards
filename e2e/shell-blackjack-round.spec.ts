@@ -13,14 +13,15 @@ async function bet25AndDeal(page: Page) {
   await page.getByTestId('action-deal').click()
 }
 
-async function expectWalletAndHistory(page: Page, balance: string, net: string) {
+async function expectWalletAndHistory(page: Page, balance: string, net: string, outcome: string, hand: string) {
   expect(await (await page.request.get('/api/wallet')).json()).toMatchObject({ balance: Number(balance.replace(/\D/g, '')) })
   await page.getByTestId('hud-settings').click()
   await page.getByTestId('table-history').click()
   await expect(page).toHaveURL(/\/history\?game=blackjack$/)
-  await expect(page.getByTestId('history-filter-blackjack')).toHaveClass(/on/)
   await expect(page.getByTestId('history-round')).toHaveCount(1)
   await expect(page.getByTestId('history-net')).toHaveText(net)
+  await expect(page.getByTestId('history-outcome')).toHaveText(outcome)
+  await expect(page.getByTestId('history-hands')).toHaveText(hand)
   await expect(page.getByTestId('hud-bankroll')).toHaveText(balance)
 }
 
@@ -37,7 +38,7 @@ test('a full won round: bet, deal, stand, settle, wallet and history update', as
   await expect(page.getByTestId('blackjack-table')).toHaveAttribute('data-busy', 'false')
   await page.screenshot({ path: testInfo.outputPath('2-won.png') })
 
-  await expectWalletAndHistory(page, '$1,275', '+$25')
+  await expectWalletAndHistory(page, '$1,275', '+$25', 'WIN', '10♥9♠')
   await page.screenshot({ path: testInfo.outputPath('3-history.png') })
 })
 
@@ -55,5 +56,5 @@ test('a lost round after a hit busts, and the session resumes when reopened', as
   await expect(page.getByTestId('blackjack-table')).toHaveAttribute('data-busy', 'false')
   await page.screenshot({ path: testInfo.outputPath('busted.png') })
 
-  await expectWalletAndHistory(page, '$1,225', '-$25')
+  await expectWalletAndHistory(page, '$1,225', '-$25', 'BUST', '10♥6♠K♣')
 })

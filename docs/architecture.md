@@ -145,9 +145,13 @@ interface GamePlugin {
   Table: React.ComponentType<TableProps>        // composed from packages/ui primitives only
   faceRenderer: CardFaceRenderer                 // how this deck's faces draw in the shared card frame
   juice: JuiceMap                                // maps this game's GameEvent types to shared juice primitives
+  recap?(summary: { settlements: Settlement[]; view?: View }): RoundRecap | null   // optional: a history row's outcome
 }
+
+// What a history row shows besides the net and time. `hands` draw as small glyphs with faceRenderer.label/tone.
+interface RoundRecap { outcome: string; tone?: Tone; hands?: CardView[][] }   // outcome: "BLACKJACK", "WIN · BUST"
 ```
-The browser-side plugin types (`GamePlugin`, `TableProps`, `EventBatch`, `CardFaceRenderer`, `JuiceMap`) are exported by `@neon-cards/ui`, with `definePlugin()` to erase a plugin's generics for the registry. The shell renders `Table` with:
+The browser-side plugin types (`GamePlugin`, `TableProps`, `EventBatch`, `CardFaceRenderer`, `JuiceMap`, `RoundRecap`) are exported by `@neon-cards/ui`, with `definePlugin()` to erase a plugin's generics for the registry. The shell renders `Table` with:
 ```ts
 interface EventBatch { id: number; events: GameEvent[] }   // one server response's events; id increases per response
 interface TableProps<View, Action> {

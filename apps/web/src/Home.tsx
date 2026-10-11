@@ -15,8 +15,6 @@ export function Home() {
             <li key={definition.id}>
               <Link to={{ name: 'game', gameId: definition.id }} className="game-tile" data-testid={`game-${definition.id}`}>
                 <span className="game-title">{meta.title}</span>
-                <span className="game-desc">{meta.description}</span>
-                <span className={`game-tag ${meta.economy}`}>{meta.economy === 'chips' ? 'Chips' : 'Score'}</span>
               </Link>
             </li>
           ))}

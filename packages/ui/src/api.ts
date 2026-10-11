@@ -1,6 +1,6 @@
 // The public contract of @neon-cards/ui. Games and the shell build against these shapes.
 import type { ComponentType, ReactNode } from 'react'
-import type { CardView, GameEvent, GameRules, Seat, SeatId } from '@neon-cards/engine'
+import type { CardView, GameEvent, GameRules, Seat, SeatId, Settlement } from '@neon-cards/engine'
 
 export type { CardView, GameMeta, SettingSpec } from '@neon-cards/engine'
 import type { ChipValue, Tone } from './theme/tokens'
@@ -276,12 +276,30 @@ export interface TableProps<View = unknown, Action = unknown> {
   hudIcons?: ReactNode
 }
 
+/** A finished round's `summary` as `GET /api/history` returns it. */
+export interface RoundSummary<View = unknown> {
+  settlements: Settlement[]
+  view?: View
+}
+
+/** How a history row shows one finished round. */
+export interface RoundRecap<Face = unknown> {
+  /** A word or two, e.g. "BLACKJACK", or "WIN · BUST" for a split. */
+  outcome: string
+  /** Overrides the row's tone, which otherwise follows the net. */
+  tone?: Tone
+  /** The human's hands at the end of the round, drawn small with the plugin's face renderer. */
+  hands?: CardView<Face>[][]
+}
+
 /** The browser plugin a game package exports. The shell reads title, settings and economy from `rules.meta`. */
 export interface GamePlugin<View = unknown, Action = unknown, Face = unknown> {
   rules: GameRules<unknown, unknown, Action, View, Face>
   Table: ComponentType<TableProps<View, Action>>
   faceRenderer: CardFaceRenderer<Face>
   juice: JuiceMap
+  /** Optional. Without it a history row shows only the net and the time. */
+  recap?(summary: RoundSummary<View>): RoundRecap<Face> | null
 }
 
 /** Erases a plugin's View/Action/Face so plugins of different games fit one registry array. */

@@ -225,3 +225,10 @@ Append-only log. Every PR adds the decisions it made, dated, with who made the c
 ## Platform DoD audit (Platform agent, 2026-10-11)
 - `docs/platform-status.md` records each Platform Definition of done item as met or not met, with the test, e2e spec, or verify run that proves it, and what's left. `docs/plan.md` links it from the Definition of done. Every Platform item is met. The open items belong to other projects (Blackjack moment e2e, PR #21) or need Gal (a `CLOUDFLARE_API_TOKEN` secret to turn on CI deploys).
 - A Blackjack round played through the verify skill (unrigged, plus blackjack, split, and double rigs, at phone and desktop) found no platform-side breakage, so this audit has no fix PR for it.
+
+## History and lobby declutter, B9 (Quality agent, 2026-10-11)
+- The history filter (All / Blackjack) renders only when more than one game is listed. A row names its game only when the list mixes games, so a one-game list never repeats "Blackjack".
+- Row times are short and relative ("now", "5m", "3h", "2d", then "Oct 9"). The full timestamp stays in the `<time>` element's `title` and `dateTime`.
+- Each row now says what happened: an outcome word per hand ("BLACKJACK" in gold, "WIN", "BUST", "LOSE · PUSH" for a split), the hand as small suit-colored card labels, and the net. Contract change: `GamePlugin` gains an optional `recap(summary)` that returns `{outcome, tone?, hands?}`. The shell draws the hands with the plugin's own `faceRenderer.label` and `tone`, so it never reads a game's faces. Without `recap`, a row shows only the net and the time.
+- Blackjack's `recap` lives in the shell (`apps/web/src/blackjack-recap.ts`) and is attached in the registry entry in `apps/web/src/games.ts`, the same way the shell already wraps Blackjack's sfx, so the Blackjack package is untouched. When Blackjack exports its own `plugin` (PR #33), it can move `recap` into it.
+- The lobby tile shows only the game's title. The "Chips" tag and the two-line rules description are gone, Balatro-style: the table teaches the game. `meta.description` stays in the contract for future use.
