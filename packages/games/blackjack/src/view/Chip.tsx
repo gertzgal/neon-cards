@@ -40,21 +40,25 @@ function chipPixels(color: string): string {
   return out
 }
 
-const PIXELS = Object.fromEntries(Object.entries(CHIP_COLOR).map(([v, c]) => [v, chipPixels(c)])) as Record<ChipValue, string>
+// An <img> rasterizes once and stays cached; inline SVG with hundreds of rects repaints on every frame it moves.
+const chipUrl = (color: string) =>
+  `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 15" shape-rendering="crispEdges">${chipPixels(color)}</svg>`)}`
+
+const SRC = Object.fromEntries(Object.entries(CHIP_COLOR).map(([v, c]) => [v, chipUrl(c)])) as Record<ChipValue, string>
 
 /** Same markup as <Chip>, for effect layers that animate outside React. */
 export function chipElement(value: ChipValue, className = ''): HTMLDivElement {
   const el = document.createElement('div')
   el.className = `bj-chip ${className}`
   el.style.setProperty('--cc', CHIP_COLOR[value])
-  el.innerHTML = `<svg viewBox="0 0 20 15" shape-rendering="crispEdges">${PIXELS[value]}</svg><span>${value}</span>`
+  el.innerHTML = `<img src="${SRC[value]}" alt="" draggable="false"><span>${value}</span>`
   return el
 }
 
 export function Chip({ value, className = '' }: { value: ChipValue; className?: string }) {
   return (
     <div className={`bj-chip ${className}`} style={{ '--cc': CHIP_COLOR[value] } as React.CSSProperties} data-chip={value}>
-      <svg viewBox="0 0 20 15" shapeRendering="crispEdges" dangerouslySetInnerHTML={{ __html: PIXELS[value] }} />
+      <img src={SRC[value]} alt="" draggable={false} />
       <span>{value}</span>
     </div>
   )

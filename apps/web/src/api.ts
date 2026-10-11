@@ -24,6 +24,8 @@ export interface SessionStart {
   seats: Seat[]
   events: GameEvent[]
   view: unknown
+  /** The `seq` the next human action must carry (the action log's length, CPU actions included). */
+  seq: number
   wallet?: number
 }
 
@@ -39,6 +41,8 @@ export interface SessionState {
 export interface ActionResult {
   events: GameEvent[]
   view: unknown
+  /** The `seq` the next human action must carry (the action log's length, CPU actions included). */
+  seq: number
   wallet?: number
 }
 
@@ -48,7 +52,7 @@ export interface Round {
   roundNo: number
   net: number
   summary: unknown
-  createdAt: string
+  createdAt: number
 }
 
 export const api = {

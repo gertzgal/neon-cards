@@ -18,6 +18,7 @@ import {
 import { center, chipBurst, flash, flyChip, hop, numberPop, pulse, shake, sleep, type Point } from './juice'
 import { layoutHand, useTableSize, type TableSize } from './layout'
 import { createSfx, type Sfx } from './sfx'
+import { useCardTilt } from './tilt'
 
 export interface BlackjackTableProps extends TableProps<BlackjackView, BlackjackAction> {
   sfx?: Sfx
@@ -54,6 +55,7 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
   const lastChips = useRef<ChipValue[]>([])
   const [memory] = useState(() => new Map<string, DOMRect>())
   const root = useRef<HTMLDivElement>(null)
+  useCardTilt(root)
   const stage = useRef<HTMLDivElement>(null)
   const fx = useRef<HTMLDivElement>(null)
   const burst = useRef<HTMLDivElement>(null)

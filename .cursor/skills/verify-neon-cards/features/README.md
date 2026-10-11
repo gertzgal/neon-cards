@@ -8,6 +8,7 @@ The maintained source for verifying what a Neon Cards player can see and do. Rea
 | Health API | [health-api.md](health-api.md) | live (Foundation) |
 | Wallet API and player identity | [wallet-api.md](wallet-api.md) | live (Worker API) |
 | UI kit gallery (table primitives, opponent rows) | [ui-gallery.md](ui-gallery.md) | live (UI kit) |
+| Sessions, actions, CPU seats, history API | [sessions-api.md](sessions-api.md) | live (Worker API) |
 | Blackjack round | | planned (Blackjack project) |
 | Game settings sheet (opponents, difficulty) | | planned (Shell PR) |
 
