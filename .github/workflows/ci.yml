@@ -136,12 +136,18 @@ jobs:
           hash: ${{ steps.task.outputs.hash }}
 
   e2e:
-    name: e2e
+    name: e2e (${{ matrix.project }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [phone, desktop]
     env:
       PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.playwright-browsers
-      E2E_WORKERS: "4"
+      # One browser and one wrangler per runner. Four on one machine missed the
+      # skip-timing and frame budgets (a tap measured 4.8–6.2s against 1.8s).
+      E2E_WORKERS: "1"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -157,7 +163,7 @@ jobs:
         if: steps.scope.outputs.e2e == 'true'
         uses: ./.github/actions/task-restore
         with:
-          task: e2e
+          task: e2e-${{ matrix.project }}
       - name: Skip cached e2e
         if: steps.scope.outputs.e2e == 'true' && steps.task.outputs.hit == 'true'
         run: 'echo "e2e skipped: input hash ${{ steps.task.outputs.hash }} already passed" | tee -a "$GITHUB_STEP_SUMMARY"'
@@ -182,18 +188,18 @@ jobs:
         if: steps.scope.outputs.e2e == 'true' && steps.task.outputs.hit != 'true'
         env:
           E2E_SKIP_BUILD: "1"
-        run: pnpm e2e
+        run: pnpm exec playwright test --project=${{ matrix.project }}
       - uses: ./.github/actions/task-save
         if: steps.scope.outputs.e2e == 'true' && steps.task.outputs.hit != 'true' && success()
         continue-on-error: true
         with:
-          task: e2e
+          task: e2e-${{ matrix.project }}
           hash: ${{ steps.task.outputs.hash }}
       - name: Upload Playwright artifacts
         if: always() && steps.scope.outputs.e2e == 'true' && steps.task.outputs.hit != 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: playwright
+          name: playwright-${{ matrix.project }}
           path: |
             test-results/
             playwright-report/

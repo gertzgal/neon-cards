@@ -51,7 +51,7 @@ Don't edit another project's paths. If you need a change there, make the smalles
 | `pnpm e2e` | Playwright on `phone` (390x844) and `desktop` (1440x900) against one `wrangler dev` and a fresh local D1 per worker |
 | `pnpm verify` | The verify skill's script: start, doctor, drive, screenshot, stop |
 
-CI (`.github/workflows/ci.yml`) runs four jobs in parallel on every PR and on `main`: `lint`, `typecheck`, `unit` (Vitest worker + unit projects), and `e2e` (Playwright, several workers, screenshots uploaded as the `playwright` artifact). A job whose inputs the PR did not touch is skipped, and a task whose input hash already passed is not run again. `deploy` runs after those four.
+CI (`.github/workflows/ci.yml`) runs `lint`, `typecheck`, and `unit` in parallel with `e2e`, which is a two-leg matrix (`phone` and `desktop`, one Playwright worker each, screenshots uploaded as `playwright-phone` and `playwright-desktop`). A job whose inputs the PR did not touch is skipped, and a task whose input hash already passed is not run again. `deploy` runs after those jobs. `gh pr checks` must show `lint`, `typecheck`, `unit`, and both e2e legs green.
 
 ## Conventions
 
