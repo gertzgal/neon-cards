@@ -1,10 +1,10 @@
 # Quality report
 
-Played on main `21c516cd7b7d3badd2d21ecf73887b96ff460d49` (2026-10-14), phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app).
+Played on main `34e37b56ee66c8932a3e9311e2190ae04c443255` (2026-10-14), phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app).
 
 Flip 7's rules (`26eb35f`) and Easy/Medium/Hard policies (`36ea24c`) are in `packages/games/flip7`, and the policy-test timeout fix is `21c516c`. The package exports `./rules` only. It is not in the worker registry or the web registry, and there is no table. A round cannot be played.
 
-The full animated blackjack rule pass (every named rig, wallet and history after each round) was on `c059d6a`. Music and the reshuffle cue were checked on `98de7bd`. Neither the Flip 7 commits nor those two change blackjack payouts. On `21c516c` both viewports played a natural, a bust, a split with double after split, history, and a mid-hand resume.
+The full animated blackjack rule pass (every named rig, wallet and history after each round) was on `c059d6a`. Music and the reshuffle cue were checked on `98de7bd`. On `21c516c` both viewports played a natural, a bust, a split with double after split, history, and a mid-hand resume. On `34e37b5` both viewports rechecked the dealer total, the tray between rounds, a six-card hand, and the blackjack burst. Payouts did not change in any of those commits.
 
 ## What was played
 
@@ -34,6 +34,10 @@ Wallet matched the round's net on the earlier rig pass too.
 - **B9** History and lobby. Rows are the outcome, the hand, the net, and a short time (`now`). No game name, no All/Blackjack filter, no rules blurb, no Chips tag. [#39](https://github.com/gertzgal/neon-cards/pull/39) is merged.
 - **B2** The synthwave loop starts on the first tap and follows Music, mute, and reload. [#37](https://github.com/gertzgal/neon-cards/pull/37) is merged.
 - **B7** A reshuffle is six card backs and a riffle, no label. The duplicate reshuffle PR #41 is closed.
+- **B4** On a phone the dealer total stays on screen as the dealer draws (badge right edge 382 on a 390-wide screen, through a total of 11). [#40](https://github.com/gertzgal/neon-cards/pull/40) is merged. The duplicate long-hand PR #42 is closed.
+- **B6** After a round the dealer row is already hidden (`visibility: hidden`, opacity 0) and its fade transition is `none`. No empty tray.
+- **B10** A six-card player hand stays inside the phone (left edge x 11, right edge 283) and its lowest corner sits above the buttons (681 vs 710). On desktop it stays inside too.
+- **B11** Across the blackjack burst, zero chips overlapped the player's cards on either viewport.
 
 ![Phone lobby](quality/phone-lobby.jpg)
 ![Desktop lobby](quality/desktop-lobby.jpg)
@@ -52,11 +56,7 @@ Left alone. Owners are finishing them.
 | --- | --- | --- |
 | B1 | New game mid-hand refunds the bet. A dealt 500 came back as $1,250 with no history row. | [#34](https://github.com/gertzgal/neon-cards/pull/34) |
 | B3, B8 | An all-in refill no longer sticks the HUD at $0 (the felt stayed empty at $1,250). The last bet is still dropped after a reload or a trip to History. | [#36](https://github.com/gertzgal/neon-cards/pull/36) |
-| B4 | On a phone, the dealer total runs off the right edge once the dealer has 3 or more cards (badge at x 343–417 on a 390-wide screen). | [#40](https://github.com/gertzgal/neon-cards/pull/40) |
 | B5 | A tap during the round does not skip it. | [#43](https://github.com/gertzgal/neon-cards/pull/43) |
-| B6 | After the cards sweep off, the empty dealer tray still has its own 250ms fade. | [#40](https://github.com/gertzgal/neon-cards/pull/40) |
-| B10 | On a phone, a six-card player hand crosses the left edge (card at x −3). | [#40](https://github.com/gertzgal/neon-cards/pull/40) |
-| B11 | On a phone the blackjack burst piles onto your own hand. | [#40](https://github.com/gertzgal/neon-cards/pull/40) |
 | B12 | The table pill subtracts a bet that is sitting on the felt. History and the lobby show the full wallet. The prototype does the same. | grouped with [#34](https://github.com/gertzgal/neon-cards/pull/34) |
 
 [#38](https://github.com/gertzgal/neon-cards/pull/38) is a second open PR for B8. [#46](https://github.com/gertzgal/neon-cards/pull/46) rolls B1 and B3 through B12 into one branch. Not touched.
@@ -86,7 +86,6 @@ Not touched.
 
 - [#33](https://github.com/gertzgal/neon-cards/pull/33) feat(blackjack): compose the table from UI kit primitives
 - [#38](https://github.com/gertzgal/neon-cards/pull/38) fix(blackjack): keep the auto-rebet after a reload or History (B8)
-- [#40](https://github.com/gertzgal/neon-cards/pull/40) fix(blackjack): long hands, the dealer tray, and the burst
 - [#43](https://github.com/gertzgal/neon-cards/pull/43) fix(blackjack): tap or key skips the round
 - [#46](https://github.com/gertzgal/neon-cards/pull/46) fix(blackjack): land playtest bugfixes B1 and B3 through B12
 
