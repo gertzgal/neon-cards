@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 type Step = { seq: number; view: { phase: string; shoe: { remaining: number; size: number } }; events: { type: string }[] }
 

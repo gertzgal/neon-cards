@@ -1,0 +1,24 @@
+name: Restore task result
+description: Restore a passing result for this task's input hash
+inputs:
+  task:
+    description: lint, typecheck, unit, or e2e
+    required: true
+outputs:
+  hit:
+    description: Whether this exact input hash already passed
+    value: ${{ steps.restore.outputs.cache-hit }}
+  hash:
+    description: Input hash
+    value: ${{ steps.hash.outputs.hash }}
+runs:
+  using: composite
+  steps:
+    - id: hash
+      shell: bash
+      run: echo "hash=$(bash .github/scripts/task-hash.sh '${{ inputs.task }}')" >> "$GITHUB_OUTPUT"
+    - uses: actions/cache/restore@v4
+      id: restore
+      with:
+        path: .ci-cache/${{ inputs.task }}
+        key: task-${{ inputs.task }}-${{ runner.os }}-${{ steps.hash.outputs.hash }}

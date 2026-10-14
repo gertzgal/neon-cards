@@ -1,10 +1,11 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 test('home shows the lobby, the wallet pill, and the HUD icons', async ({ page }, testInfo) => {
   await page.goto('/')
   await expect(page.getByTestId('app-title')).toHaveText('Neon Cards')
   await expect(page.getByTestId('game-blackjack')).toHaveText('Blackjack')
-  await expect(page.getByTestId('hud-bankroll')).toHaveAttribute('data-value', /^\d+$/)
+  await expect(page.getByTestId('hud-bankroll')).toHaveAttribute('data-value', '1250')
+  expect(await (await page.request.get('/api/wallet')).json()).toEqual({ balance: 1250 })
   await expect(page.getByTestId('hud-sound')).toBeVisible()
   await expect(page.getByTestId('hud-settings')).toBeVisible()
   await expect(page.getByTestId('neon-root')).toHaveCount(1)
@@ -52,6 +53,7 @@ test('the HUD sound icon mutes and unmutes, and remembers it', async ({ page }) 
 
 test('history opens from the HUD and goes back to the lobby', async ({ page }, testInfo) => {
   await page.goto('/')
+  expect((await page.request.get('/history')).status()).toBe(200)
   await page.getByTestId('nav-history').click()
   await expect(page).toHaveURL(/\/history$/)
   await expect(page.getByTestId('history-all')).toHaveCount(0)

@@ -1,0 +1,16 @@
+name: Save task result
+description: Remember that this task's input hash passed
+inputs:
+  task:
+    required: true
+  hash:
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: mkdir -p ".ci-cache/${{ inputs.task }}" && echo ok > ".ci-cache/${{ inputs.task }}/ok"
+    - uses: actions/cache/save@v4
+      with:
+        path: .ci-cache/${{ inputs.task }}
+        key: task-${{ inputs.task }}-${{ runner.os }}-${{ inputs.hash }}

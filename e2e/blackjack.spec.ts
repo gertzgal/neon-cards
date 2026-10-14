@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test'
+import { expect, test, type Locator, type Page, type TestInfo } from './fixtures'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -162,6 +162,11 @@ test('bust: hitting 16 into a king busts and loses the bet', async ({ page }, te
   await idle(table)
   await expectRound(table, { outcomes: 'lose', statuses: 'bust', net: -50 })
   await expect(bankroll(page)).toHaveAttribute('data-value', '1200')
+  await page.getByTestId('hud-settings').click()
+  await page.getByTestId('table-history').click()
+  await expect(page.getByTestId('history-outcome')).toHaveText('BUST')
+  await expect(page.getByTestId('history-hands')).toHaveText('10♥6♠K♣')
+  await expect(page.getByTestId('history-net')).toHaveText('-$50')
 })
 
 test('blackjack: a natural pays 3:2 with the big moment, and the burst stays off the dealer', async ({ page }, testInfo) => {
@@ -246,7 +251,11 @@ test('history: finished rounds show up with their net', async ({ page }) => {
   await deal(page, table)
   await act(page, table, 'stand')
   await expectRound(table, { n: 2, outcomes: 'win', net: 50 })
-  await page.goto('/history?game=blackjack')
+  await page.getByTestId('hud-settings').click()
+  await page.getByTestId('table-history').click()
+  await expect(page).toHaveURL(/\/history\?game=blackjack$/)
   await expect(page.getByTestId('history-round')).toHaveCount(2)
   await expect(page.getByTestId('history-net').first()).toHaveText('+$50')
+  await expect(page.getByTestId('history-outcome').first()).toHaveText('WIN')
+  await expect(page.getByTestId('history-hands').first()).toHaveText('10♥9♠')
 })

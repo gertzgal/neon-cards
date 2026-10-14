@@ -1,5 +1,9 @@
 name: CI
 
+permissions:
+  contents: read
+  actions: write
+
 on:
   pull_request:
   push:
@@ -10,45 +14,174 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  checks:
-    name: checks
+  lint:
+    name: lint
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - id: scope
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: bash .github/scripts/changed-paths.sh
+      - name: Skip unchanged inputs
+        if: steps.scope.outputs.lint != 'true'
+        run: echo "lint skipped: this PR did not change lint inputs" | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: ./.github/actions/setup
+        if: steps.scope.outputs.lint == 'true'
+      - id: task
+        if: steps.scope.outputs.lint == 'true'
+        uses: ./.github/actions/task-restore
         with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Typecheck
-        run: pnpm typecheck
+          task: lint
+      - name: Skip cached lint
+        if: steps.scope.outputs.lint == 'true' && steps.task.outputs.hit == 'true'
+        run: echo "lint skipped: input hash ${{ steps.task.outputs.hash }} already passed" | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Lint
+        if: steps.scope.outputs.lint == 'true' && steps.task.outputs.hit != 'true'
         run: pnpm lint
+      - uses: ./.github/actions/task-save
+        if: steps.scope.outputs.lint == 'true' && steps.task.outputs.hit != 'true' && success()
+        continue-on-error: true
+        with:
+          task: lint
+          hash: ${{ steps.task.outputs.hash }}
+
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - id: scope
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: bash .github/scripts/changed-paths.sh
+      - name: Skip unchanged inputs
+        if: steps.scope.outputs.typecheck != 'true'
+        run: echo "typecheck skipped: this PR did not change typecheck inputs" | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: ./.github/actions/setup
+        if: steps.scope.outputs.typecheck == 'true'
+      - id: task
+        if: steps.scope.outputs.typecheck == 'true'
+        uses: ./.github/actions/task-restore
+        with:
+          task: typecheck
+      - name: Skip cached typecheck
+        if: steps.scope.outputs.typecheck == 'true' && steps.task.outputs.hit == 'true'
+        run: echo "typecheck skipped: input hash ${{ steps.task.outputs.hash }} already passed" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Restore tsbuildinfo
+        if: steps.scope.outputs.typecheck == 'true' && steps.task.outputs.hit != 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            tsconfig.tsbuildinfo
+            apps/web/tsconfig.tsbuildinfo
+            apps/web/tsconfig.node.tsbuildinfo
+            apps/worker/tsconfig.tsbuildinfo
+            packages/engine/tsconfig.tsbuildinfo
+            packages/ui/tsconfig.tsbuildinfo
+            packages/games/blackjack/tsconfig.tsbuildinfo
+          key: tsbuild-${{ runner.os }}-${{ steps.task.outputs.hash }}
+          restore-keys: |
+            tsbuild-${{ runner.os }}-
+      - name: Typecheck
+        if: steps.scope.outputs.typecheck == 'true' && steps.task.outputs.hit != 'true'
+        run: pnpm typecheck
+      - uses: ./.github/actions/task-save
+        if: steps.scope.outputs.typecheck == 'true' && steps.task.outputs.hit != 'true' && success()
+        continue-on-error: true
+        with:
+          task: typecheck
+          hash: ${{ steps.task.outputs.hash }}
+
+  unit:
+    name: unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - id: scope
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: bash .github/scripts/changed-paths.sh
+      - name: Skip unchanged inputs
+        if: steps.scope.outputs.unit != 'true'
+        run: echo "unit skipped: this PR did not change unit inputs" | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: ./.github/actions/setup
+        if: steps.scope.outputs.unit == 'true'
+      - id: task
+        if: steps.scope.outputs.unit == 'true'
+        uses: ./.github/actions/task-restore
+        with:
+          task: unit
+      - name: Skip cached unit tests
+        if: steps.scope.outputs.unit == 'true' && steps.task.outputs.hit == 'true'
+        run: echo "unit skipped: input hash ${{ steps.task.outputs.hash }} already passed" | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Unit and API tests
+        if: steps.scope.outputs.unit == 'true' && steps.task.outputs.hit != 'true'
         run: pnpm test
-      - name: Build
-        run: pnpm build
+      - uses: ./.github/actions/task-save
+        if: steps.scope.outputs.unit == 'true' && steps.task.outputs.hit != 'true' && success()
+        continue-on-error: true
+        with:
+          task: unit
+          hash: ${{ steps.task.outputs.hash }}
 
   e2e:
     name: e2e
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.playwright-browsers
+      E2E_WORKERS: "4"
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - id: scope
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: bash .github/scripts/changed-paths.sh
+      - name: Skip unchanged inputs
+        if: steps.scope.outputs.e2e != 'true'
+        run: echo "e2e skipped: this PR did not change e2e inputs" | tee -a "$GITHUB_STEP_SUMMARY"
+      - id: task
+        if: steps.scope.outputs.e2e == 'true'
+        uses: ./.github/actions/task-restore
         with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Install Playwright Chromium
-        run: pnpm exec playwright install --with-deps chromium
-      - name: Playwright against wrangler dev + local D1
+          task: e2e
+      - name: Skip cached e2e
+        if: steps.scope.outputs.e2e == 'true' && steps.task.outputs.hit == 'true'
+        run: echo "e2e skipped: input hash ${{ steps.task.outputs.hash }} already passed" | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: ./.github/actions/setup
+        if: steps.scope.outputs.e2e == 'true' && steps.task.outputs.hit != 'true'
+        with:
+          playwright: "true"
+      - id: distkey
+        if: steps.scope.outputs.e2e == 'true' && steps.task.outputs.hit != 'true'
+        run: echo "hash=$(bash .github/scripts/task-hash.sh webdist)" >> "$GITHUB_OUTPUT"
+      - name: Restore Vite build
+        id: dist
+        if: steps.scope.outputs.e2e == 'true' && steps.task.outputs.hit != 'true'
+        uses: actions/cache@v4
+        with:
+          path: apps/web/dist
+          key: webdist-${{ runner.os }}-${{ steps.distkey.outputs.hash }}
+      - name: Build web app
+        if: steps.scope.outputs.e2e == 'true' && steps.task.outputs.hit != 'true' && steps.dist.outputs.cache-hit != 'true'
+        run: pnpm build
+      - name: Playwright against wrangler dev + one D1 per worker
+        if: steps.scope.outputs.e2e == 'true' && steps.task.outputs.hit != 'true'
+        env:
+          E2E_SKIP_BUILD: "1"
         run: pnpm e2e
+      - uses: ./.github/actions/task-save
+        if: steps.scope.outputs.e2e == 'true' && steps.task.outputs.hit != 'true' && success()
+        continue-on-error: true
+        with:
+          task: e2e
+          hash: ${{ steps.task.outputs.hash }}
       - name: Upload Playwright artifacts
-        if: always()
+        if: always() && steps.scope.outputs.e2e == 'true' && steps.task.outputs.hit != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: playwright

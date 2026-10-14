@@ -1,0 +1,76 @@
+name: Setup toolchain
+description: Node 22, pnpm, and a restored install (store, node_modules, workerd)
+inputs:
+  playwright:
+    description: Also restore Playwright Chromium
+    required: false
+    default: "false"
+outputs:
+  deps-hit:
+    description: Whether the install archive was restored
+    value: ${{ steps.deps.outputs.cache-hit }}
+  playwright-hit:
+    description: Whether Chromium was restored
+    value: ${{ steps.pw.outputs.cache-hit }}
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version-file: .nvmrc
+    - name: Restore pnpm store, node_modules, and workerd
+      id: deps
+      uses: actions/cache@v4
+      with:
+        path: |
+          .pnpm-store
+          node_modules
+          apps/web/node_modules
+          apps/worker/node_modules
+          packages/engine/node_modules
+          packages/ui/node_modules
+          packages/games/blackjack/node_modules
+          ~/.wrangler
+          ~/.config/.wrangler
+        key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+    - name: Install dependencies
+      id: install
+      if: steps.deps.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        start=$(date +%s%3N)
+        pnpm install --frozen-lockfile --store-dir "$GITHUB_WORKSPACE/.pnpm-store"
+        pnpm --filter @neon-cards/worker exec -- wrangler --version
+        echo "ms=$(( $(date +%s%3N) - start ))" >> "$GITHUB_OUTPUT"
+    - name: Restore Playwright Chromium
+      id: pw
+      if: inputs.playwright == 'true'
+      uses: actions/cache@v4
+      with:
+        path: .playwright-browsers
+        key: playwright-chromium-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+    - name: Install Playwright Chromium
+      id: pw-install
+      if: inputs.playwright == 'true'
+      shell: bash
+      env:
+        PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.playwright-browsers
+      run: |
+        start=$(date +%s%3N)
+        if [ "${{ steps.pw.outputs.cache-hit }}" = "true" ]; then
+          pnpm exec playwright install-deps chromium
+          echo "mode=deps-only" >> "$GITHUB_OUTPUT"
+        else
+          pnpm exec playwright install --with-deps chromium
+          echo "mode=full" >> "$GITHUB_OUTPUT"
+        fi
+        echo "ms=$(( $(date +%s%3N) - start ))" >> "$GITHUB_OUTPUT"
+    - name: Record cache timing
+      shell: bash
+      run: |
+        {
+          echo "### Cache"
+          echo "- deps hit: \`${{ steps.deps.outputs.cache-hit }}\` (cold install ${{ steps.install.outputs.ms }} ms)"
+          echo "- playwright hit: \`${{ steps.pw.outputs.cache-hit }}\` ${{ steps.pw-install.outputs.mode }} in ${{ steps.pw-install.outputs.ms }} ms"
+        } >> "$GITHUB_STEP_SUMMARY"

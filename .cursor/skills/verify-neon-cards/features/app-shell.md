@@ -31,7 +31,7 @@ Preconditions:
 - **Settings.** `scripts/verify.sh drive --click hud-settings --click setting-music-off --expect "settings=Settings"`. `report.json` lists `setting-music` with `data-value` `off`.
 - **History.** `scripts/verify.sh drive --path /history --expect history-list`.
 - **Not found.** `scripts/verify.sh drive --path /games/nope --expect "not-found=No game called"`.
-- **Blackjack round.** `scripts/verify.sh drive --path "/games/blackjack?rig=win" --click chip-25 --click action-deal --expect "hand-0-total=19"`. The full round (stand, settle, wallet, history, resume) is `e2e/shell-blackjack-round.spec.ts`.
+- **Blackjack round.** `scripts/verify.sh drive --path "/games/blackjack?rig=win" --click chip-25 --click action-deal --expect "hand-0-total=19"`. Every moment (stand, settle, wallet, history, resume) is `e2e/blackjack.spec.ts`.
 - Full flows (persistence across reload, back navigation) are in `e2e/shell.spec.ts`: `BASE_URL=http://localhost:$PORT pnpm exec playwright test e2e/shell.spec.ts`.
 
 ## Gotchas

@@ -1,4 +1,7 @@
 node_modules/
+.pnpm-store/
+.ci-cache/
+.playwright-browsers/
 dist/
 .wrangler/
 .dev.vars

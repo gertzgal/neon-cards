@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './fixtures'
 
 async function openRigged(page: Page, rig: string) {
   await page.goto(`/games/blackjack?rig=${rig}`)

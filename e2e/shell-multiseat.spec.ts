@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './fixtures'
 
 // The engine's test-only High Card game, served with DEV_RIG=1, proves the Flip 7 readiness path in the
 // real shell: pre-game settings -> config -> seatsFor, server-side CPU seats, paced playback, opponent rows.
@@ -94,10 +94,11 @@ test('a single easy opponent sits after the human', async ({ page }, testInfo) =
   await expect(page.getByTestId('seat-cpu-1').locator('[data-difficulty]')).toHaveAttribute('data-difficulty', 'easy')
   await expect(page.getByTestId('round-status')).toHaveText('YOUR TURN')
 
-  // The CPU acts after the human inside the same response; its thinking beat plays before the reveal.
+  // The CPU acts after the human inside the same response. The 500ms THINKING label is
+  // asserted on the three-seat test; here the observer only has to see cpu-1 act, because
+  // a single beat can finish before the next poll when four browsers share the machine.
   await recordActing(page)
   await page.getByTestId('action-swap').click()
-  await expect(page.getByTestId('seat-cpu-1-status')).toHaveText('THINKING')
   await expect(page.getByTestId('high-card-table')).toHaveAttribute('data-phase', 'settling')
   expect(await acted(page)).toContain('cpu-1')
   await page.screenshot({ path: testInfo.outputPath('heads-up.png') })
