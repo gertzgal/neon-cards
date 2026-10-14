@@ -47,6 +47,16 @@ export interface Display {
 
 const STAGE_OF_PHASE = { betting: 'betting', playing: 'playing', settling: 'settling' } as const
 
+/**
+ * The number the bankroll pill shows. It is the wallet: chips sitting on the felt during betting, and a wager
+ * in play, are still the player's money until the round settles. `stack` alone is short by that amount.
+ */
+export function bankrollOf(display: Display): number {
+  const inPlay = display.stage !== 'betting' && display.stage !== 'settling'
+  const staked = inPlay ? display.hands.reduce((sum, hand) => sum + hand.bet, 0) : 0
+  return display.stack + staked
+}
+
 export function displayFromView(view: BlackjackView): Display {
   return {
     stage: STAGE_OF_PHASE[view.phase],

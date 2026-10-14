@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { blackjack, parseFace, type BlackjackAction, type VisibleCard } from '../rules'
 import { newGame, play, rigged, SEAT } from '../rules/test-helpers'
-import { applyEvent, chipsFor, displayFromView, formatMoney, rebetChips, totalLabel } from './display'
+import { applyEvent, bankrollOf, chipsFor, displayFromView, formatMoney, rebetChips, totalLabel } from './display'
 
 const cards = (...codes: string[]): VisibleCard[] =>
   codes.map((c, i) => (c === '??' ? { id: 'hole', deck: 'standard52', face: null } : { id: String(i), deck: 'standard52', face: parseFace(c) }))
@@ -59,6 +59,26 @@ describe('totalLabel', () => {
     [[], ''],
   ])('%j reads %s', (codes, label) => {
     expect(totalLabel(cards(...codes))).toBe(label)
+  })
+})
+
+describe('bankrollOf', () => {
+  it('shows the wallet: felt chips and an in-play wager stay in the number until the round settles', () => {
+    const seated = displayFromView(blackjack.view(newGame().state, SEAT))
+    expect(bankrollOf(seated)).toBe(1250)
+
+    const dealt = rigged('win', 100)
+    const inPlay = displayFromView(dealt.view)
+    expect(inPlay.stack).toBe(1150)
+    expect(bankrollOf(inPlay)).toBe(1250)
+
+    const doubled = displayFromView(rigged('split', 50, ['split', 'double']).view)
+    expect(bankrollOf(doubled)).toBe(1250)
+
+    const settled = displayFromView(rigged('win', 100, ['stand']).view)
+    expect(settled.stage).toBe('settling')
+    expect(bankrollOf(settled)).toBe(settled.stack)
+    expect(bankrollOf(settled)).toBe(1350)
   })
 })
 
