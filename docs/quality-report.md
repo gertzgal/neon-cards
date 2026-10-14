@@ -1,10 +1,10 @@
 # Quality report
 
-Played on main `b62dcd394db222df6ed6a0a1f7f78da21788f02b` (2026-10-14), phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app).
+Played on main `b7a9acf14a6c315746e90e2ad0b6544c4cb7e466` (2026-10-14), phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app).
 
 Flip 7's rules (`26eb35f`) and Easy/Medium/Hard policies (`36ea24c`) are in `packages/games/flip7`, and the policy-test timeout fix is `21c516c`. The package exports `./rules` only. It is not in the worker registry or the web registry, and there is no table. A round cannot be played.
 
-The full animated blackjack rule pass (every named rig, wallet and history after each round) was on `c059d6a`. Music and the reshuffle cue were checked on `98de7bd`. On `21c516c` both viewports played a natural, a bust, a split with double after split, history, and a mid-hand resume. On `34e37b5` both viewports rechecked the dealer total, the tray between rounds, a six-card hand, and the blackjack burst. On `b62dcd3` both viewports rechecked a $50 rebet across reload and History, and an all-in that refills to $1,250 without staking it. Payouts did not change in any of those commits.
+The full animated blackjack rule pass (every named rig, wallet and history after each round) was on `c059d6a`. Music and the reshuffle cue were checked on `98de7bd`. On `21c516c` both viewports played a natural, a bust, a split with double after split, history, and a mid-hand resume. On `34e37b5` both viewports rechecked the dealer total, the tray between rounds, a six-card hand, and the blackjack burst. On `b62dcd3` both viewports rechecked a $50 rebet across reload and History, and an all-in that refills to $1,250 without staking it. On `b7a9acf` both viewports rechecked a tap and a key that skip the round, and a round left alone that still plays out. Payouts did not change in any of those commits.
 
 ## What was played
 
@@ -40,6 +40,7 @@ Wallet matched the round's net on the earlier rig pass too.
 - **B11** Across the blackjack burst, zero chips overlapped the player's cards on either viewport.
 - **B3** Going broke on an all-in refills to $1,250 and leaves the felt empty. Deal stays disabled. The wallet is 1,250. [#36](https://github.com/gertzgal/neon-cards/pull/36) is merged.
 - **B8** After a $50 win the rebet is on the felt (bet 50, HUD $1,250 of a $1,300 wallet). A reload and a trip to History both put that $50 back, and Deal is enabled. The duplicate rebet PR #38 is closed.
+- **B5** A tap during a $25 natural settles it in under a second (865 ms on phone, 869 ms on desktop). The wallet is 1,287, the net is +37, and the $25 is back on the felt. Left alone, the same round still plays out (3.9 s phone, 4.0 s desktop) for the same money. A tap mid-deal lands on the live hand (19, Stand enabled). Space during the dealer play settles a win (+25, wallet 1,275) about 610 ms after the key and does not deal another round. [#43](https://github.com/gertzgal/neon-cards/pull/43) is merged.
 
 ![Phone lobby](quality/phone-lobby.jpg)
 ![Desktop lobby](quality/desktop-lobby.jpg)
@@ -57,10 +58,9 @@ Left alone. Owners are finishing them.
 | Bug | What you still see | PR |
 | --- | --- | --- |
 | B1 | New game mid-hand refunds the bet. A dealt 500 came back as $1,250 with no history row. | [#34](https://github.com/gertzgal/neon-cards/pull/34) |
-| B5 | A tap during the round does not skip it. | [#43](https://github.com/gertzgal/neon-cards/pull/43) |
 | B12 | The table pill subtracts a bet that is sitting on the felt. History and the lobby show the full wallet. The prototype does the same. | grouped with [#34](https://github.com/gertzgal/neon-cards/pull/34) |
 
-[#46](https://github.com/gertzgal/neon-cards/pull/46) rolls B1, B3, B5, B8, and B12 into one branch. Not touched.
+[#46](https://github.com/gertzgal/neon-cards/pull/46) still covers the remaining bugs and was not touched.
 
 Nothing new failed that those PRs do not already cover, so this pass has no fix PR.
 
@@ -86,8 +86,7 @@ The playable table is still [#35](https://github.com/gertzgal/neon-cards/pull/35
 Not touched.
 
 - [#33](https://github.com/gertzgal/neon-cards/pull/33) feat(blackjack): compose the table from UI kit primitives
-- [#43](https://github.com/gertzgal/neon-cards/pull/43) fix(blackjack): tap or key skips the round animation (B5)
-- [#46](https://github.com/gertzgal/neon-cards/pull/46) fix(blackjack): land playtest bugfixes B1, B3, B5, B8, and B12
+- [#46](https://github.com/gertzgal/neon-cards/pull/46) fix(blackjack): forfeit abandoned hands and show the wallet
 
 ## Left
 
