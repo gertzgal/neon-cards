@@ -26,7 +26,7 @@
 
 /* dealer */
 .bj-dealer-row { display: flex; align-items: center; justify-content: center; gap: 16px; flex: none; margin-top: 4px; position: relative; z-index: 6; transition: opacity .25s ease-out, transform .25s cubic-bezier(.2, .9, .3, 1); }
-.bj-dealer-row[data-visible='false'] { opacity: 0; visibility: hidden; transform: translateY(-14px) scale(.94); pointer-events: none; transition: opacity .25s ease-out, transform .25s cubic-bezier(.2, .9, .3, 1), visibility 0s .25s; }
+.bj-dealer-row[data-visible='false'] { opacity: 0; visibility: hidden; transform: translateY(-14px) scale(.94); pointer-events: none; transition: none; }
 .bj-tray-wrap { position: relative; filter: drop-shadow(0 0 7px rgba(46, 242, 255, .55)); }
 .bj-tray-wrap::after { content: ''; position: absolute; left: 8%; right: 8%; bottom: -26px; height: 30px; background: radial-gradient(ellipse at 50% 0, rgba(46, 242, 255, .35), transparent 70%); filter: blur(4px); }
 .bj-tray { position: relative; padding: calc(var(--dh) * .14) calc(var(--dw) * .22) calc(var(--dh) * .16); }
@@ -60,7 +60,7 @@
 [data-fx='blackjack'] .bj-pot, [data-fx='blackjack'] .bj-pot-amt { visibility: hidden; }
 
 /* player */
-.bj-player-row { flex: none; display: flex; align-items: center; justify-content: center; gap: clamp(10px, 3vw, 26px); position: relative; z-index: 3; pointer-events: none; margin-bottom: calc(var(--ph) * -.2); min-height: var(--ph); }
+.bj-player-row { flex: none; display: flex; align-items: center; justify-content: center; gap: clamp(10px, 3vw, 26px); position: relative; z-index: 5; pointer-events: none; margin-bottom: calc(var(--ph) * -.2); min-height: var(--ph); }
 .bj-grp { display: flex; align-items: center; gap: clamp(8px, 2.4vw, 20px); transition: opacity .2s, filter .2s; position: relative; }
 .bj-grp[data-idle='true'] { opacity: .45; filter: saturate(.6); }
 .bj-hand { position: relative; flex: none; transition: width .2s; }
@@ -121,7 +121,7 @@
 .bj-chip.big { width: 62px; height: 46px; }
 .bj-chip.big span { font-size: 20px; }
 .bj-flychip { position: fixed; z-index: 20; pointer-events: none; left: 0; top: 0; }
-.bj-burst { position: absolute; inset: 0; pointer-events: none; z-index: 5; overflow: hidden; }
+.bj-burst { position: absolute; inset: 0; pointer-events: none; z-index: 4; overflow: hidden; }
 .bj-burst .bj-flychip { position: absolute; }
 
 /* fx */

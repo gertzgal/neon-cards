@@ -88,6 +88,22 @@ export function flyChip(layer: HTMLElement, value: ChipValue, from: Point, to: P
   return done(a).then(() => el.remove())
 }
 
+export interface Rect {
+  left: number
+  top: number
+  right: number
+  bottom: number
+}
+
+/** Half the size of a big flying chip, so a path can stay clear of a box by its center point. */
+const CHIP_HALF_W = 31
+const CHIP_HALF_H = 23
+
+/** A chip center that stays under the dealer row. `ceiling` is the row's bottom edge. */
+function underDealer(y: number, ceiling: number): number {
+  return Math.max(y, ceiling + CHIP_HALF_H + 4)
+}
+
 /**
  * The reshuffle beat: a short stack of card backs riffles apart, snaps back together, and flies up to
  * the shoe the deal comes from. No text; the riffle sound carries the rest. Reduced motion only fades it.
@@ -128,31 +144,64 @@ export function riffle(layer: HTMLElement, at: Point, w: number, h: number, shoe
 }
 
 /**
- * The blackjack chip fountain. Chips spray sideways and fall, staying in the lower part of the
- * table so they never cover the dealer's cards above `ceiling`.
+ * Keep a chip in the open band between the dealer row and the player's cards. Every point of a flight
+ * stays in that band, so the straight lines between them can't cross either hand.
  */
-export function chipBurst(layer: HTMLElement, origin: Point, ceiling: number, count = 24) {
+function inBand(p: Point, ceiling: number, avoid: Rect | null): Point {
+  // Extra room so a chip still clears the cards while it spins and scales up.
+  const roof = ceiling + CHIP_HALF_H + 44
+  const y = underDealer(p.y, ceiling)
+  if (!avoid) return { x: p.x, y }
+  const floor = avoid.top - CHIP_HALF_H - 44
+  if (floor < roof) {
+    const left = avoid.left - CHIP_HALF_W - 8
+    const right = avoid.right + CHIP_HALF_W + 8
+    return { x: p.x < (avoid.left + avoid.right) / 2 ? left : right, y: roof }
+  }
+  return { x: p.x, y: Math.min(Math.max(y, roof), floor) }
+}
+
+export interface BurstFlight {
+  start: Point
+  peak: Point
+  end: Point
+}
+
+/**
+ * One chip of the blackjack fountain: a wide spray, the prototype's shape, that never rises into the
+ * dealer row and never crosses the player's cards.
+ */
+export function burstFlight(origin: Point, ceiling: number, width: number, avoid: Rect | null, rand: () => number): BurstFlight {
+  const dist = 110 + rand() * Math.min(width * 0.45, 340)
+  const ang = rand() * Math.PI * 2
+  const start = inBand(origin, ceiling, avoid)
+  const peak = inBand({ x: origin.x + Math.cos(ang) * dist, y: origin.y + Math.sin(ang) * dist * 0.55 - 40 }, ceiling, avoid)
+  const end = inBand({ x: peak.x + Math.cos(ang) * 36, y: peak.y + 36 }, ceiling, avoid)
+  return { start, peak, end }
+}
+
+/**
+ * The blackjack chip fountain. Chips spray across the table from `origin` (the pot), staying under the
+ * dealer row (`ceiling` is its bottom edge) and off the player's cards (`avoid`).
+ */
+export function chipBurst(layer: HTMLElement, origin: Point, ceiling: number, count = 24, avoid: Rect | null = null) {
   const values: ChipValue[] = [5, 25, 100, 500]
   const n = reducedMotion() ? 8 : count
-  const width = layer.getBoundingClientRect().width
+  const width = layer.getBoundingClientRect().width || innerWidth
   const jobs: Promise<void>[] = []
   for (let i = 0; i < n; i++) {
     const el = chipElement(values[i % 4] ?? 5, 'bj-flychip big')
     layer.appendChild(el)
-    const side = i % 2 ? 1 : -1
-    const dx = side * (60 + Math.random() * Math.min(width * 0.42, 380))
-    const rise = Math.min(origin.y - ceiling - 40, 60 + Math.random() * 120)
-    const peakY = origin.y - Math.max(20, rise)
+    const flight = burstFlight(origin, ceiling, width, avoid, Math.random)
     const spin = () => (Math.random() - 0.5) * 640
-    const x0 = origin.x - 31
-    const y0 = origin.y - 23
+    const at = (p: Point, scale: number, rot: number) => `translate(${p.x - CHIP_HALF_W}px,${p.y - CHIP_HALF_H}px) scale(${scale}) rotate(${rot}deg)`
     const frames: Keyframe[] = [
-      { transform: `translate(${x0}px,${y0}px) scale(.4) rotate(0)`, opacity: 1, easing: 'cubic-bezier(.15,.8,.3,1)' },
-      { transform: `translate(${x0 + dx * 0.7}px,${peakY - 23}px) scale(1.1) rotate(${spin()}deg)`, opacity: 1, offset: 0.35, easing: 'ease-in' },
-      { transform: `translate(${x0 + dx}px,${y0 + 160}px) scale(1) rotate(${spin()}deg)`, opacity: 1, offset: 0.75, easing: 'ease-in' },
-      { transform: `translate(${x0 + dx * 1.08}px,${y0 + 320}px) scale(.9) rotate(${spin()}deg)`, opacity: 0 },
+      { transform: at(flight.start, 0.4, 0), opacity: 1, easing: 'cubic-bezier(.15,.8,.3,1)' },
+      { transform: at(flight.peak, 1.1, spin()), opacity: 1, offset: 0.4, easing: 'ease-in' },
+      { transform: at(flight.end, 1, spin()), opacity: 1, offset: 0.72, easing: 'ease-in' },
+      { transform: at(flight.end, 0.9, spin()), opacity: 0 },
     ]
-    jobs.push(done(el.animate(frames, { duration: 1100 + Math.random() * 300, delay: i * 12, fill: 'backwards' })).then(() => el.remove()))
+    jobs.push(done(el.animate(frames, { duration: 1200 + Math.random() * 300, delay: i * 12, fill: 'backwards' })).then(() => el.remove()))
   }
   return Promise.all(jobs).then(() => undefined)
 }

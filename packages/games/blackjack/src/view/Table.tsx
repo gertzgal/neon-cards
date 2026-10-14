@@ -119,7 +119,20 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
       void flash(goldFlash.current, 0.9, 900)
       void pulse(stage.current)
       const ceiling = q('.bj-dealer-row')?.getBoundingClientRect().bottom ?? 0
-      void chipBurst(burst.current ?? fxLayer(), center(q('.bj-player-row .bj-hand')), ceiling)
+      const cards = [...(root.current?.querySelectorAll<HTMLElement>('[data-testid^="hand-"][data-testid*="-card-"]') ?? [])]
+      const hand = cards.reduce<{ left: number; top: number; right: number; bottom: number } | null>((box, el) => {
+        const r = el.getBoundingClientRect()
+        if (!r.width) return box
+        return {
+          left: Math.min(box?.left ?? r.left, r.left),
+          top: Math.min(box?.top ?? r.top, r.top),
+          right: Math.max(box?.right ?? r.right, r.right),
+          bottom: Math.max(box?.bottom ?? r.bottom, r.bottom),
+        }
+      }, null)
+      // Spray from the gap between the two hands, not from on top of the player's cards.
+      const origin = hand ? { x: innerWidth / 2, y: (ceiling + hand.top) / 2 } : center(q('.bj-pot-area'))
+      void chipBurst(burst.current ?? fxLayer(), origin, ceiling, 24, hand)
       void numberPop(fxLayer(), at, '+' + formatMoney(e.net), {
         kind: 'blackjack',
         color: '#fffbe6',
@@ -187,15 +200,23 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
 
   async function sweep() {
     const slots = [...(root.current?.querySelectorAll<HTMLElement>('.bj-slot') ?? [])]
-    await Promise.all(
-      slots.map((el, i) =>
+    // The tray and its badge leave with the cards. The row's hidden state then applies with no transition of its own.
+    const tray = q('.bj-dealer-row')?.animate([{ opacity: 1 }, { opacity: 0, transform: 'translateY(-14px) scale(.94)' }], {
+      duration: 200 + Math.max(0, slots.length - 1) * 20,
+      easing: 'ease-out',
+      fill: 'forwards',
+    })
+    await Promise.all([
+      ...slots.map((el, i) =>
         el
           .animate([{ opacity: 1 }, { opacity: 0, translate: '0 -40px' }], { duration: 200, delay: i * 20, fill: 'forwards' })
           .finished.catch(() => undefined),
       ),
-    )
+      tray?.finished.catch(() => undefined),
+    ])
     memory.clear()
     commitDisplay(clearedTable(displayRef.current))
+    tray?.cancel()
     if (root.current) delete root.current.dataset['fx']
   }
 
@@ -425,7 +446,7 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
 
         <div className="bj-burst" ref={burst} />
 
-        <div className="bj-dealer-row" data-visible={display.dealer.length > 0}>
+        <div className="bj-dealer-row" data-testid="dealer-row" data-visible={display.dealer.length > 0}>
           <Badge kind="dealer" text="" spacer />
           <div className="bj-tray-wrap">
             <div className="bj-tray">
