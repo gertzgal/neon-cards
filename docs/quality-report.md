@@ -1,6 +1,6 @@
 # Quality report
 
-Played on main `b7a9acf14a6c315746e90e2ad0b6544c4cb7e466` (2026-10-14), phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app).
+Played on main `b7a9acf14a6c315746e90e2ad0b6544c4cb7e466` (2026-10-14), phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app). Main's tip after that playtest is `503c4ccef564d081dd629375107136fe15f482fc`, the Workers Builds deploy. Those commits do not change the table.
 
 Flip 7's rules (`26eb35f`) and Easy/Medium/Hard policies (`36ea24c`) are in `packages/games/flip7`, and the policy-test timeout fix is `21c516c`. The package exports `./rules` only. It is not in the worker registry or the web registry, and there is no table. A round cannot be played.
 
