@@ -20,13 +20,15 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - id: scope
         env:
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: bash .github/scripts/changed-paths.sh
       - name: Skip unchanged inputs
         if: steps.scope.outputs.lint != 'true'
-        run: echo "lint skipped: this PR did not change lint inputs" | tee -a "$GITHUB_STEP_SUMMARY"
+        run: 'echo "lint skipped: this PR did not change lint inputs" | tee -a "$GITHUB_STEP_SUMMARY"'
       - uses: ./.github/actions/setup
         if: steps.scope.outputs.lint == 'true'
       - id: task
@@ -36,7 +38,7 @@ jobs:
           task: lint
       - name: Skip cached lint
         if: steps.scope.outputs.lint == 'true' && steps.task.outputs.hit == 'true'
-        run: echo "lint skipped: input hash ${{ steps.task.outputs.hash }} already passed" | tee -a "$GITHUB_STEP_SUMMARY"
+        run: 'echo "lint skipped: input hash ${{ steps.task.outputs.hash }} already passed" | tee -a "$GITHUB_STEP_SUMMARY"'
       - name: Lint
         if: steps.scope.outputs.lint == 'true' && steps.task.outputs.hit != 'true'
         run: pnpm lint
@@ -53,13 +55,15 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - id: scope
         env:
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: bash .github/scripts/changed-paths.sh
       - name: Skip unchanged inputs
         if: steps.scope.outputs.typecheck != 'true'
-        run: echo "typecheck skipped: this PR did not change typecheck inputs" | tee -a "$GITHUB_STEP_SUMMARY"
+        run: 'echo "typecheck skipped: this PR did not change typecheck inputs" | tee -a "$GITHUB_STEP_SUMMARY"'
       - uses: ./.github/actions/setup
         if: steps.scope.outputs.typecheck == 'true'
       - id: task
@@ -69,7 +73,7 @@ jobs:
           task: typecheck
       - name: Skip cached typecheck
         if: steps.scope.outputs.typecheck == 'true' && steps.task.outputs.hit == 'true'
-        run: echo "typecheck skipped: input hash ${{ steps.task.outputs.hash }} already passed" | tee -a "$GITHUB_STEP_SUMMARY"
+        run: 'echo "typecheck skipped: input hash ${{ steps.task.outputs.hash }} already passed" | tee -a "$GITHUB_STEP_SUMMARY"'
       - name: Restore tsbuildinfo
         if: steps.scope.outputs.typecheck == 'true' && steps.task.outputs.hit != 'true'
         uses: actions/cache@v4
@@ -101,13 +105,15 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - id: scope
         env:
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: bash .github/scripts/changed-paths.sh
       - name: Skip unchanged inputs
         if: steps.scope.outputs.unit != 'true'
-        run: echo "unit skipped: this PR did not change unit inputs" | tee -a "$GITHUB_STEP_SUMMARY"
+        run: 'echo "unit skipped: this PR did not change unit inputs" | tee -a "$GITHUB_STEP_SUMMARY"'
       - uses: ./.github/actions/setup
         if: steps.scope.outputs.unit == 'true'
       - id: task
@@ -117,7 +123,7 @@ jobs:
           task: unit
       - name: Skip cached unit tests
         if: steps.scope.outputs.unit == 'true' && steps.task.outputs.hit == 'true'
-        run: echo "unit skipped: input hash ${{ steps.task.outputs.hash }} already passed" | tee -a "$GITHUB_STEP_SUMMARY"
+        run: 'echo "unit skipped: input hash ${{ steps.task.outputs.hash }} already passed" | tee -a "$GITHUB_STEP_SUMMARY"'
       - name: Unit and API tests
         if: steps.scope.outputs.unit == 'true' && steps.task.outputs.hit != 'true'
         run: pnpm test
@@ -137,13 +143,15 @@ jobs:
       E2E_WORKERS: "4"
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - id: scope
         env:
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: bash .github/scripts/changed-paths.sh
       - name: Skip unchanged inputs
         if: steps.scope.outputs.e2e != 'true'
-        run: echo "e2e skipped: this PR did not change e2e inputs" | tee -a "$GITHUB_STEP_SUMMARY"
+        run: 'echo "e2e skipped: this PR did not change e2e inputs" | tee -a "$GITHUB_STEP_SUMMARY"'
       - id: task
         if: steps.scope.outputs.e2e == 'true'
         uses: ./.github/actions/task-restore
@@ -151,7 +159,7 @@ jobs:
           task: e2e
       - name: Skip cached e2e
         if: steps.scope.outputs.e2e == 'true' && steps.task.outputs.hit == 'true'
-        run: echo "e2e skipped: input hash ${{ steps.task.outputs.hash }} already passed" | tee -a "$GITHUB_STEP_SUMMARY"
+        run: 'echo "e2e skipped: input hash ${{ steps.task.outputs.hash }} already passed" | tee -a "$GITHUB_STEP_SUMMARY"'
       - uses: ./.github/actions/setup
         if: steps.scope.outputs.e2e == 'true' && steps.task.outputs.hit != 'true'
         with:

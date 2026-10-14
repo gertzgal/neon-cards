@@ -22,7 +22,7 @@ Agents can push with git but may not have a GitHub merge API (the `gh` CLI can b
 ```sh
 git fetch origin main
 git merge-base --is-ancestor origin/main HEAD || { git rebase origin/main && git push; }  # then wait for green again
-gh pr checks <pr>                     # both `checks` and `e2e` must pass on this exact head
+gh pr checks <pr>                     # `lint`, `typecheck`, `unit`, and `e2e` must pass on this exact head
 git push origin HEAD:main             # fast-forward only; GitHub marks the PR merged
 ```
 

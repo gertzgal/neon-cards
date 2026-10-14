@@ -18,7 +18,13 @@ if [[ "${GITHUB_EVENT_NAME:-}" != "pull_request" ]]; then
 fi
 
 base="${PR_BASE_SHA:?}"
-git fetch --no-tags --depth=1 origin "$base"
+if ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+  git fetch --no-tags --depth=1 origin "$base" || {
+    echo "could not fetch $base; running every task" >&2
+    run_all
+    exit 0
+  }
+fi
 files=$(git diff --name-only "$base" HEAD || true)
 if [[ -z "$files" ]]; then
   run_all
