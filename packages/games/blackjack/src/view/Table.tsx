@@ -7,6 +7,7 @@ import { Chip } from './Chip'
 import type { EventBatch, TableProps } from './contract'
 import {
   applyEvent,
+  bankrollOf,
   CHIP_VALUES,
   chipsFor,
   displayFromView,
@@ -114,8 +115,10 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
   const betting = display.stage === 'betting'
   const bet = sum(potChips)
   const available = display.stack - (betting ? bet : 0)
+  // The pill matches the wallet. Felt chips and an in-play wager stay in the number until the round settles.
+  const bankroll = bankrollOf(display)
 
-  useCountUp(available, setShownStack)
+  useCountUp(bankroll, setShownStack)
 
   const flyChips = (amount: number, from: Point, to: Point, stagger = 40) =>
     Promise.all(chipsFor(amount).slice(0, 12).map((v, i) => flyChip(fxLayer(), v, from, to, { delay: i * stagger })))
@@ -506,7 +509,7 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
     >
       <div className="bj-stage" ref={stage}>
         <div className="bj-top">
-          <div className="bj-bank" data-testid="hud-bankroll" data-value={available}>
+          <div className="bj-bank" data-testid="hud-bankroll" data-value={bankroll}>
             {formatMoney(shownStack)}
           </div>
           <div className="bj-icons">{hudIcons}</div>

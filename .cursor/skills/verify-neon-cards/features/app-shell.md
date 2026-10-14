@@ -39,6 +39,6 @@ Preconditions:
 - A pointer-down anywhere or any key while the Blackjack table plays a batch (`data-busy="true"` after the response arrives) skips to the end of that batch. To screenshot a mid-round moment, don't click or press keys until it's on screen.
 - A `?rig=` URL never resumes; open `/games/<id>` without it to test resume.
 
-- `hud-bankroll` only appears once `GET /api/wallet` answers. Wait for it rather than asserting on first paint.
+- `hud-bankroll` only appears once `GET /api/wallet` answers. Wait for it rather than asserting on first paint. On the blackjack table it shows the same balance as the lobby and as `GET /api/wallet`: chips on the felt and a wager in play stay inside that number until the round settles.
 - Settings live in localStorage under `neon-cards:settings`; a fresh Playwright context starts from defaults.
 - A stale stack serves an old bundle. Doctor catches it; restart after web changes.

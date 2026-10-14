@@ -57,6 +57,29 @@ test('New game mid-hand forfeits the dealt bet and records it as a lost round', 
   await expectWalletAndHistory(page, '$1,225', '-$25')
 })
 
+test('the table bankroll matches the wallet on the felt, mid-hand, and in history', async ({ page }) => {
+  await openRigged(page, 'win')
+  await page.getByTestId('chip-100').click()
+  await expect(page.getByTestId('bet-amount')).toHaveAttribute('data-value', '100')
+  await expect(page.getByTestId('hud-bankroll')).toHaveAttribute('data-value', '1250')
+
+  await page.getByTestId('action-deal').click()
+  await expect(page.getByTestId('blackjack-table')).toHaveAttribute('data-stage', 'playing')
+  await expect(page.getByTestId('blackjack-table')).toHaveAttribute('data-busy', 'false')
+  await expect(page.getByTestId('hud-bankroll')).toHaveAttribute('data-value', '1250')
+  expect(await (await page.request.get('/api/wallet')).json()).toMatchObject({ balance: 1250 })
+
+  await page.getByTestId('action-stand').click()
+  await expect(page.getByTestId('blackjack-table')).toHaveAttribute('data-busy', 'false')
+  await expect(page.getByTestId('hud-bankroll')).toHaveAttribute('data-value', '1350')
+  await expect(page.getByTestId('bet-amount')).toHaveAttribute('data-value', '100')
+
+  await page.getByTestId('hud-settings').click()
+  await page.getByTestId('table-history').click()
+  await expect(page.getByTestId('hud-bankroll')).toHaveText('$1,350')
+  expect(await (await page.request.get('/api/wallet')).json()).toMatchObject({ balance: 1350 })
+})
+
 test('a lost round after a hit busts, and the session resumes when reopened', async ({ page }, testInfo) => {
   await openRigged(page, 'bust')
   await bet25AndDeal(page)

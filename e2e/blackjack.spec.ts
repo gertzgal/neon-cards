@@ -66,7 +66,7 @@ test('betting: chips build the bet, clear empties it, and the bankroll follows',
 
   await placeBet(page, 5, 25, 100)
   await expect(page.getByTestId('bet-amount')).toHaveAttribute('data-value', '130')
-  await expect(bankroll(page)).toHaveAttribute('data-value', '1120')
+  await expect(bankroll(page)).toHaveAttribute('data-value', '1250')
   await page.getByTestId('action-clear').click()
   await expect(page.getByTestId('bet-amount')).toHaveAttribute('data-value', '0')
   await expect(bankroll(page)).toHaveAttribute('data-value', '1250')
@@ -95,7 +95,7 @@ test('deal and stand: a 19 beats the dealer 17 and pays 1:1', async ({ page }, t
   await shot(page, testInfo, '03-stand-win')
   await idle(table)
   await expectRound(table, { outcomes: 'win', net: 50 })
-  await expect(bankroll(page)).toHaveAttribute('data-value', '1250')
+  await expect(bankroll(page)).toHaveAttribute('data-value', '1300')
   await expect(page.getByTestId('bet-amount')).toHaveAttribute('data-value', '50')
 })
 
@@ -110,7 +110,7 @@ test('hit: 11 draws a ten to 21, stands itself, and wins', async ({ page }, test
   await shot(page, testInfo, '04-hit')
   await idle(table)
   await expectRound(table, { outcomes: 'win', net: 50 })
-  await expect(bankroll(page)).toHaveAttribute('data-value', '1250')
+  await expect(bankroll(page)).toHaveAttribute('data-value', '1300')
 })
 
 test('double: the bet doubles, one card comes, and it pays on the doubled bet', async ({ page }, testInfo) => {
@@ -125,7 +125,7 @@ test('double: the bet doubles, one card comes, and it pays on the doubled bet', 
   await shot(page, testInfo, '05-double')
   await idle(table)
   await expectRound(table, { outcomes: 'win', net: 100 })
-  await expect(bankroll(page)).toHaveAttribute('data-value', '1300')
+  await expect(bankroll(page)).toHaveAttribute('data-value', '1350')
 })
 
 test('split: two eights become two hands, double after split, both win', async ({ page }, testInfo) => {
@@ -147,7 +147,7 @@ test('split: two eights become two hands, double after split, both win', async (
   await page.getByTestId('action-stand').click()
   await idle(table)
   await expectRound(table, { outcomes: 'win,win', net: 150 })
-  await expect(bankroll(page)).toHaveAttribute('data-value', '1350')
+  await expect(bankroll(page)).toHaveAttribute('data-value', '1400')
 })
 
 test('bust: hitting 16 into a king busts and loses the bet', async ({ page }, testInfo) => {
@@ -161,7 +161,7 @@ test('bust: hitting 16 into a king busts and loses the bet', async ({ page }, te
   await shot(page, testInfo, '07-bust')
   await idle(table)
   await expectRound(table, { outcomes: 'lose', statuses: 'bust', net: -50 })
-  await expect(bankroll(page)).toHaveAttribute('data-value', '1150')
+  await expect(bankroll(page)).toHaveAttribute('data-value', '1200')
 })
 
 test('blackjack: a natural pays 3:2 with the big moment, and the burst stays off the dealer', async ({ page }, testInfo) => {
@@ -179,7 +179,7 @@ test('blackjack: a natural pays 3:2 with the big moment, and the burst stays off
   for (const top of chips) expect(top).toBeGreaterThanOrEqual((dealer?.y ?? 0) + (dealer?.height ?? 0) - 1)
   await idle(table)
   await expectRound(table, { outcomes: 'blackjack', statuses: 'blackjack', net: 75 })
-  await expect(bankroll(page)).toHaveAttribute('data-value', '1275')
+  await expect(bankroll(page)).toHaveAttribute('data-value', '1325')
 })
 
 test('push: 18 against 18 returns the bet', async ({ page }, testInfo) => {
@@ -191,7 +191,7 @@ test('push: 18 against 18 returns the bet', async ({ page }, testInfo) => {
   await shot(page, testInfo, '09-push')
   await idle(table)
   await expectRound(table, { outcomes: 'push', net: 0 })
-  await expect(bankroll(page)).toHaveAttribute('data-value', '1200')
+  await expect(bankroll(page)).toHaveAttribute('data-value', '1250')
 })
 
 test('dealer blackjack: the peek ends the round at once and takes only the bet', async ({ page }, testInfo) => {
@@ -203,13 +203,13 @@ test('dealer blackjack: the peek ends the round at once and takes only the bet',
   await shot(page, testInfo, '10-dealer-blackjack')
   await idle(table)
   await expectRound(table, { outcomes: 'lose', net: -50, dealer: 'blackjack' })
-  await expect(bankroll(page)).toHaveAttribute('data-value', '1150')
+  await expect(bankroll(page)).toHaveAttribute('data-value', '1200')
 })
 
 test('refill: losing the whole bankroll refills it to 1,250 and the wallet agrees', async ({ page }, testInfo) => {
   const table = await openTable(page, 'lose')
   await placeBet(page, 500, 500, 100, 100, 25, 25)
-  await expect(bankroll(page)).toHaveAttribute('data-value', '0')
+  await expect(bankroll(page)).toHaveAttribute('data-value', '1250')
   await deal(page, table)
   await page.getByTestId('action-stand').click()
   await expect(page.getByTestId('result-pop').filter({ hasText: '+$1,250' })).toBeVisible({ timeout: 10_000 })
@@ -231,9 +231,9 @@ test('resume: a reload mid-hand restores the same hand from the server and plays
   await expect(table).toHaveAttribute('data-stage', 'playing')
   expect(await cardFaces(page.getByTestId('hand-0'))).toEqual(['10H', '9S'])
   expect(await cardFaces(page.getByTestId('dealer-hand'))).toEqual(['9C', 'hidden'])
-  await expect(bankroll(page)).toHaveAttribute('data-value', '1200')
-  await act(page, table, 'stand')
   await expect(bankroll(page)).toHaveAttribute('data-value', '1250')
+  await act(page, table, 'stand')
+  await expect(bankroll(page)).toHaveAttribute('data-value', '1300')
   const wallet = (await (await page.request.get('/api/wallet')).json()) as { balance: number }
   expect(wallet.balance).toBe(1300)
 })
