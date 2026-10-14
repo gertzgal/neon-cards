@@ -32,6 +32,12 @@ cd apps/worker && pnpm exec wrangler d1 migrations apply DB --remote && pnpm exe
 
 `apps/worker/wrangler.toml` points at the production D1 database `neon-cards`. Local dev (`pnpm dev`, `pnpm start`, `wrangler dev --local`) uses a local D1 and does not touch that database. Production never sets `DEV_RIG`.
 
+A pull-request preview uses the same remote database. `wrangler preview` does not inherit D1, so `[[previews.d1_databases]]` binds it. The preview deploy command migrates, then uploads:
+
+```sh
+cd apps/worker && pnpm exec wrangler d1 migrations apply DB --remote && pnpm exec wrangler preview
+```
+
 The same steps, for a manual deploy from a logged-in machine:
 
 ```sh

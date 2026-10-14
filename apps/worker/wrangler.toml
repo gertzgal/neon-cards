@@ -14,5 +14,11 @@ database_name = "neon-cards"
 database_id = "dafeddad-28c4-4a44-b8c5-ae91530aa082"
 migrations_dir = "migrations"
 
-# Required by `wrangler preview`. Empty so PR previews do not inherit the production D1 binding.
+# `wrangler preview` does not inherit D1. Bind the same remote database so a preview URL can serve /api.
 [previews]
+
+[[previews.d1_databases]]
+binding = "DB"
+database_name = "neon-cards"
+database_id = "dafeddad-28c4-4a44-b8c5-ae91530aa082"
+migrations_dir = "migrations"
