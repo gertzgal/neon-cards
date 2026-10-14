@@ -1,8 +1,10 @@
 # Quality report
 
-Played on main `98de7bdfe869c62982a58a6d327bf7454653ad35` (2026-10-14), phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app). Flip 7 is not registered on main, so it was not played.
+Played on main `21c516cd7b7d3badd2d21ecf73887b96ff460d49` (2026-10-14), phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app).
 
-The full animated rule pass (every named rig, wallet and history after each round) was on the parent `c059d6a`, before the music and reshuffle commits. Those two commits do not change payouts. History and the lobby were judged again on `98de7bd`.
+Flip 7's rules (`26eb35f`) and Easy/Medium/Hard policies (`36ea24c`) are in `packages/games/flip7`, and the policy-test timeout fix is `21c516c`. The package exports `./rules` only. It is not in the worker registry or the web registry, and there is no table. A round cannot be played.
+
+The full animated blackjack rule pass (every named rig, wallet and history after each round) was on `c059d6a`. Music and the reshuffle cue were checked on `98de7bd`. Neither the Flip 7 commits nor those two change blackjack payouts. On `21c516c` both viewports played a natural, a bust, a split with double after split, history, and a mid-hand resume.
 
 ## What was played
 
@@ -21,7 +23,9 @@ Both viewports, fresh player at $1,250 unless noted:
 - Music: nothing plays before the first tap. After it, the loop runs. Music off, a reload, and mute each schedule 0 oscillators. Music on and unmute bring it back. Same on the table, not only the lobby.
 - Reshuffle: the shoe was played down under 25% (74 of 312), then DEAL. Six card backs riffle, with no text, and the next hand deals from a rebuilt shoe (308 of 312).
 
-Wallet matched the round's net on every scripted path above. No console errors on the `98de7bd` pass.
+On `21c516c`, a $25 natural is wallet 1,287 (+37). Resume from `/games/blackjack` (no `?rig=`) brings the same two cards back. The bust after that is 1,262. Split 8s with a double, against a dealer bust, is 1,337, and history reads `WIN · WIN` / `+$75`, then `BUST` / `-$25`, then `BLACKJACK` / `+$37`. No console errors.
+
+Wallet matched the round's net on the earlier rig pass too.
 
 ## Already on main
 
@@ -51,21 +55,30 @@ Left alone. Owners are finishing them.
 | B4 | On a phone, the dealer total runs off the right edge once the dealer has 3 or more cards (badge at x 343–417 on a 390-wide screen). | [#40](https://github.com/gertzgal/neon-cards/pull/40) |
 | B5 | A tap during the round does not skip it. | [#43](https://github.com/gertzgal/neon-cards/pull/43) |
 | B6 | After the cards sweep off, the empty dealer tray still has its own 250ms fade. | [#40](https://github.com/gertzgal/neon-cards/pull/40) |
-| B10 | On a phone, a six-card player hand crosses the left edge (card at x −3). | [#42](https://github.com/gertzgal/neon-cards/pull/42) |
+| B10 | On a phone, a six-card player hand crosses the left edge (card at x −3). | [#40](https://github.com/gertzgal/neon-cards/pull/40) |
 | B11 | On a phone the blackjack burst piles onto your own hand. | [#40](https://github.com/gertzgal/neon-cards/pull/40) |
 | B12 | The table pill subtracts a bet that is sitting on the felt. History and the lobby show the full wallet. The prototype does the same. | grouped with [#34](https://github.com/gertzgal/neon-cards/pull/34) |
 
-[#38](https://github.com/gertzgal/neon-cards/pull/38) is a second open PR for B8. Not touched.
+[#38](https://github.com/gertzgal/neon-cards/pull/38) is a second open PR for B8. [#46](https://github.com/gertzgal/neon-cards/pull/46) rolls B1 and B3 through B12 into one branch. Not touched.
 
 Nothing new failed that those PRs do not already cover, so this pass has no fix PR.
 
 ## Flip 7
 
-Not on main (`packages/games` is blackjack only). Not played.
+Rules and policies are on main. The table is not, so the end-to-end playtest did not start.
 
-- [#28](https://github.com/gertzgal/neon-cards/pull/28) feat(flip7): pure rules
-- [#31](https://github.com/gertzgal/neon-cards/pull/31) feat(flip7): Easy, Medium, and Hard CPU policies
-- [#35](https://github.com/gertzgal/neon-cards/pull/35) feat(flip7): playable neon table
+Checked on both viewports:
+
+- The lobby lists Blackjack only. No Flip 7 tile.
+- `POST /api/sessions` with `gameId: "flip7"` returns 404 `unknown game "flip7"`.
+- `/games/flip7` is the not-found screen: `No game called "flip7"`.
+
+The rules say it is a score game (first to 200, never flip a repeat), so it would not move the wallet. Settings, once a table exists, are opponents 1–3 and Easy / Medium / Hard. Default is 2 opponents at Medium.
+
+![Phone, no Flip 7](quality/phone-flip7.jpg)
+![Desktop, no Flip 7](quality/desktop-flip7.jpg)
+
+The playable table is still [#35](https://github.com/gertzgal/neon-cards/pull/35). [#28](https://github.com/gertzgal/neon-cards/pull/28) and [#31](https://github.com/gertzgal/neon-cards/pull/31) are merged.
 
 ## Other open Blackjack PRs
 
@@ -73,10 +86,10 @@ Not touched.
 
 - [#33](https://github.com/gertzgal/neon-cards/pull/33) feat(blackjack): compose the table from UI kit primitives
 - [#38](https://github.com/gertzgal/neon-cards/pull/38) fix(blackjack): keep the auto-rebet after a reload or History (B8)
-- [#40](https://github.com/gertzgal/neon-cards/pull/40) fix(blackjack): phone dealer row and total badge
-- [#42](https://github.com/gertzgal/neon-cards/pull/42) fix(blackjack): long player hands stay on screen
+- [#40](https://github.com/gertzgal/neon-cards/pull/40) fix(blackjack): long hands, the dealer tray, and the burst
 - [#43](https://github.com/gertzgal/neon-cards/pull/43) fix(blackjack): tap or key skips the round
+- [#46](https://github.com/gertzgal/neon-cards/pull/46) fix(blackjack): land playtest bugfixes B1 and B3 through B12
 
 ## Left
 
-Land the open PRs above. Then play Flip 7 the same way, on phone and desktop, once #35 is on main.
+Land the open blackjack PRs above. Play Flip 7 for real, on phone and desktop (full rounds, scoring, history, resume), once #35 is on main. Score games do not use the wallet.
