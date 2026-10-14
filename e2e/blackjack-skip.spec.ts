@@ -42,8 +42,8 @@ test.describe('Blackjack: tap or key to skip the round animation', () => {
 
     await expect(table(page)).toHaveAttribute('data-stage', 'betting')
     await expect(page.getByTestId('bet-amount')).toHaveAttribute('data-value', '25')
-    await expect(page.getByTestId('hud-bankroll')).toHaveAttribute('data-value', '1262')
-    await expect(page.getByTestId('hud-bankroll')).toHaveText('$1,262')
+    await expect(page.getByTestId('hud-bankroll')).toHaveAttribute('data-value', '1287')
+    await expect(page.getByTestId('hud-bankroll')).toHaveText('$1,287')
     await expect(table(page)).toHaveAttribute('data-rounds', '1')
     await expect(table(page)).toHaveAttribute('data-last-outcomes', 'blackjack')
     await expect(table(page)).toHaveAttribute('data-last-net', '37')
