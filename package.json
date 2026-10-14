@@ -17,6 +17,9 @@
     "verify": ".cursor/skills/verify-neon-cards/scripts/verify.sh",
     "deploy": "scripts/deploy.sh"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "workerd", "sharp"]
+  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.64.0",
