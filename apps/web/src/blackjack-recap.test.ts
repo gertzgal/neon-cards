@@ -45,6 +45,14 @@ describe('blackjackRecap', () => {
     expect(recap?.tone).toBeUndefined()
   })
 
+  it('names a forfeited in-play hand and keeps its cards', () => {
+    const view = summary([hand(['10H', '6S'], { status: 'active' })])
+    expect(blackjackRecap({ ...view, forfeit: true })).toEqual({
+      outcome: 'FORFEIT',
+      hands: [[card('10H', 0), card('6S', 1)]],
+    })
+  })
+
   it('returns null without a settled view', () => {
     expect(blackjackRecap({ settlements: [] })).toBeNull()
     expect(blackjackRecap(summary([hand(['8H', '3C'], {})]))).toBeNull()

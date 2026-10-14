@@ -54,7 +54,7 @@ test('New game mid-hand forfeits the dealt bet and records it as a lost round', 
   await expect(page.getByTestId('hud-bankroll')).toHaveText('$1,225')
   await page.screenshot({ path: testInfo.outputPath('after-new-game.png') })
 
-  await expectWalletAndHistory(page, '$1,225', '-$25')
+  await expectWalletAndHistory(page, '$1,225', '-$25', 'FORFEIT', '10♥6♠')
 })
 
 test('the table bankroll matches the wallet on the felt, mid-hand, and in history', async ({ page }) => {
