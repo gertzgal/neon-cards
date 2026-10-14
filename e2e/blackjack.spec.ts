@@ -43,6 +43,8 @@ async function deal(page: Page, table: Locator) {
 
 async function act(page: Page, table: Locator, action: 'hit' | 'stand' | 'double' | 'split') {
   await page.getByTestId(`action-${action}`).click()
+  // Wait until playback starts. A click can return while data-busy is still false, and idle() would pass on the previous hand.
+  await expect(table).toHaveAttribute('data-busy', 'true')
   await idle(table)
 }
 
