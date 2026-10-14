@@ -57,7 +57,11 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
     initialView.phase === 'playing' ? chipsFor(sum(initialView.hands.map((h) => h.bet))) : [],
   )
   const [animating, setAnimating] = useState(false)
-  const busy = sending || animating
+  const [startedId, setStartedId] = useState(events.id)
+  const lastBatch = useRef(events.id)
+  // A new batch is busy from the render that delivers it, not from the effect that starts playback.
+  // Otherwise data-busy drops for a frame and a test (or a tap) reads the table mid-update.
+  const busy = sending || animating || events.id !== startedId
   const [shownStack, setShownStack] = useState(initialView.stack)
   const [lastRound, setLastRound] = useState<LastRound | null>(null)
   const roundCount = useRef(0)
@@ -317,11 +321,11 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
     }
   }
 
-  const lastBatch = useRef(events.id)
   const chain = useRef<Promise<void>>(Promise.resolve())
 
   async function playBatch(batch: EventBatch, v: BlackjackView) {
     setAnimating(true)
+    setStartedId(batch.id)
     try {
       for (const e of batch.events as BlackjackEvent[]) await step(e)
       if (v.phase === 'settling') {
@@ -358,7 +362,6 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
   }, [events, view])
 
   useEffect(() => {
-    if (!initialView.legal.includes('refill')) return
     const t = setTimeout(() => afterBatch(initialView), 0)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
