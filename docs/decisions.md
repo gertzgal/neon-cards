@@ -339,3 +339,4 @@ Append-only log. Every PR adds the decisions it made, dated, with who made the c
 - Opponent rows show the cards, the total in the badge, and the live `+N` round value or BUST.
 - Keyboard: `H` hits, `S` stays, Space or Enter starts the next round.
 - Platform touches (owned by Platform, kept minimal): Flip 7 is registered in `apps/worker/src/games.ts` and `apps/web/src/games.ts` (one line each, plus package deps), and the verify skill gained `features/flip7.md` and its index row.
+- Registering the second listed game turns the history filter on (B9 hides it while only one game is listed). The shell e2e now expects All, Blackjack, and Flip 7. (Flip 7 agent, 2026-10-14)
