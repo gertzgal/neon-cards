@@ -12,7 +12,7 @@ Audit of `main` against every Platform item of the Definition of done in `docs/p
 | 4c | packages/ui lays out 1 to 3 opponent rows and dealer vs player, on phone and desktop | Met |
 | 4d | Card faces are game-defined, proven by the Flip 7 DeckSpec | Met |
 | 4e | Settings flow from the pre-game sheet through `config` to `seatsFor` and `setup` | Met |
-| 5 | Deploy if `CLOUDFLARE_API_TOKEN` exists, else a documented one-command step | Met (no token: documented step, CI deploys once a token is added) |
+| 5 | Deploy if `CLOUDFLARE_API_TOKEN` exists, else a documented one-command step | Met on 2026-10-11 as a documented step. As of 2026-10-14, Workers Builds deploys `main` and Actions does not (see decisions). |
 
 ## Evidence
 
@@ -32,10 +32,10 @@ Audit of `main` against every Platform item of the Definition of done in `docs/p
 
 **4e. Settings through config.** `e2e/shell-multiseat.spec.ts` picks 3 opponents, hard, and seat last on the pre-game sheet (rendered from `meta.settings`). It asserts that the `POST /api/sessions` body carries them as `config`, that three hard CPU seats come back from `seatsFor`, and that the CPUs act first. It also checks that the choice is remembered when "New game" reopens the sheet. Worker tests cover `parseConfig` → `seatsFor` and the 400 on invalid config; `apps/web/src/game-settings.test.ts` covers settings resolution.
 
-**5. Deploy.** CI's `deploy` job reported `CLOUDFLARE_API_TOKEN present: false`, so nothing deploys. `pnpm run deploy` (`scripts/deploy.sh`) is the documented one-command step: it builds, finds or creates the D1 database, applies remote migrations, and deploys. The job deploys `main` automatically once the secret exists.
+**5. Deploy.** On 2026-10-11 CI's `deploy` job reported `CLOUDFLARE_API_TOKEN present: false`, so nothing deployed from Actions. As of 2026-10-14, Cloudflare Workers Builds deploys `main` and that Actions job is gone. `pnpm run deploy` (`scripts/deploy.sh`) is the same build, remote migrate, and deploy sequence by hand.
 
 ## What's left
 
 - **Blackjack moment e2e** (Blackjack project): [PR #21](https://github.com/gertzgal/neon-cards/pull/21) adds a screenshot for every moment on both viewports. Until it merges, only win and bust rounds are covered by e2e on `main`. The other moments were played by hand in this audit.
-- **Deploy**: add a `CLOUDFLARE_API_TOKEN` repo secret (plus `CLOUDFLARE_ACCOUNT_ID` if the token sees several accounts). The next push to `main` deploys.
+- **Deploy**: Cloudflare Workers Builds deploys `main` (see decisions, 2026-10-14). The GitHub Actions deploy job was removed so it does not race that build.
 - **Flip 7** (next project): rules are in progress in [PR #28](https://github.com/gertzgal/neon-cards/pull/28). Its table should copy the High Card dev table's pattern (`apps/web/src/dev/high-card.tsx`) and its e2e (`e2e/shell-multiseat.spec.ts`).

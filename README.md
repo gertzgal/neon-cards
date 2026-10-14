@@ -24,13 +24,19 @@ Other commands are in [AGENTS.md](AGENTS.md#commands). Requires Node 22 and pnpm
 
 ## Deploy
 
-Deploy is one command once you're logged in to Cloudflare:
+Pushing to `main` deploys through Cloudflare Workers Builds. The build command is `pnpm run build` at the repo root. The deploy command applies remote D1 migrations and deploys the Worker:
+
+```sh
+cd apps/worker && pnpm exec wrangler d1 migrations apply DB --remote && pnpm exec wrangler deploy
+```
+
+`apps/worker/wrangler.toml` points at the production D1 database `neon-cards`. Local dev (`pnpm dev`, `pnpm start`, `wrangler dev --local`) uses a local D1 and does not touch that database. Production never sets `DEV_RIG`.
+
+The same steps, for a manual deploy from a logged-in machine:
 
 ```sh
 pnpm --filter @neon-cards/worker exec wrangler login   # or export CLOUDFLARE_API_TOKEN (and CLOUDFLARE_ACCOUNT_ID)
 pnpm run deploy
 ```
 
-`pnpm run deploy` (`scripts/deploy.sh`) builds the web app, finds or creates the `neon-cards` D1 database, applies the remote migrations, and deploys the Worker. `apps/worker/wrangler.toml` keeps a placeholder database id for local dev; the script deploys from a generated copy with the real id, so no tracked file changes. Production never sets `DEV_RIG`.
-
-CI deploys automatically: the `deploy` job runs after `checks` and `e2e` on every push to `main` when the repository has a `CLOUDFLARE_API_TOKEN` secret (optionally `CLOUDFLARE_ACCOUNT_ID`). On every run it reports whether the secret is present, never its value.
+GitHub Actions does not deploy.

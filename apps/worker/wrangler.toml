@@ -11,6 +11,5 @@ run_worker_first = ["/api/*"]
 [[d1_databases]]
 binding = "DB"
 database_name = "neon-cards"
-# Placeholder for local dev. Replace with the id from `wrangler d1 create neon-cards` before deploying.
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "dafeddad-28c4-4a44-b8c5-ae91530aa082"
 migrations_dir = "migrations"

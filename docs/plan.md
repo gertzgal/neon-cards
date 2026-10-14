@@ -38,4 +38,4 @@ Platform status against this list, with evidence: [platform-status.md](platform-
   - packages/ui lays out 1 to 3 opponent rows as well as dealer vs player, on phone and desktop;
   - card faces are fully game-defined, proven by the Flip 7 DeckSpec (number 0 to 12, +2 to +10 and x2 modifiers, Freeze, Flip Three, Second Chance);
   - game settings (opponent count, difficulty) flow from the pre-game sheet through `config` to `seatsFor` and `setup`.
-- If a Cloudflare API token is available as the CLOUDFLARE_API_TOKEN secret, deploy to Workers. Otherwise, leave deploy as a documented one-command step.
+- Deploys go out through Cloudflare Workers Builds on push to `main` (build `pnpm run build`, then remote D1 migrations and `wrangler deploy`). `pnpm run deploy` is the same sequence by hand. GitHub Actions does not deploy.
