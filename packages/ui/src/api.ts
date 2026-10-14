@@ -280,6 +280,8 @@ export interface TableProps<View = unknown, Action = unknown> {
 export interface RoundSummary<View = unknown> {
   settlements: Settlement[]
   view?: View
+  /** Set when the round was closed unfinished and its stake forfeited. */
+  forfeit?: boolean
 }
 
 /** How a history row shows one finished round. */
