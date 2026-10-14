@@ -31,6 +31,7 @@ runs:
           packages/engine/node_modules
           packages/ui/node_modules
           packages/games/blackjack/node_modules
+          packages/games/flip7/node_modules
           ~/.wrangler
           ~/.config/.wrangler
         key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}

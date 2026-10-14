@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './fixtures'
 
 // e2e is typed without the DOM lib, so the page-side code names the few browser APIs it uses.
 type El = { dataset: Record<string, string | undefined> }

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 test('going broke on an all-in refills to $1,250 with an empty felt, not an auto-rebet', async ({ page }, testInfo) => {
   await page.goto('/games/blackjack?rig=lose')
