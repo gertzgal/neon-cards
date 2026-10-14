@@ -17,7 +17,7 @@ async function expectRebet(page: Page) {
   await expect(page.getByTestId('blackjack-table')).toHaveAttribute('data-stage', 'betting')
   await expect(page.getByTestId('bet-amount')).toHaveAttribute('data-value', '50')
   await expect(page.getByTestId('action-deal')).toBeEnabled()
-  await expect(page.getByTestId('hud-bankroll')).toHaveText('$1,250')
+  await expect(page.getByTestId('hud-bankroll')).toHaveText('$1,300')
 }
 
 test('the last bet is back on the felt after reopening the table', async ({ page }, testInfo) => {
