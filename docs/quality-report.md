@@ -1,8 +1,48 @@
 # Quality report
 
-Current with main `a9af6609419b82b4dbe43303f77c7b8b2bfc141b` (2026-10-15). That commit shows the wallet on a resumed blackjack hand. Under it, `4df911c` keeps the desktop stake off the player cards and paints the hole card's back.
+Current with main `ea1c952897173ba67ae2a724b9fdcc87aaa8fec3` (2026-10-15). That commit is [#52](https://github.com/gertzgal/neon-cards/pull/52): a blackjack action is two D1 round trips, and hit, stand, double, and split start the non-secret motion on the click. Under it, `a9af660` shows the wallet on a resumed hand, and `4df911c` keeps the desktop stake off the player cards and paints the hole card's back.
 
-Played on that SHA, phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app).
+Played on `ea1c952`, phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app). No regression. The pill, the wallet, and history agreed on every round below. No console errors.
+
+## Instant actions
+
+A fresh $1,250 player each time. The same-turn read is the DOM in the click, before the response can land.
+
+- Hit on 11. The third card is face-down, the total stays 11, the pill stays $1,250. It flips to 10♣ and the hand wins. Wallet $1,300, history +50. One POST.
+- Double on 11. The pot is $100 and the third card is face-down in the click. The pill stays $1,250. Settles +100, wallet $1,350.
+- Stand on 19. The hand is stood in the click, and the hole card stays down. Wins +50, wallet $1,300.
+- Split 8s. Two hands and two face-down cards in the click, pill $1,250, pot $100. The faces land 8♥3♣ and 8♠10♦. Double the first (a face-down third card, that hand's bet $100, pill still $1,250), stand the second. Both win, net +150, wallet $1,400. History says `WIN · WIN` / `+$150`.
+- Split aces. One face-down card each in the click. Both 21s pay 1:1, net +100, wallet $1,350.
+- Bust. Two hits in one turn add one face-down card. It is the king. Net −50, wallet $1,200. History says `BUST` / `-$50` / 10♥6♠K♣. One POST.
+- A $25 natural, skipped by a tap, settles in 878 ms on the phone and 872 ms on desktop. Wallet $1,287, history +37. Left alone, a $50 natural pays +75, wallet $1,325.
+- Dealer blackjack. The hole flips to K♦, the dealer shows 21, net −50, wallet $1,200.
+- Peek. A ten up and an ace up both keep the hole face-down. The back is `filter: none` on `rgb(42, 6, 25)`. Standing on the ten loses 25 (wallet $1,225). Standing on the ace, dealer soft 17, wins 25 (wallet $1,275).
+- Double-clicked DEAL sends two identical bets at seq 0. The server keeps one round: 10♥9♠ against a down hole. A chip click, H, and Space during the deal do not add a card or a round. Stand pays +50 (wallet $1,300). The rebet pays another +50 (wallet $1,350). History is two +50s. A double-clicked HIT sends one POST.
+- Resume. Leaving `?rig=win` for `/games/blackjack` and reloading shows the same 10♥9♠, hole down, pill `$1,250`, on both viewports. Stand pays $1,300, matching the wallet.
+- Flip 7. Play on the sheet starts round 1, and Hit enables when the deal finishes. The chip wallet stays $1,250. The table shows the score pill.
+
+![Phone, hit in flight](quality/phone-instant-hit.jpg)
+![Desktop, hit in flight](quality/desktop-instant-hit.jpg)
+![Phone, split](quality/phone-instant-split.jpg)
+![Desktop, split](quality/desktop-instant-split.jpg)
+![Phone, bust](quality/phone-instant-bust.jpg)
+![Desktop, bust](quality/desktop-instant-bust.jpg)
+![Phone, blackjack](quality/phone-instant-blackjack.jpg)
+![Desktop, blackjack](quality/desktop-instant-blackjack.jpg)
+![Phone, dealer blackjack](quality/phone-instant-dealerbj.jpg)
+![Desktop, dealer blackjack](quality/desktop-instant-dealerbj.jpg)
+![Phone, ace up, hole down](quality/phone-instant-peek.jpg)
+![Desktop, ace up, hole down](quality/desktop-instant-peek.jpg)
+![Phone, resumed hand](quality/phone-instant-resume.jpg)
+![Desktop, resumed hand](quality/desktop-instant-resume.jpg)
+![Phone, split history](quality/phone-instant-history.jpg)
+![Desktop, split history](quality/desktop-instant-history.jpg)
+![Phone, skip settled](quality/phone-instant-skip.jpg)
+![Desktop, skip settled](quality/desktop-instant-skip.jpg)
+![Phone, Flip 7 round](quality/phone-instant-flip7.jpg)
+![Desktop, Flip 7 round](quality/desktop-instant-flip7.jpg)
+
+The earlier passes below were on the SHAs named there.
 
 Flip 7 is registered and playable (table [#35](https://github.com/gertzgal/neon-cards/pull/35), e2e `8aedbf6`). The pass below on `305a0ed` is the earlier one: at that SHA the package exported rules only, so a round could not be played. Blackjack payouts have not changed since the rig pass on `c059d6a`.
 
@@ -58,7 +98,7 @@ Wallet matched the round's net on the earlier rig pass too.
 
 ## Still open
 
-Nothing in the quality list is still open. The resume-pill regression is [#53](https://github.com/gertzgal/neon-cards/pull/53), merged. No new bug turned up on this pass.
+Nothing in the quality list is still open. No new bug on `ea1c952`. The resume-pill fix is [#53](https://github.com/gertzgal/neon-cards/pull/53), merged.
 
 ## Flip 7
 
@@ -92,7 +132,7 @@ Shots from this pass live in `docs/quality/` (`phone-flip7-*`, `desktop-flip7-*`
 
 ## Other open PRs
 
-[#52](https://github.com/gertzgal/neon-cards/pull/52) is an open draft (two fewer D1 round trips, instant non-secret blackjack actions). Left alone. [#33](https://github.com/gertzgal/neon-cards/pull/33) is closed. [#46](https://github.com/gertzgal/neon-cards/pull/46) and [#53](https://github.com/gertzgal/neon-cards/pull/53) are merged.
+None. [#52](https://github.com/gertzgal/neon-cards/pull/52) is merged (`ea1c952`). [#33](https://github.com/gertzgal/neon-cards/pull/33) is closed. [#46](https://github.com/gertzgal/neon-cards/pull/46) and [#53](https://github.com/gertzgal/neon-cards/pull/53) are merged.
 
 ## Left
 
