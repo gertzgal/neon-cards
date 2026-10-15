@@ -82,3 +82,10 @@ Strength harness: 200 seeds `ek-strength-0` through `ek-strength-199`, three sea
 | Hard vs Easy | Hard 163, Easy 24 | 13 | 139 | Hard at least 80, margin at least 25 |
 
 TDD: the new choice and strength tests failed first on `Exploding Kittens ${difficulty} policy is not in the rules package`, and the `pTop` test failed because `count.ts` was missing. They passed after the policies.
+
+## CPU landing
+
+- PR: https://github.com/gertzgal/neon-cards/pull/58
+- Branch: `cursor/exploding-kittens-cpu-34f9`
+- `docs/architecture.md`: unchanged
+- Merge: fast-forward `main` to the PR head that CI tested. That head is the commit that adds this landing note.
