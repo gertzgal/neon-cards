@@ -1,6 +1,18 @@
 export { CODE_ALPHABET, mintCode, parseCode } from './code'
 export { noteFailedJoin } from './joins'
 export {
+  displaySeats,
+  frameAtSeq,
+  isLive,
+  leaveLive,
+  liveFrame,
+  remember,
+  rememberedFrame,
+  watchLive,
+  type EngineMatch,
+  type LiveRoom,
+} from './live'
+export {
   addSocket,
   createLobby,
   dropSocket,
@@ -10,6 +22,7 @@ export {
   watch,
   type ClosedFrame,
   type ClosedRoom,
+  type LiveFrame,
   type Lobby,
   type LobbyFrame,
   type OutFrame,
@@ -17,3 +30,5 @@ export {
   type RoomState,
 } from './lobby'
 export { randomNickname } from './nickname'
+export { stripRig } from './rig'
+export { liveChairs, roomSeats, type LiveChair, type RoomDifficulty, type RoomSeat } from './seats'

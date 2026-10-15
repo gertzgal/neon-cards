@@ -642,3 +642,11 @@ Join is the WebSocket upgrade. Sockets use the hibernation API. Presence is a so
 Ten failed joins per player per minute return 429. The counter lives in the isolate. A restart clears it. A shared counter can move into D1 if a scanner shows the isolate map is not enough.
 
 The object writes `closed_at` itself. `record.ts` does not exist yet, so this is the one D1 write from the object. The history slice should take it over.
+
+## A room can deal Flip 7 (2026-10-15)
+
+Host `deal` in the lobby builds seats from the chairs. Open chairs become CPUs at the config difficulty, or medium when it is unset. Ids stay `s0` onward. The first deal does not rotate, so the host is index 0. House seats are appended from the definition. Flip 7 has none. The list does not add `config.opponents` on top of the chairs. The seed is `crypto.randomUUID()`. A client seed is ignored. `config.rig` is removed unless `DEV_RIG` is `1`, then `parseConfig` runs. Solo HTTP still answers 400 for `rig` without that flag, because that route already shipped the rejection.
+
+The lobby deal is `startMatch` plus `applyOpening` in one sqlite write. A later `deal` while `opening()` is set calls `applyOpening` only. `deal` during a hand is rejected. `act` runs only when the sender's chair is the human `toAct` and `seq` matches. A repeated `commandId` returns that player's stored frame. A smaller `seq` returns the stored frame for that seq. A larger `seq` is `{ type: 'rejected', reason: 'seq' }`. The socket is already open, so this is not an HTTP 409. The generation increments in the same write. The handler does not await before that write.
+
+The frame `view` is `definition.view`. A watcher, and a seated player's own frame, never receives the match. The object keeps `rng` and `config` on the stored match so the next action can run. Retry rows store the frame. `canOpen` on a live frame is true only for the host while `opening()` is set. `back`, `rematch`, and turn timers stay rejected until their slices. A live join reattaches a seated player or adds a watcher. It does not put a new human into a hand that has already started. `packages/room` still does not own `soloSeats`. The worker calls `startMatch` for solo sessions, and this slice is the room caller. A lint that forbids a second builder waits until solo moves.
