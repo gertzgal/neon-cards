@@ -591,3 +591,13 @@ Production on 2026-10-15 painted `.sheet-backdrop` over the whole viewport (`z-i
 The pregame card now covers the felt only (`data-cover="table"`, top 72px, under the 58px phone bar and the 70px desktop bar). Settings stays a full-screen modal and still owns Escape while it is open. The guide still owns Escape while it is open. The card grows a plain Back under Play (`pregame-back`). Back, the arrow, Escape, and browser back (the same history step as the phone gesture) return to the lobby. Opening the card pushes one history marker and drops it when Play starts, so a live table still backs up once to the lobby.
 
 Every game with no stored session shows that card, including Blackjack, which still has no settings. The card there is the description, Play, and Back. A stored session still resumes. New game on a game with no settings still starts the next session on that click, so a forfeited bet is recorded then and not when the player later presses Play. The book sits on this bar too, and it does not auto-open. The first-visit page still opens when the table mounts. `docs/architecture.md` is unchanged.
+
+## Multiplayer architecture spec (2026-10-15)
+
+This pull request proposes a spec. It does not change the architecture contract. `docs/architecture.md` is untouched, and no game, engine, worker, or web behavior changes.
+
+The spec is `docs/multiplayer/spec.md`. Signatures only live in `docs/multiplayer/platform.ts`. Rooms are one SQLite Durable Object each, friends join by link or 4-character code, and the host's explicit leave shuts the room down. A dropped host socket waits 15 seconds before that close, so a refresh is not a leave. That grace is a call this spec makes. Gal's rule still stands. There is no host migration.
+
+The platform builds the seat list. Games stop assuming one human plus N CPUs. `seatsFor` is proposed for deletion in a later pull request, not deleted here. A round starts through `opening()` on `GameDefinition`, so a CPU cascade cannot deal. Flip 7 is the worked example and is not modified here.
+
+Polling and peer-to-peer stay rejected. D1 stays the system of record. The 100,000 row-write illustration stays Gal's planning number. The first real-game pull request is what measures it. Free-plan Durable Object CPU (10 ms versus 30 seconds) and the storage-size sentences on the Cloudflare pages stay open questions in the spec.
