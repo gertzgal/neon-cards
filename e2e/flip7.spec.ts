@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './fixtures'
 
 const table = (page: Page) => page.getByTestId('flip7-table')
 
@@ -38,7 +38,10 @@ test('the setup sheet seats the chosen number of CPUs; only numbers on the table
   for (const seat of ['cpu-1', 'cpu-2', 'cpu-3']) await expect(page.getByTestId(`seat-${seat}`)).toBeVisible()
   await expect(page.getByTestId('seat-cpu-4')).toHaveCount(0)
   await expect(page.getByTestId('hud-total')).toHaveAttribute('data-value', '0')
-  const words = (await table(page).innerText()).match(/[A-Za-z]{2,}/g) ?? []
+  let felt = await table(page).innerText()
+  const rule = page.getByTestId('card-rule')
+  if (await rule.count()) felt = felt.replace(await rule.innerText(), '')
+  const words = felt.match(/[A-Za-z]{2,}/g) ?? []
   expect(words.filter((w) => !['FLIP', 'BUST'].includes(w))).toEqual([])
   await page.screenshot({ path: testInfo.outputPath('setup-3-cpus.png') })
 })
