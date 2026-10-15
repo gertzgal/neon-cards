@@ -25,10 +25,12 @@ describe('defineGuide', () => {
     const guide = page()
     expect(() => defineGuide({ ...guide, title: ' ' })).toThrow(/title/)
     expect(() => defineGuide({ ...guide, sections: [] })).toThrow(/sections/)
+    const goal = guide.sections[0]
+    if (!goal) throw new Error('goal')
     expect(() =>
       defineGuide({
         ...guide,
-        sections: [guide.sections[0]!, { ...guide.sections[0]!, id: 'goal' }],
+        sections: [goal, { ...goal, id: 'goal' }],
       }),
     ).toThrow(/repeats/)
     expect(() =>

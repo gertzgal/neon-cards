@@ -35,9 +35,8 @@ test.describe('how to play', () => {
       await expect(book).toBeVisible()
       const bookBox = await book.boundingBox()
       const soundBox = await sound.boundingBox()
-      expect(bookBox).not.toBeNull()
-      expect(soundBox).not.toBeNull()
-      expect(bookBox!.x + bookBox!.width).toBeLessThanOrEqual(soundBox!.x)
+      if (!bookBox || !soundBox) throw new Error('missing hud icons')
+      expect(bookBox.x + bookBox.width).toBeLessThanOrEqual(soundBox.x)
 
       await book.click()
       await expect(guide).toBeVisible()
