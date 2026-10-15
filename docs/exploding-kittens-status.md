@@ -98,7 +98,7 @@ Easy, Medium, and Hard are the policies from the CPU section above. The opening 
 
 ## E2E (Exploding Kittens agent, 2026-10-15)
 
-`e2e/exploding-kittens.spec.ts` drives the real shell. `?rig=` and `?seed=` are the only rig channel (`DEV_RIG=1`). No new test id. Phone and desktop come from the Playwright projects.
+`e2e/exploding-kittens.spec.ts` drives the real shell. `?rig=` and `?seed=` are the only rig channel (`DEV_RIG=1`). The shell forwards `?seed=` as the session `seed` field the Worker already accepts. No new test id. Phone and desktop come from the Playwright projects.
 
 Seeds are fixed because Medium does not read `cpuRng`, and these deals make the clicks land:
 

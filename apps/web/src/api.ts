@@ -72,8 +72,11 @@ export interface Round {
 
 export const api = {
   wallet: () => call<{ balance: number }>('/wallet'),
-  createSession: (gameId: string, config: unknown) =>
-    call<SessionStart>('/sessions', { method: 'POST', body: JSON.stringify({ gameId, config }) }),
+  createSession: (gameId: string, config: unknown, seed?: string) =>
+    call<SessionStart>('/sessions', {
+      method: 'POST',
+      body: JSON.stringify({ gameId, config, ...(seed === undefined ? {} : { seed }) }),
+    }),
   session: (id: string) => call<SessionState>(`/sessions/${encodeURIComponent(id)}`),
   act: (id: string, action: unknown, seq: number) =>
     call<ActionResult>(`/sessions/${encodeURIComponent(id)}/actions`, {

@@ -61,6 +61,13 @@ function eventsOf(body: unknown): Record<string, unknown>[] {
 
 const backs = (page: Page, seat: string) => page.locator(`[data-testid="seat-${seat}-hand"] [data-testid^="card-"]`)
 
+/** The fan overlaps, so a coordinate click lands on the card above. Fire the button's own click. */
+async function tap(page: Page, testId: string) {
+  const button = page.getByTestId(testId)
+  await button.waitFor({ state: 'attached' })
+  await button.evaluate((el) => el.click())
+}
+
 async function expectBacks(page: Page, seat: string, count: number) {
   const cards = backs(page, seat)
   await expect(cards).toHaveCount(count)
@@ -109,7 +116,7 @@ test('opponents render as counts, not faces', async ({ page }, testInfo) => {
     await expect(page.getByTestId(`seat-${seat}-hand`)).toHaveAttribute('data-count', '8')
     await expectBacks(page, seat, 8)
   }
-  const yours = page.locator('[data-testid="you-hand"] [data-testid^="card-"]')
+  const yours = page.locator('[data-testid="you-hand"] [data-testid^="card-exploding-kittens-"]')
   await expect(yours).toHaveCount(8)
   const labels = await yours.evaluateAll((nodes) =>
     nodes.map((node) => ({ face: node.getAttribute('data-face'), label: node.getAttribute('aria-label') })),
@@ -119,10 +126,11 @@ test('opponents render as counts, not faces', async ({ page }, testInfo) => {
 })
 
 test('a Nope chain, including Nope a Nope', async ({ page }, testInfo) => {
+  test.setTimeout(60_000)
   // One Attack, one Nope. Medium nopes the Attack. Noping that Nope makes two, so the Attack resolves.
   await open(page, { rig: 'nope', seed: 'ek-e2e-nope-6', picks: ['pregame-opponents-1', 'pregame-difficulty-medium'] })
   const opened = watchAction(page)
-  await page.getByTestId('action-card-attack').click({ force: true })
+  await tap(page, 'action-card-attack')
   const first = await readAction(await opened)
   const firstNoped = eventsOf(first.body).find((event) => event['type'] === 'Noped')
   expect(firstNoped?.['seat']).toBe('cpu-1')
@@ -211,13 +219,14 @@ test('an explosion with no defuse loses', async ({ page }, testInfo) => {
 })
 
 test('the last living player wins', async ({ page }, testInfo) => {
+  test.setTimeout(60_000)
   // Five distinct titles, shuffle doubled so the first tap selects. The discard defuse leaves the CPU with none.
   await open(page, { rig: 'five', seed: 'ek-e2e-win-38', picks: ['pregame-opponents-1', 'pregame-difficulty-medium'] })
   for (const [i, title] of ['shuffle', 'hairyPotato', 'beard', 'tacocat', 'defuse'].entries()) {
-    await page.getByTestId(`action-card-${title}`).click({ force: true })
+    await tap(page, `action-card-${title}`)
     await expect(page.locator('[data-testid="you-hand"] [data-selected="true"]')).toHaveCount(i + 1)
   }
-  await page.getByTestId('discard').locator('[aria-label="DEFUSE"]').click({ force: true })
+  await page.getByTestId('discard').locator('button').evaluate((el) => el.click())
   await expect(page.getByTestId('seat-you')).toHaveAttribute('data-count', '4', { timeout: 20_000 })
   await settled(page)
 

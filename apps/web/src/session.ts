@@ -52,7 +52,7 @@ export function useGameSession(plugin: GamePlugin, onWallet: (balance: number) =
 
   const create = useCallback(
     (config: unknown) =>
-      api.createSession(gameId, { ...(config as object), ...devConfig() }).then(
+      api.createSession(gameId, { ...(config as object), ...devConfig() }, devConfig()['seed']).then(
         (res) => {
           localStorage.setItem(storeKey(gameId), res.sessionId)
           if (chips && res.wallet !== undefined) onWallet(res.wallet)
