@@ -34,6 +34,12 @@ export function earliest(deadlines: Deadlines): number | null {
   return Math.min(...times)
 }
 
+/** True when every legal action is one of the short-window types. */
+export function isQuickWindow(types: readonly string[] | undefined, actions: readonly { type?: unknown }[]): boolean {
+  if (!types || actions.length === 0) return false
+  return actions.every((action) => typeof action.type === 'string' && types.includes(action.type))
+}
+
 /** Host grace wins. A due grace does not also play the turn. */
 export function wakePlan(deadlines: Deadlines, now: number): { close: boolean; turn: boolean; quick: boolean } {
   const close = deadlines.hostGrace !== null && deadlines.hostGrace.dueAt <= now

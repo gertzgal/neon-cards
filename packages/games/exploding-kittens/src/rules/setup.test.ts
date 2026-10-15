@@ -80,18 +80,27 @@ describe('config and seats', () => {
     expect(seats[1]).toEqual({ id: 'cpu-1', kind: 'cpu', name: 'CPU 1', difficulty: 'easy' })
   })
 
-  it('setup throws unless there is exactly one human', () => {
+  it('setup starts the first human and accepts more than one', () => {
     const config = ek.parseConfig({})
     const seats = soloSeats(ek, config)
-    const rng = createRng('humans')
-    expect(() => ek.setup(config, seats.map((seat) => ({ ...seat, kind: 'cpu' as const })), rng)).toThrow(Error)
-    expect(() =>
-      ek.setup(
-        config,
-        seats.map((seat) => ({ ...seat, kind: 'human' as const })),
-        createRng('humans-2'),
-      ),
-    ).toThrow(Error)
+    expect(() => ek.setup(config, seats.map((seat) => ({ ...seat, kind: 'cpu' as const })), createRng('humans'))).toThrow(/human/)
+    const many = seats.map((seat, index) => ({ ...seat, kind: index < 2 ? ('human' as const) : ('cpu' as const) }))
+    const state = ek.setup(config, many, createRng('humans-2'))
+    expect(state.human).toBe(many[0]?.id)
+    expect(state.turn).toBe(many[0]?.id)
+    expect(state.seats[many[1]?.id ?? '']?.hand.length).toBeGreaterThan(0)
+  })
+
+  it('a watcher view hides every hand', () => {
+    const { state } = openSession('watch', 2)
+    const hidden = ek.view(state, 'watch')
+    expect(hidden.hand).toEqual([])
+    expect(hidden.knownTop).toEqual([])
+    expect(hidden.actions).toEqual([])
+    const mine = ek.view(state, HUMAN)
+    const secret = mine.hand[0]?.id
+    expect(secret).toBeTruthy()
+    expect(JSON.stringify(hidden)).not.toContain(secret)
   })
 })
 

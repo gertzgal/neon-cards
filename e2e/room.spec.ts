@@ -70,6 +70,15 @@ test('the host leaving closes the room for someone who joined with the code', as
   await guest.close()
 })
 
+test('exploding kittens deals in the same room', async ({ page }) => {
+  await page.goto('/games/exploding-kittens')
+  await page.getByTestId('pregame-friends').click()
+  const code = (await page.getByTestId('room-code').innerText()).trim()
+  expect(code).toMatch(CODE)
+  await page.getByTestId('room-deal').click()
+  await expect(page.getByTestId('ek-table')).toBeVisible()
+})
+
 test('two missed turns cover the chair, a reload keeps I am back, and the player returns', async ({ page, browser }) => {
   test.setTimeout(150_000)
   const code = await openRoom(page, 'you=2,3,4;cpu=12,11,10')

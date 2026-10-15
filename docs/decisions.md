@@ -674,3 +674,7 @@ Play with friends posts `flip7` and opens `/r/:code`. The code on the screen is 
 Deal, I'm back, Leave, Rematch, and Take seat are shell controls. `spectator-count` is `eyes`, and it sits outside the table. The table is passed `canOpen` false so a ready Flip 7 does not deal itself. `?rig=` is sent as lobby settings and only sticks when `DEV_RIG` is `1`.
 
 The live frame gains `backSeat`. The spec's display seat already drops `difficulty` for a covered friend, and that is not enough for the covered player to know the chair is theirs. `backSeat` is that seat id, or null.
+
+## Exploding Kittens shares the room (2026-10-15)
+
+Setup accepts one or more humans and starts the first of them. A seat id that is not in the order gets an empty hand, no known cards, and no actions. `GameMeta.quick` for this game is `pass` and `nope`, and the decline is `pass`. The room arms the 5 second deadline instead of the 30 second turn while every legal action is one of those types. The alarm plays that decline. Misses stay put. A game with no `opening()` deals by `startMatch` alone. Flip 7 still opens with `applyOpening`. Blackjack stays off the room route.

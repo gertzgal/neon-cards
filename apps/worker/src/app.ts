@@ -111,14 +111,15 @@ export function createApp(games: readonly GameRules[], devGames: readonly GameRu
   app.post('/rooms', withPlayer, async (c) => {
     await ensurePlayer(c)
     const body = await jsonBody(c.req.raw)
-    if (body.gameId !== 'flip7') throw new ApiError(400, 'that game has no rooms')
-    const rules = regFor(c.env).get('flip7')
-    if (!rules) throw new ApiError(404, 'unknown game "flip7"')
+    if (body.gameId !== 'flip7' && body.gameId !== 'exploding-kittens') throw new ApiError(400, 'that game has no rooms')
+    const gameId = body.gameId === 'exploding-kittens' ? 'exploding-kittens' : 'flip7'
+    const rules = regFor(c.env).get(gameId)
+    if (!rules) throw new ApiError(404, `unknown game "${gameId}"`)
     const nickname = await nicknameFor(c.var.db, c.var.playerId)
     const code = await mintUnique(c.var.db)
     await c.var.db.insert(schema.roomDirectory).values({
       code,
-      gameId: 'flip7',
+      gameId,
       hostPlayerId: c.var.playerId,
       createdAt: Date.now(),
       closedAt: null,
@@ -128,7 +129,7 @@ export function createApp(games: readonly GameRules[], devGames: readonly GameRu
       method: 'POST',
       body: JSON.stringify({
         code,
-        gameId: 'flip7',
+        gameId,
         hostId: c.var.playerId,
         nickname,
         seats: rules.definition.seats.max,

@@ -88,8 +88,8 @@ function emptyKnown(order: SeatId[]): EkState['known'] {
 
 function setup(config: EkConfig, seats: Seat[], rng: Rng): EkState {
   const humans = seats.filter((seat) => seat.kind === 'human')
-  if (humans.length !== 1) throw new Error('setup needs exactly one human')
-  const human = humans[0]?.id ?? HUMAN
+  const human = humans[0]?.id
+  if (!human) throw new Error('setup needs a human')
   const order = seats.map((seat) => seat.id)
   const shoe = buildShoe(ekDeck, 1, rng)
   const kittens: EkCard[] = []
@@ -598,21 +598,22 @@ function view(state: EkState, me: SeatId): EkView {
     const seat = state.seats[id]
     seats[id] = { alive: seat?.alive ?? false, count: seat?.hand.length ?? 0 }
   }
-  const known = state.known[me]
+  const seated = state.order.includes(me)
+  const known = seated ? state.known[me] : undefined
   return {
     me,
     order: [...state.order],
     seats,
-    hand: [...(state.seats[me]?.hand ?? [])],
+    hand: seated ? [...(state.seats[me]?.hand ?? [])] : [],
     drawCount: state.draw.length,
     discard: [...state.discard],
     turn: state.turn,
     owed: state.owed,
     pending: pendingView(state.pending),
-    knownTop: cardsFor(state.draw, known?.top ?? []),
-    plantedIndex: known?.planted ?? null,
+    knownTop: seated ? cardsFor(state.draw, known?.top ?? []) : [],
+    plantedIndex: seated ? (known?.planted ?? null) : null,
     winner: state.winner,
-    actions: legalActions(state, me),
+    actions: seated ? legalActions(state, me) : [],
   }
 }
 
