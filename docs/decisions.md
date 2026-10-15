@@ -580,3 +580,7 @@ A fresh Claude Code cloud session had no `node_modules`, and `pnpm verify` died 
 ## Felt sentences stay on action cards (Quality, 2026-10-15)
 
 The how-to page teaches every Flip 7 face, so `actionSentence` stays a string for the guide. The felt hint does not. A dealt number or modifier was filling the rule line, and a tap left it up. `feltSentence` is what the table calls: an action card keeps its sentence, and a number or a modifier returns null, which is how the felt behaved before the guide. A tap on a number clears the line. The "only numbers on the table" e2e check no longer skips the rule line.
+
+## Guide quality pass (Quality, 2026-10-15)
+
+Played the how-to page on `f0d64cf`, phone and desktop. The page opens once, the book reopens it, and X, GOT IT, and Escape close it. A tap on a Flip 7 number left its sentence on the felt. [#81](https://github.com/gertzgal/neon-cards/pull/81) (`f8912e2`) keeps that sentence on the guide page. The write-up and shots are in `docs/quality-report.md` and `docs/quality/guide-*`.

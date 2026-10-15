@@ -1,5 +1,64 @@
 # Quality report
 
+Current with main `f0d64cf043cc5ffc90f0f566cba63312e8487047` (2026-10-15). The how-to page. Phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app). No console errors. The felt fix was retested on `f8912e2`. `a443568` only adds the cloud-session hook and does not change the table.
+
+## How to play
+
+`f0d64cf` is [#78](https://github.com/gertzgal/neon-cards/pull/78). The first time a table mounts, a full-page guide opens over it. The book sits directly left of mute and opens it again. Closing with the X, GOT IT, or Escape writes the seen key, so a refresh stays on the felt. The lobby has no book.
+
+Played Blackjack (`AH,9C,5S,7D,3C`, $25), Flip 7 (`rig=bust`, then a held Freeze), and Exploding Kittens (seed `ek-gap-open`, two Medium CPUs).
+
+### The page
+
+HOW TO PLAY, then the game title, then GOAL, YOUR TURN, THE CARDS, and WINNING. The footer is GOT IT ▶ PLAY. Nothing overflows the screen. Scrolled to the end, the last section sits above the footer (overlap 0) on both viewports. While the page is up, the table root is `inert`. A click on the page does not place a bet. The felt stays 0.
+
+Blackjack says get closer to 21, HIT and STAND, an ace counts 1 or 11, faces count 10, numbers count their number, blackjack pays 3:2, and the dealer stands on all 17s. The three rows are the ace of spades, the king of hearts, and the 7 of diamonds. Flip 7 teaches the 7, Freeze, Flip Three, Second Chance, +4, and ×2, each with one sentence. Exploding Kittens teaches all 13 titles, in title order, from the kitten to Cattermelon.
+
+The book is left of the speaker. On the phone the book is x 265–289 and the speaker is x 301. The desktop close button is x 1370, y 18, 52×52. X, Escape, and GOT IT each remove the page and clear `inert`. A reload stays on the felt, and the book is still there.
+
+### After it closes
+
+No guide node and no inert. Blackjack and Exploding Kittens have no leftover sentence. The book stays.
+
+Blackjack. A $25 deal is stage `playing`, two cards each, hole down, bank `$1,250`. Hit adds the third card (total 9/19). Stand settles to betting at `$1,275`. No rule line.
+
+Flip 7 on `f0d64cf`. Closing the page left "A second copy busts. Seven different numbers scores Flip 7." on the felt. It hid on its own after the deal beat. A still cursor on the 5 did not bring it back. A tap did, and it was still there 2.2s later. Hit then busted: the pile went 91 → 86, `seat-you` was busted, and the stage was `roundOver`.
+
+[#81](https://github.com/gertzgal/neon-cards/pull/81) (`f8912e2`) keeps that sentence on the guide row and off the felt. Retested on both viewports. Right after close the rule line is absent. A still cursor and a tap on the 5 show nothing. Hit still busts, and the line stays absent. A tap on a held Freeze still shows "That player banks their score and sits this round out." and `data-pending` stays `target`. The guide row for the number still reads the sentence.
+
+Exploding Kittens. Rest has no sentence. A still cursor on Shuffle does not raise it and does not open a rule. The first tap raises it (`translate(0, -36)`), shows "Shuffle the draw pile.", and sends nothing. Play is enabled. Raising Cattermelon as well disables Play. The reason is "Need a matching pair." The line is `nowrap` and does not scroll. The phone box is x 243, y 601, 123×16, ending at x 366 inside 390. The period glyph ends at x 366, and 24px of felt remain. The desktop box is x 1267, y 683, 165×22, ending at x 1432 inside 1440. The period glyph ends at x 1432. The disabled button is color rgb(109, 103, 128), background rgb(20, 16, 28), border rgb(58, 51, 72), no shadow, no filter, opacity 1. The phone button is x 214, y 623, 168×84. The desktop button is x 1232, y 711, 200×96. Lowering both hides the sentence and Play. Raising Shuffle and pressing Play sends one `{ "type": "play", "title": "shuffle" }`. The hand goes 8 → 7 and the discard 0 → 1. Draw takes the pile 29 → 26 and the hand 7 → 8, with no sentence of its own.
+
+Nothing else from this pass is open. The phone Exploding Kittens strip still shows one full card and a peek. The desktop fan still meets the draw button the way it did on `bdbc4b6`. Double and Split stay on the blackjack felt. The guide page does not repeat them.
+
+![Phone, blackjack guide](quality/guide-phone-bj-open.jpg)
+![Desktop, blackjack guide](quality/guide-desktop-bj-open.jpg)
+![Phone, blackjack after close](quality/guide-phone-bj-closed.jpg)
+![Desktop, blackjack after close](quality/guide-desktop-bj-closed.jpg)
+![Phone, blackjack deal](quality/guide-phone-bj-dealt.jpg)
+![Desktop, blackjack deal](quality/guide-desktop-bj-dealt.jpg)
+![Phone, blackjack hit](quality/guide-phone-bj-hit.jpg)
+![Desktop, blackjack hit](quality/guide-desktop-bj-hit.jpg)
+![Phone, Flip 7 guide](quality/guide-phone-f7-open.jpg)
+![Desktop, Flip 7 guide](quality/guide-desktop-f7-open.jpg)
+![Phone, the number sentence stuck](quality/guide-phone-f7-stuck.jpg)
+![Desktop, the number sentence stuck](quality/guide-desktop-f7-stuck.jpg)
+![Phone, Flip 7 after the fix](quality/guide-phone-f7-rest.jpg)
+![Desktop, Flip 7 after the fix](quality/guide-desktop-f7-rest.jpg)
+![Phone, a tap on the 5](quality/guide-phone-f7-tap.jpg)
+![Desktop, a tap on the 5](quality/guide-desktop-f7-tap.jpg)
+![Phone, Flip 7 bust](quality/guide-phone-f7-bust.jpg)
+![Desktop, Flip 7 bust](quality/guide-desktop-f7-bust.jpg)
+![Phone, Exploding Kittens guide](quality/guide-phone-ek-open.jpg)
+![Desktop, Exploding Kittens guide](quality/guide-desktop-ek-open.jpg)
+![Phone, Shuffle raised](quality/guide-phone-ek-raised.jpg)
+![Desktop, Shuffle raised](quality/guide-desktop-ek-raised.jpg)
+![Phone, disabled Play](quality/guide-phone-ek-reason.jpg)
+![Desktop, disabled Play](quality/guide-desktop-ek-reason.jpg)
+![Phone, Shuffle played](quality/guide-phone-ek-played.jpg)
+![Desktop, Shuffle played](quality/guide-desktop-ek-played.jpg)
+
+The earlier passes below were on the SHAs named there.
+
 Current with main `3707ffa5ce97d1ea76b1c707910ffff928d60640` (2026-10-15). Judged from `88bcd30` through `b30dc33`, the held-sentence fix, and the phone-reason inset on this SHA, phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app). No console errors.
 
 ## Raise, then Play
