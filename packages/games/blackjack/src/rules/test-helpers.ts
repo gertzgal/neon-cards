@@ -1,4 +1,4 @@
-import { createRng, type Rng } from '@neon-cards/engine'
+import { soloSeats, createRng, type Rng } from '@neon-cards/engine'
 import { blackjack, defaultConfig } from './definition'
 import type { BlackjackAction, BlackjackConfig, BlackjackEvent, BlackjackState } from './types'
 
@@ -9,7 +9,7 @@ export const SEAT = 'player'
 export function newGame(config: Partial<BlackjackConfig> = {}, seed = 1) {
   const rng = seededRng(seed)
   const full = { ...defaultConfig, ...config }
-  const state = blackjack.setup(full, blackjack.seatsFor(full), rng)
+  const state = blackjack.setup(full, soloSeats(blackjack, full), rng)
   return { state, rng }
 }
 

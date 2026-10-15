@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ConfigError, IllegalActionError } from '@neon-cards/engine'
+import { soloSeats, ConfigError, IllegalActionError } from '@neon-cards/engine'
 import { blackjack } from './definition'
 import { rules } from './index'
 import { codes, newGame, play, rigged, SEAT, types } from './test-helpers'
@@ -25,7 +25,7 @@ describe('setup', () => {
 
 describe('config and seats', () => {
   it('seats one human and the house dealer, and the human always acts', () => {
-    expect(blackjack.seatsFor(blackjack.defaultConfig)).toEqual([
+    expect(soloSeats(blackjack, blackjack.defaultConfig)).toEqual([
       { id: 'player', kind: 'human', name: 'You' },
       { id: 'dealer', kind: 'house', name: 'Dealer' },
     ])

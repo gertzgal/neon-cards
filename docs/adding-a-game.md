@@ -76,9 +76,9 @@ The `definition` is the `GameDefinition` interface in architecture.md (Core data
 - **`legalActions(state, seat)` is the menu** the Table renders and policies pick from. Return `[]` for any seat that isn't `toAct`. An action that targets another seat (Freeze, Flip Three) carries the target inside the action.
 - **`apply()` is the authority.** Throw `IllegalActionError` (from the engine) for anything it rejects; the Worker answers 400.
 - **`view(state, seat)` hides everything that seat can't see:** the shoe order, and other seats' hidden cards. Events are public too: deal a hidden card as `faceDown(card)` (same id, `face: null`) and reveal it with a later event.
-- **Phases and rounds.** `phase()` is `'betting' | 'playing' | 'settling' | 'over'`; score games start in `'playing'`. Every action that leaves the game in `'settling'` (or moves it into `'over'`) ends exactly one round, and the platform calls `settle()` right then. `settle()` returns one `{seat, delta}` per seat, in points for score games. While `'settling'`, `toAct` may return the seat whose action starts the next round (Flip 7's "next round").
-- **`setup()` emits no events.** The Table renders the first view as the opening deal.
-- **`seats: {min, max}`** counts every seat `seatsFor` can return (Flip 7: 2 to 4).
+- **Phases and rounds.** `phase()` is `'betting' | 'playing' | 'settling' | 'over'`; score games start in `'playing'`. Every action that leaves the game in `'settling'` (or moves it into `'over'`) ends exactly one round, and the platform calls `settle()` right then. `settle()` returns one `{seat, delta}` per seat, in points for score games. While nobody can act, `opening()` may return the action that starts the next round (Flip 7's `nextRound`). Blackjack leaves `opening` unset and `toAct` stays on the player for the next bet.
+- **`setup()` emits no events.** A game that deals inside `setup` shows that deal as the first view. Flip 7 starts `ready` with an empty table, and the opening action deals.
+- **`seats: {min, max}`** counts every seat the roster can return, house seats included (Flip 7: 2 to 4). `house` is the dealer seats the roster appends. Score games use `house: []`.
 
 Test every rule and scoring case with a literal expected result in `src/rules/*.test.ts`, and run a whole round through the engine's `startMatch` / `act` / `replay` the way `packages/games/blackjack/src/rules/match.test.ts` does. Replay must rebuild the same state from the log without running a policy.
 
@@ -95,18 +95,11 @@ Optional, for e2e: accept a dev-only `config.rig` in `parseConfig` that stacks t
 
 ## 4. Seats
 
-`seatsFor(config)` builds the seat list in turn order from the parsed config:
+The roster builds the seat list. A game does not. `soloSeats(definition, config)` in `@neon-cards/engine` is the solo builder. It reads `opponents`, `difficulty`, and `position` from the parsed config.
 
-```ts
-seatsFor: ({ opponents, difficulty }) => [
-  { id: 'you', kind: 'human', name: 'You' },
-  ...Array.from({ length: opponents }, (_, i) => ({
-    id: `cpu-${i + 1}`, kind: 'cpu' as const, name: `CPU ${i + 1}`, difficulty,
-  })),
-]
-```
+Score games get one human `you` (name `You`), then `cpu-1` onward at that difficulty. `position: 'last'` puts the human after the CPUs. A definition with `house` seats (Blackjack) gets human `player` plus those house seats, and ignores `opponents`.
 
-There is exactly one `human` seat; the shell finds it by `kind`. `difficulty` appears only on `cpu` seats. House seats (a dealer) are played by your rules inside `apply()` and never get a policy.
+There is exactly one `human` seat in a solo game. The shell finds it by `kind`. `difficulty` appears only on `cpu` seats. House seats are played by the rules inside `apply()` and never get a policy. `setup(config, seats, rng)` receives the list. It does not build it.
 
 ## 5. CPU Policy
 
@@ -144,7 +137,7 @@ const defaultConfig: Flip7Config = { opponents: 2, difficulty: 'medium' }
 const parseConfig = (input: unknown) => parseSettings(settings, defaultConfig, input)
 ```
 
-- The flow is `POST /api/sessions {gameId, config}`, then `parseConfig` (a `ConfigError` is a 400), then `seatsFor(config)` and `setup(config, …)`.
+- The flow is `POST /api/sessions {gameId, config}`, then `parseConfig` (a `ConfigError` is a 400), then `soloSeats(definition, config)` and `setup(config, seats, rng)`.
 - `parseSettings` takes missing keys from the defaults and rejects values not on the list. It never coerces (`"3"` is not `3`). Parse your extras, such as `rig`, next to it.
 - The pre-game sheet pre-selects, per key, the remembered choice if it's still offered, else `defaultConfig`, else the first option. Pick a `defaultConfig` that is a good first game.
 - A game with no `settings` skips the sheet and deals straight in (Blackjack).
@@ -217,7 +210,7 @@ Then prove it with the verify skill: add `.cursor/skills/verify-neon-cards/featu
 - [ ] `packages/games/flip7` with `./rules` (no React) and `.` entrypoints
 - [ ] `definition` is pure JSON in and out, `view` hides hidden info, `apply` throws `IllegalActionError`
 - [ ] `definition.deck = flip7Deck`, shoe from `buildShoe`, only the given `rng`
-- [ ] `seatsFor` from config; a policy for each of easy, medium, and hard, tested
+- [ ] `house` on the definition; a policy for each of easy, medium, and hard, tested, when the roster can return CPU seats
 - [ ] `meta.settings` plus `parseConfig` via `parseSettings`, with a sensible `defaultConfig`
 - [ ] `plugin` with Table from kit primitives, `useBatchPlayback`, face renderer, juice map, and `hudIcons` in the top bar
 - [ ] One line in `apps/worker/src/games.ts` and one in `apps/web/src/games.ts`, plus both `package.json` deps

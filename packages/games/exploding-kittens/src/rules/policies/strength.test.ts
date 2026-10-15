@@ -1,4 +1,4 @@
-import { act, startMatch, type Difficulty, type SeatId } from '@neon-cards/engine'
+import { soloSeats, act, startMatch, type Difficulty, type SeatId } from '@neon-cards/engine'
 import { describe, expect, it } from 'vitest'
 import { explodingKittens } from '../definition'
 import { rules } from '../index'
@@ -31,7 +31,7 @@ function humanScript(view: EkView, legal: EkAction[]): EkAction {
 
 function play(seed: string, cpu1: Difficulty, cpu2: Difficulty): SeatId {
   const config = explodingKittens.parseConfig({ opponents: 2, difficulty: 'medium' })
-  let step = startMatch(rules, { config: config, seats: rules.definition.seatsFor(config), seed: seed })
+  let step = startMatch(rules, { config: config, seats: soloSeats(rules.definition, config), seed: seed })
   step = {
     ...step,
     match: {

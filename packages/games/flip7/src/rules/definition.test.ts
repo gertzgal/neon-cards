@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createRng, IllegalActionError } from '@neon-cards/engine'
+import { soloSeats, createRng, IllegalActionError } from '@neon-cards/engine'
 import { roundValue, scoreParts } from './cards'
 import { flip7, HUMAN } from './definition'
 import { RIGS } from './rigs'
@@ -26,11 +26,12 @@ function cpusStay(g: Game): Game {
 }
 
 describe('setup and the initial deal', () => {
-  it('starts ready, with the human to deal the first round and no cards out', () => {
+  it('starts ready, with nobody to act until the opening deal, and no cards out', () => {
     const { s } = table(RIGS.bust)
     expect(s.stage).toBe('ready')
-    expect(flip7.toAct(s)).toBe(HUMAN)
-    expect(flip7.legalActions(s, HUMAN)).toEqual([{ type: 'nextRound' }])
+    expect(flip7.toAct(s)).toBeNull()
+    expect(flip7.opening?.(s)).toEqual({ type: 'nextRound' })
+    expect(flip7.legalActions(s, HUMAN)).toEqual([])
     expect(flip7.phase(s)).toBe('playing')
     expect(s.draw).toHaveLength(94)
   })
@@ -46,12 +47,11 @@ describe('setup and the initial deal', () => {
     expect(pending(g)).toEqual({ kind: 'hitOrStay', seat: 'you' })
   })
 
-  it('picks a random first dealer when not rigged', () => {
+  it('deals from the last seat on every seed, so the first card goes to the first seat', () => {
     const config = flip7.parseConfig({})
-    const dealers = new Set(
-      ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map((seed) => flip7.setup(config, flip7.seatsFor(config), createRng(seed)).dealer),
-    )
-    expect(dealers.size).toBeGreaterThan(1)
+    const seats = soloSeats(flip7, config)
+    const dealers = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map((seed) => flip7.setup(config, seats, createRng(seed)).dealer)
+    expect(new Set(dealers)).toEqual(new Set([seats[seats.length - 1]?.id]))
   })
 })
 
@@ -59,7 +59,7 @@ describe('config and seats', () => {
   it('defaults to two medium CPUs and builds seats in turn order', () => {
     const config = flip7.parseConfig({})
     expect(config).toEqual({ opponents: 2, difficulty: 'medium' })
-    expect(flip7.seatsFor(flip7.parseConfig({ opponents: 3, difficulty: 'hard' }))).toEqual([
+    expect(soloSeats(flip7, flip7.parseConfig({ opponents: 3, difficulty: 'hard' }))).toEqual([
       { id: 'you', kind: 'human', name: 'You' },
       { id: 'cpu-1', kind: 'cpu', name: 'CPU 1', difficulty: 'hard' },
       { id: 'cpu-2', kind: 'cpu', name: 'CPU 2', difficulty: 'hard' },
@@ -142,8 +142,9 @@ describe('Flip 7', () => {
     expect(g.s.stage).toBe('roundOver')
     expect(g.s.totals).toEqual({ you: 43, 'cpu-1': 12, 'cpu-2': 12 })
     expect(g.s.rounds['you']?.flip7).toBe(true)
-    expect(flip7.toAct(g.s)).toBe(HUMAN)
-    expect(flip7.legalActions(g.s, HUMAN)).toEqual([{ type: 'nextRound' }])
+    expect(flip7.toAct(g.s)).toBeNull()
+    expect(flip7.opening?.(g.s)).toEqual({ type: 'nextRound' })
+    expect(flip7.legalActions(g.s, HUMAN)).toEqual([])
   })
 
   it('E5: an unused Second Chance is discarded when the round ends', () => {

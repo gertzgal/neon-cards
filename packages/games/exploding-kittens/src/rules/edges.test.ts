@@ -1,4 +1,4 @@
-import { act, createRng, replay, restoreRng, type Match } from '@neon-cards/engine'
+import { soloSeats, act, createRng, replay, restoreRng, type Match } from '@neon-cards/engine'
 import { describe, expect, it } from 'vitest'
 import { rules } from './index'
 import {
@@ -1069,7 +1069,7 @@ describe('conservation, privacy, illegal plays', () => {
     const rebuilt = replay({ ...rules, policies: { easy: spy, medium: spy, hard: spy } }, {
       seed: session.seed,
       config: session.config,
-      seats: rules.definition.seatsFor(session.config),
+      seats: soloSeats(rules.definition, session.config),
       log: session.log,
     })
     expect(rebuilt.match.state.draw.map((card) => card.id)).toEqual(session.state.draw.map((card) => card.id))

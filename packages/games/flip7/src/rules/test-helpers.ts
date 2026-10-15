@@ -1,4 +1,4 @@
-import { createRng, type Rng, type SeatId } from '@neon-cards/engine'
+import { createRng, soloSeats, type Rng, type SeatId } from '@neon-cards/engine'
 import { faceKey } from './cards'
 import { flip7 } from './definition'
 import type { F7Card, Flip7Action, Flip7Event, Flip7Face, Flip7State } from './types'
@@ -23,7 +23,7 @@ export function faceOf(key: string): Flip7Face {
 export function table(rig: string, opponents: 1 | 2 | 3 = 2, seed = 'test'): { s: Flip7State; rng: Rng } {
   const config = flip7.parseConfig({ opponents, rig })
   const rng = createRng(seed)
-  return { s: flip7.setup(config, flip7.seatsFor(config), rng), rng }
+  return { s: flip7.setup(config, soloSeats(flip7, config), rng), rng }
 }
 
 export interface Game {
@@ -43,7 +43,9 @@ export function game(rig: string, opponents: 1 | 2 | 3 = 2): Game {
 
 /** Applies one action for whoever is to act (or `seat`), asserting it is theirs to take. */
 export function play(g: Game, action: Flip7Action, seat?: SeatId): Game {
-  const who = seat ?? flip7.toAct(g.s)
+  const opening = flip7.opening?.(g.s)
+  const first = g.s.order[0]
+  const who = seat ?? flip7.toAct(g.s) ?? (opening && action.type === opening.type && first ? first : null)
   if (who === null) throw new Error('nobody is to act')
   const out = flip7.apply(g.s, who, action, g.rng)
   const last = out.events as Flip7Event[]

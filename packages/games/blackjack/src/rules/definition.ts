@@ -27,13 +27,6 @@ const HOLE_ID = 'hole'
 
 export const PLAYER = 'player'
 
-function seatsFor(): Seat[] {
-  return [
-    { id: PLAYER, kind: 'human', name: 'You' },
-    { id: DEALER, kind: 'house', name: 'Dealer' },
-  ]
-}
-
 /** Clients may only pick a dev rig; the server sets `bankroll` from the wallet. Everything else is house rules. */
 function parseConfig(input: unknown): BlackjackConfig {
   if (input === undefined || input === null) return { ...defaultConfig }
@@ -457,7 +450,7 @@ export const blackjack: GameDefinition<
   seats: { min: 2, max: 2 },
   defaultConfig,
   parseConfig,
-  seatsFor,
+  house: [{ id: DEALER, name: 'Dealer' }],
   setup,
   // The player can always act: bet, refill, or play the hand. The dealer plays inside apply().
   toAct: (state) => state.seat,

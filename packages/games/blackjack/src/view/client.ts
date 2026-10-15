@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import { createRng, type Rng } from '@neon-cards/engine'
+import { soloSeats, createRng, type Rng } from '@neon-cards/engine'
 import { blackjack, type BlackjackAction, type BlackjackState, type BlackjackView } from '../rules'
 import type { EventBatch, TableProps } from './contract'
 
@@ -16,9 +16,9 @@ export function useLocalSession(config: unknown, seed: number): TableProps<Black
   const [session] = useState<LocalSession>(() => {
     const rng = createRng(String(seed))
     const parsed = blackjack.parseConfig(config)
-    return { rng, state: blackjack.setup(parsed, blackjack.seatsFor(parsed), rng) }
+    return { rng, state: blackjack.setup(parsed, soloSeats(blackjack, parsed), rng) }
   })
-  const seats = blackjack.seatsFor(session.state.config)
+  const seats = soloSeats(blackjack, session.state.config)
   const seat = session.state.seat
   const [view, setView] = useState(() => blackjack.view(session.state, seat))
   const [events, setEvents] = useState<EventBatch>({ id: 0, events: [] })

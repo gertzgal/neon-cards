@@ -24,7 +24,7 @@ import {
   TARGET_SCORE,
   UNIQUE_TO_FLIP7,
 } from './cards'
-import { parseRig, rigForSeats } from './rigs'
+import { parseRig, rigForSeats, totalsForSeats } from './rigs'
 import type {
   F7Card,
   Flip7Action,
@@ -63,18 +63,6 @@ function parseConfig(input: unknown): Flip7Config {
   if (typeof rig !== 'string' || rig === '') throw new ConfigError('rig must be a non-empty string')
   parseRig(rig)
   return { opponents: config.opponents, difficulty: config.difficulty, rig }
-}
-
-function seatsFor(config: Flip7Config): Seat[] {
-  return [
-    { id: HUMAN, kind: 'human', name: 'You' },
-    ...Array.from({ length: config.opponents }, (_, i): Seat => ({
-      id: `cpu-${i + 1}`,
-      kind: 'cpu',
-      name: `CPU ${i + 1}`,
-      difficulty: config.difficulty,
-    })),
-  ]
 }
 
 const freshRound = (): SeatRound => ({ status: 'active', line: emptyLine(), flip7: false })
@@ -373,8 +361,9 @@ function startRound(ctx: Ctx) {
   run(ctx)
 }
 
-const toAct = (s: Flip7State): SeatId | null =>
-  s.stage === 'playing' ? (s.pending?.seat ?? null) : s.stage === 'gameOver' ? null : s.human
+const toAct = (s: Flip7State): SeatId | null => (s.stage === 'playing' ? (s.pending?.seat ?? null) : null)
+
+const opening = (s: Flip7State): Flip7Action | null => (s.stage === 'ready' || s.stage === 'roundOver' ? { type: 'nextRound' } : null)
 
 function legalActions(s: Flip7State, seat: SeatId): Flip7Action[] {
   if (toAct(s) !== seat) return []
@@ -395,7 +384,9 @@ function legalActions(s: Flip7State, seat: SeatId): Flip7Action[] {
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T
 
 function apply(state: Flip7State, seat: SeatId, action: Flip7Action, rng: Rng): { state: Flip7State; events: GameEvent[] } {
-  if (toAct(state) !== seat) throw new IllegalActionError(`"${seat}" is not to act`)
+  if (toAct(state) !== seat && !(opening(state) && action.type === 'nextRound' && seat === state.order[0])) {
+    throw new IllegalActionError(`"${seat}" is not to act`)
+  }
   const ctx: Ctx = { s: clone(state), events: [], rng }
   const { s } = ctx
   const p = s.pending
@@ -459,15 +450,15 @@ function setup(config: Flip7Config, seats: Seat[], rng: Rng): Flip7State {
   const order = seats.map((seat) => seat.id)
   const draw = buildShoe(flip7Deck, 1, rng)
   const rig = config.rig ? parseRig(config.rig) : null
-  const totals = Object.fromEntries(order.map((id) => [id, rig?.totals[id] ?? 0]))
+  const rigTotals = rig ? totalsForSeats(rig, seats) : {}
+  const totals = Object.fromEntries(order.map((id) => [id, rigTotals[id] ?? 0]))
   return {
     config,
     order,
-    human: seats.find((seat) => seat.kind === 'human')?.id ?? HUMAN,
     totals,
     round: 0,
-    // Rigged games deal the human first, so a rig's first face is the human's first card.
-    dealer: rig ? (order[order.length - 1] as SeatId) : (order[rng.int(order.length)] as SeatId),
+    // The last seat deals, so the first card goes to order[0].
+    dealer: order[order.length - 1] as SeatId,
     stage: 'ready',
     draw,
     discard: [],
@@ -525,14 +516,15 @@ function view(s: Flip7State, me: SeatId): Flip7View {
 export const flip7: GameDefinition<Flip7Config, Flip7State, Flip7Action, Flip7View, Flip7Face> = {
   id: 'flip7',
   name: 'Flip 7',
-  version: 1,
+  version: 2,
   deck: flip7Deck,
   seats: { min: 2, max: 4 },
+  house: [],
   defaultConfig,
   parseConfig,
-  seatsFor,
   setup,
   toAct,
+  opening,
   legalActions,
   apply,
   view,
