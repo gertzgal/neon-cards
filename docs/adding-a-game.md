@@ -209,7 +209,7 @@ Write `e2e/flip7*.spec.ts` against the real Worker and run it at phone 390x844 a
 - **Every moment, rigged.** Use `/games/flip7?rig=<name>` (rigged URLs always start fresh; `&seed=<s>` pins the CPU stream). Cover a bust on a repeat, bank, Freeze, Flip Three, Second Chance, the x2 and +N modifiers, the flip-7 bonus, and game over. Wait for playback to settle before asserting, e.g. on a `data-busy="false"` attribute on your table root.
 - **History.** After a round, `hud-settings` then `table-history` lands on `/history?game=flip7`, where `history-round` shows the round.
 
-Then prove it with the verify skill: add `.cursor/skills/verify-neon-cards/features/flip7.md` (test ids, rigs, `verify.sh drive` commands, gotchas), add its row to `features/README.md`, and run `scripts/verify.sh drive --path "/games/flip7?rig=…" …` at both viewports before merging.
+Then prove it with the verify skill: add `.cursor/skills/verify-neon-cards/features/flip7.md` (test ids, rigs, `verify.sh drive` commands, gotchas), add its row to `features/README.md`, and run `pnpm verify drive --path "/games/flip7?rig=…" …` at both viewports before merging.
 
 ## Checklist
 

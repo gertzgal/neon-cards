@@ -18,10 +18,10 @@
 
 Preconditions:
 
-- `scripts/verify.sh doctor` passes.
+- `pnpm verify doctor` passes.
 
-- **Screens.** Run `scripts/verify.sh drive --path "/ui-gallery.html?scene=table" --expect "hud-bankroll=\$1,250" --expect "player-total=16"`, then compare `phone.png` and `desktop.png` with `docs/reference/gal-minimal-mock.png`.
-- **Opponents.** Run `scripts/verify.sh drive --path "/ui-gallery.html?scene=opponents&n=3" --expect seat-cpu3`.
+- **Screens.** Run `pnpm verify drive --path "/ui-gallery.html?scene=table" --expect "hud-bankroll=\$1,250" --expect "player-total=16"`, then compare `phone.png` and `desktop.png` with `docs/reference/gal-minimal-mock.png`.
+- **Opponents.** Run `pnpm verify drive --path "/ui-gallery.html?scene=opponents&n=3" --expect seat-cpu3`.
 - **Juice.** Open `?scene=juice`, click `action-deal`, and wait for `juice-demo[data-playing=false]`. Expect `seat-cpu1-status=BUST`, `seat-cpu2-status=STAND`, and an empty `fx-layer`.
 - **Everything automated.** `BASE_URL=http://localhost:$PORT pnpm exec playwright test e2e/ui-gallery.spec.ts` covers the 3-seat Flip 7 table, both decks on the sheet, reduced-motion playback, and tappable action buttons. Paced CPU turns on the real shell are `e2e/shell-multiseat.spec.ts`. Lobby audio is `e2e/audio.spec.ts`.
 

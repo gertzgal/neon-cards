@@ -16,7 +16,7 @@
 
 Preconditions:
 
-- `scripts/verify.sh doctor` passes (doctor already calls this endpoint).
+- `pnpm verify doctor` passes (doctor already calls this endpoint).
 
 - **Health.** Run `curl -s http://localhost:$PORT/api/health`. Output is exactly `{"ok":true,"db":{"schema":"foundation"}}`.
 - **API 404.** Run `curl -s -o /dev/null -w "%{http_code}" http://localhost:$PORT/api/nope`. Output is `404`.

@@ -20,10 +20,10 @@
 
 Preconditions:
 
-- `scripts/verify.sh doctor` passes.
+- `pnpm verify doctor` passes.
 
-- **Setup.** `scripts/verify.sh drive --path /games/flip7 --click pregame-opponents-3 --click pregame-difficulty-hard --click pregame-play --expect seat-cpu-3 --expect action-hit`.
-- **Bust.** `scripts/verify.sh drive --path "/games/flip7?rig=bust" --click pregame-play --click action-hit --expect "tally=BUST"`.
+- **Setup.** `pnpm verify drive --path /games/flip7 --click pregame-opponents-3 --click pregame-difficulty-hard --click pregame-play --expect seat-cpu-3 --expect action-hit`.
+- **Bust.** `pnpm verify drive --path "/games/flip7?rig=bust" --click pregame-play --click action-hit --expect "tally=BUST"`.
 - **Full flows.** Every rig, resume, and the win are in `e2e/flip7.spec.ts`: `BASE_URL=http://localhost:$PORT pnpm exec playwright test e2e/flip7.spec.ts`.
 
 ## Gotchas

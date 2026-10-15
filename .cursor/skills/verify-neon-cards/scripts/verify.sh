@@ -13,6 +13,15 @@ SCRIPTS="$ROOT/.cursor/skills/verify-neon-cards/scripts"
 
 log() { printf '[verify:%s] %s\n' "$PORT" "$*" >&2; }
 
+# util-linux setsid where it exists; macOS has none, so fall back to perl's POSIX::setsid.
+new_session() {
+  if command -v setsid >/dev/null; then
+    setsid "$@"
+  else
+    perl -MPOSIX -e 'if (getpgrp() == $$) { fork and exit } POSIX::setsid() or die "setsid: $!"; exec @ARGV or die "exec: $!"' "$@"
+  fi
+}
+
 [[ -f "$RUN_DIR/evidence" && -z "${EVIDENCE_DIR_SET:-}" ]] && EVIDENCE_DIR=$(cat "$RUN_DIR/evidence")
 
 pgid() {
@@ -55,7 +64,7 @@ start() {
   echo "$EVIDENCE_DIR" >"$RUN_DIR/evidence"
   log "starting wrangler dev with a fresh local D1 ($PERSIST)"
   # The session leader records its own pid, which is also the process group id of the whole stack.
-  (cd "$ROOT" && PORT="$PORT" PERSIST_DIR="$PERSIST" RUN_DIR="$RUN_DIR" setsid sh -c \
+  (cd "$ROOT" && PORT="$PORT" PERSIST_DIR="$PERSIST" RUN_DIR="$RUN_DIR" new_session sh -c \
     'echo $$ >"$RUN_DIR/pgid"; exec pnpm --filter @neon-cards/worker start' \
     >"$RUN_DIR/stack.log" 2>&1 </dev/null &)
   for _ in $(seq 1 20); do [[ -s "$RUN_DIR/pgid" ]] && break; sleep 0.1; done

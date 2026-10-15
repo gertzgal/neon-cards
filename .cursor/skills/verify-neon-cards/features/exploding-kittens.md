@@ -21,10 +21,10 @@
 
 Preconditions:
 
-- `scripts/verify.sh doctor` passes.
+- `pnpm verify doctor` passes.
 
-- **Setup.** `scripts/verify.sh drive --path /games/exploding-kittens --click pregame-opponents-3 --click pregame-difficulty-hard --click pregame-play --expect seat-cpu-3 --expect action-draw --expect ek-table`.
-- **Defuse prompt.** `scripts/verify.sh drive --path "/games/exploding-kittens?rig=kitten" --click pregame-play --click action-draw --expect insert-0 --expect defuse-kitten`. Stop there. The next click hands the turn to a CPU.
+- **Setup.** `pnpm verify drive --path /games/exploding-kittens --click pregame-opponents-3 --click pregame-difficulty-hard --click pregame-play --expect seat-cpu-3 --expect action-draw --expect ek-table`.
+- **Defuse prompt.** `pnpm verify drive --path "/games/exploding-kittens?rig=kitten" --click pregame-play --click action-draw --expect insert-0 --expect defuse-kitten`. Stop there. The next click hands the turn to a CPU.
 
 ## Gotchas
 

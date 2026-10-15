@@ -17,6 +17,8 @@ Read `features/README.md` for the feature map, then the feature file you're prov
 
 It builds `apps/web`, wipes and migrates a private local D1 (`apps/worker/.wrangler/verify-$PORT`), and starts `wrangler dev` in its own process group on `PORT` (default `8790`, so it never collides with `pnpm dev` on 8787/5173). It's ready when it prints `[verify:8790] OK pgid=... health={"ok":true,...}`. It refuses to start if the port is held by something it didn't start; pick another with `PORT=8791`.
 
+It runs on Linux and macOS: the stack gets its own session from util-linux `setsid` where it exists, and from perl's `POSIX::setsid` on macOS, which has no `setsid`. `pnpm verify <cmd>` is the same launcher, and is what the feature files use.
+
 Run `pnpm i` first on a fresh checkout. Playwright's Chromium must be installed (`pnpm exec playwright install chromium`).
 
 ## Doctor

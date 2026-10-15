@@ -20,7 +20,7 @@ A game session lives on the server. `POST /api/sessions {gameId, config}` parses
 
 Preconditions:
 
-- `scripts/verify.sh doctor` passes. The verify stack runs with `DEV_RIG=1`, so `config.rig` works.
+- `pnpm verify doctor` passes. The verify stack runs with `DEV_RIG=1`, so `config.rig` works.
 
 ```sh
 J=/tmp/jar; U=http://localhost:$PORT/api; C="curl -s -c $J -b $J -H content-type:application/json"

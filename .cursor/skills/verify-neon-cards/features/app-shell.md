@@ -25,13 +25,13 @@ Every screen sits inside the UI kit stage (`neon-root`, with `stage`, the edge s
 
 Preconditions:
 
-- `scripts/verify.sh doctor` passes.
+- `pnpm verify doctor` passes.
 
-- **Lobby.** `scripts/verify.sh drive --expect "app-title=Neon Cards" --expect hud-bankroll --expect game-list`. Screenshots show the logo, wallet pill, and icons.
-- **Settings.** `scripts/verify.sh drive --click hud-settings --click setting-music-off --expect "settings=Settings"`. `report.json` lists `setting-music` with `data-value` `off`.
-- **History.** `scripts/verify.sh drive --path /history --expect history-list`.
-- **Not found.** `scripts/verify.sh drive --path /games/nope --expect "not-found=No game called"`.
-- **Blackjack round.** `scripts/verify.sh drive --path "/games/blackjack?rig=win" --click chip-25 --click action-deal --expect "hand-0-total=19"`. Every moment (stand, settle, wallet, history, resume) is `e2e/blackjack.spec.ts`.
+- **Lobby.** `pnpm verify drive --expect "app-title=Neon Cards" --expect hud-bankroll --expect game-list`. Screenshots show the logo, wallet pill, and icons.
+- **Settings.** `pnpm verify drive --click hud-settings --click setting-music-off --expect "settings=Settings"`. `report.json` lists `setting-music` with `data-value` `off`.
+- **History.** `pnpm verify drive --path /history --expect history-list`.
+- **Not found.** `pnpm verify drive --path /games/nope --expect "not-found=No game called"`.
+- **Blackjack round.** `pnpm verify drive --path "/games/blackjack?rig=win" --click chip-25 --click action-deal --expect "hand-0-total=19"`. Every moment (stand, settle, wallet, history, resume) is `e2e/blackjack.spec.ts`.
 - Full flows (persistence across reload, back navigation) are in `e2e/shell.spec.ts`: `BASE_URL=http://localhost:$PORT pnpm exec playwright test e2e/shell.spec.ts`.
 
 ## Gotchas

@@ -18,9 +18,9 @@ The Flip 7 readiness path in the real app, without Flip 7 rules. `/games/high-ca
 
 Preconditions:
 
-- `scripts/verify.sh doctor` passes.
+- `pnpm verify doctor` passes.
 
-- **Settings sheet.** `scripts/verify.sh drive --path /games/high-card --click pregame-opponents-3 --click pregame-difficulty-hard --click pregame-play --expect "opponent-rows" --expect seat-cpu-3`.
+- **Settings sheet.** `pnpm verify drive --path /games/high-card --click pregame-opponents-3 --click pregame-difficulty-hard --click pregame-play --expect "opponent-rows" --expect seat-cpu-3`.
 - **Full flow** (CPU turns before the human, paced beats, round end, history, resume, remembered settings): `BASE_URL=http://localhost:$PORT pnpm exec playwright test e2e/shell-multiseat.spec.ts`.
 
 ## Gotchas

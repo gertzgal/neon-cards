@@ -17,7 +17,7 @@ The maintained source for verifying what a Neon Cards player can see and do. Rea
 ## Baseline preconditions
 
 - `pnpm i` done; Chromium installed.
-- A stack started by `scripts/verify.sh start`, and `scripts/verify.sh doctor` passes.
+- A stack started by `pnpm verify start`, and `pnpm verify doctor` passes.
 - Fresh D1 per start. Never drive a stack this run didn't start.
 
 ## Driving conventions

@@ -550,3 +550,7 @@ A tap on Freeze, Flip Three, or Second Chance shows that one sentence. The card 
 ## Raise quality pass (Quality agent, 2026-10-15)
 
 Played `88bcd30` through `b30dc33`, then `fb22720`, on phone and desktop. A tap raises a card, a second tap lowers it, and Play sends the one action. The disabled reason "Need a matching pair." stays on one line inside the screen, and a disabled Play is flat grey (`b30dc33`). Escape with nothing raised passes a Nope window again (`f2915a7`). A tap on a held Freeze shows its sentence and does not pick a target (`fb22720`). Blackjack still deals with the hole down on the felt arc. The write-up and shots are in `docs/quality-report.md` and `docs/quality/raise-*`.
+
+## Verify runs on macOS (Platform, 2026-10-15)
+
+`verify.sh start` launched the stack with `setsid`, which is util-linux only, so on a Mac it died with `setsid: command not found` before `wrangler dev` came up. It now uses `setsid` when the command exists and otherwise perl's `POSIX::setsid` (forking first if it is already a group leader), so Linux runs the same command as before and the stack still gets its own process group for `stop`. The feature files wrote the launcher as `scripts/verify.sh`, which is relative to the skill folder and fails from the repo root; they now say `pnpm verify`, the root script that points at it. Proven on macOS with `pnpm verify all` (home) and `pnpm verify all --path "/ui-gallery.html?scene=table" --expect "hud-bankroll=\$1,250" --expect "player-total=16"`, both PASS on phone and desktop with the stack stopped after.

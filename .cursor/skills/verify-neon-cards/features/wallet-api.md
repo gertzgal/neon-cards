@@ -17,7 +17,7 @@ The first `/api/*` call that needs a player creates an anonymous one, sets it in
 
 Preconditions:
 
-- `scripts/verify.sh doctor` passes.
+- `pnpm verify doctor` passes.
 
 - **Cookie and start.** Run `curl -s -i -c /tmp/jar -b /tmp/jar http://localhost:$PORT/api/wallet`. Headers include `Set-Cookie: nc_player=...; HttpOnly; SameSite=Lax`; the body is `{"balance":1250}`. Repeat it: no `Set-Cookie`, same body.
 - **Refill.** Lose the bankroll through play (or, in `apps/worker/test`, set the balance directly), then read the wallet again.
