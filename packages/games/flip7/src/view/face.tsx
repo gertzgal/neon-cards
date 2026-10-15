@@ -1,58 +1,112 @@
+import type { CSSProperties, ReactNode } from 'react'
 import type { Flip7Face } from '@neon-cards/engine'
-import { bitmaps, CornerRanks, PixelSprite, pixelScale, toneColor, type CardFaceRenderer, type Tone } from '@neon-cards/ui'
+import { InkSprite, PixelSprite, fitScale, type CardFaceRenderer, type Tone } from '@neon-cards/ui'
+import { burstIcon, flipThreeIcon, freezeIcon, secondChanceIcon, wordBitmap } from './glyphs'
+import './face.css'
 
-const actionArt = {
-  freeze: { tone: 'cyan', bitmap: bitmaps.snowflake, label: 'FREEZE', corner: null },
-  flipThree: { tone: 'violet', bitmap: bitmaps.bolt, label: 'FLIP THREE', corner: '3' },
-  secondChance: { tone: 'pink', bitmap: bitmaps.shield, label: 'SECOND CHANCE', corner: null },
-} as const
+/** One hue per number, echoing the physical deck's rainbow. The numeral is that color. */
+const NUMBER_INK = [
+  '#d5d0e6',
+  '#ff4d3a',
+  '#ff8a1e',
+  '#ffe14a',
+  '#b6ff3c',
+  '#3dff8a',
+  '#2ef2ff',
+  '#7aa6ff',
+  '#c084ff',
+  '#ff2e88',
+  '#ff5a7a',
+  '#ff7a3c',
+  '#ffd23f',
+] as const
+
+const NUMBER_TONE: Tone[] = ['ink', 'pink', 'gold', 'gold', 'cyan', 'cyan', 'cyan', 'cyan', 'violet', 'pink', 'pink', 'gold', 'gold']
+
+const ADD_INK: Record<2 | 4 | 6 | 8 | 10, string> = {
+  2: '#5dffa8',
+  4: '#3dff6a',
+  6: '#2ee6c8',
+  8: '#7fd7ff',
+  10: '#ffd23f',
+}
+
+const ACTION = {
+  freeze: { tone: 'cyan' as const, ink: '#9af6ff', words: ['FREEZE'], icon: freezeIcon },
+  flipThree: { tone: 'gold' as const, ink: '#ffe14a', words: ['FLIP', 'THREE'], icon: flipThreeIcon },
+  secondChance: { tone: 'cyan' as const, ink: '#7dff6a', words: ['SECOND', 'CHANCE'], icon: secondChanceIcon },
+}
+
+const FIELD = '#0c0a12'
 
 /** What a card shows: the number, "+4", "×2". Action cards draw a sprite instead. */
 export function faceText(face: Flip7Face): string {
   if (face.kind === 'number') return String(face.value)
-  if (face.kind === 'modifier') return face.op === 'add' ? `+${face.value}` : '×2'
-  return actionArt[face.action].label
+  if (face.kind === 'modifier') return face.op === 'add' ? `+${face.value}` : '\u00d72'
+  return ACTION[face.action].words.join(' ')
 }
 
 export function faceTone(face: Flip7Face): Tone {
-  if (face.kind === 'modifier') return 'gold'
-  if (face.kind === 'action') return actionArt[face.action].tone
-  return face.value <= 4 ? 'cyan' : face.value <= 8 ? 'violet' : 'pink'
+  if (face.kind === 'number') return NUMBER_TONE[face.value] ?? 'ink'
+  if (face.kind === 'modifier') return face.op === 'times' ? 'gold' : 'cyan'
+  return ACTION[face.action].tone
+}
+
+export function faceInk(face: Flip7Face): string {
+  if (face.kind === 'number') return NUMBER_INK[face.value] ?? NUMBER_INK[0]
+  if (face.kind === 'modifier') return face.op === 'add' ? ADD_INK[face.value] : '#fff3b0'
+  return ACTION[face.action].ink
+}
+
+function shell(ink: string, className: string, children: ReactNode) {
+  const style = { '--f7-ink': ink, '--f7-field': FIELD } as CSSProperties
+  return (
+    <div className={className} style={style}>
+      {children}
+    </div>
+  )
 }
 
 export const flip7Face: CardFaceRenderer<Flip7Face> = {
   deck: 'flip7',
   tone: faceTone,
+  accent: faceInk,
   label: faceText,
   render(face, { widthPx, size }) {
-    const color = toneColor[faceTone(face)]
+    const ink = faceInk(face)
     if (face.kind === 'action') {
-      const art = actionArt[face.action]
-      return (
+      const art = ACTION[face.action]
+      const longest = Math.max(...art.words.map((word) => wordBitmap(word)[0]?.length ?? 1))
+      const wordScale = fitScale(widthPx, longest, 0.9)
+      // A phone-sized opponent card is too short for a second line of pixel type.
+      const showWords = widthPx >= 72
+      const iconScale = fitScale(widthPx, art.icon[0]?.length ?? 1, showWords ? (size === 'compact' ? 0.58 : 0.46) : 0.84)
+      return shell(
+        ink,
+        'f7-face f7-face-action',
         <>
-          {art.corner && size !== 'compact' && <CornerRanks text={art.corner} />}
-          <div className="nc-face-center">
-            <PixelSprite bitmap={art.bitmap} color={color} scale={pixelScale(widthPx, art.bitmap[0].length, 0.5)} />
-          </div>
-        </>
+          <InkSprite bitmap={art.icon} inks={{ K: ink }} scale={iconScale} />
+          {showWords &&
+            art.words.map((word) => <InkSprite key={word} bitmap={wordBitmap(word)} inks={{ X: ink }} scale={wordScale} />)}
+        </>,
       )
     }
     const text = faceText(face)
-    return (
+    const numeral = face.kind === 'number'
+    const fontSize = widthPx * (text.length > 2 ? 0.4 : text.length > 1 ? 0.52 : numeral ? 0.78 : 0.58)
+    return shell(
+      ink,
+      numeral ? 'f7-face f7-face-num' : 'f7-face f7-face-mod',
       <>
-        {size !== 'compact' && <CornerRanks text={text} />}
-        <div
-          className="nc-face-center"
-          style={{
-            fontSize: widthPx * (text.length > 2 ? 0.42 : text.length > 1 ? 0.56 : 0.66),
-            lineHeight: 0.8,
-            color,
-            textShadow: `0 0 8px ${color}, 0 0 2px ${color}`,
-          }}
-        >
+        {!numeral && (
+          <div className="f7-burst">
+            <PixelSprite bitmap={burstIcon} color={ink} scale={fitScale(widthPx, burstIcon[0]?.length ?? 1, 0.86)} glow={false} />
+          </div>
+        )}
+        <span className="f7-face-mark" style={{ fontSize }}>
           {text}
-        </div>
-      </>
+        </span>
+      </>,
     )
   },
 }

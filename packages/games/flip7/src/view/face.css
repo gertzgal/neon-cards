@@ -1,0 +1,45 @@
+.f7-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4%;
+  background:
+    radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1.2px),
+    radial-gradient(circle at 50% 44%, color-mix(in srgb, var(--f7-ink) 58%, #14121c) 0%, var(--f7-field) 74%);
+  background-size:
+    4px 4px,
+    auto;
+  box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--f7-ink) 82%, transparent);
+  color: var(--f7-ink);
+  text-shadow:
+    0 0 8px var(--f7-ink),
+    0 0 2px var(--f7-ink);
+  line-height: 0.78;
+}
+
+.f7-face-num,
+.f7-face-mod {
+  font-weight: normal;
+}
+
+.f7-face-mod {
+  box-shadow:
+    inset 0 0 0 3px color-mix(in srgb, var(--f7-ink) 88%, transparent),
+    inset 0 0 0 8px color-mix(in srgb, var(--f7-ink) 28%, transparent);
+}
+
+.f7-burst {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  transform: translate(-50%, -50%);
+  opacity: 0.55;
+}
+
+.f7-face-mark {
+  position: relative;
+  z-index: 1;
+}

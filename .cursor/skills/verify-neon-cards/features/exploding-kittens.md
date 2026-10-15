@@ -1,6 +1,6 @@
 # Exploding Kittens
 
-`/games/exploding-kittens` opens the pre-game sheet. Opponents are 1, 2, or 3 CPUs, default 2. Difficulty is Easy, Medium, or Hard. Play shows your eight cards face up and a count of backs for each CPU. Draw, or play a card. A Nope window stops on you when you hold a Nope and the card is not yours, so you can Nope a CPU card and Nope a Nope. Opponents are a count only. See the Future and a planted kitten index show only for you. You choose where a defuse puts the kitten. A CPU's slot never reaches the client. The only words painted as juice are NOPE and BOOM. Last one alive wins. There is no wallet.
+`/games/exploding-kittens` opens the pre-game sheet. Opponents are 1, 2, or 3 CPUs, default 2. Difficulty is Easy, Medium, or Hard. Play shows your eight cards face up and a count of backs for each CPU. Draw, or play a card. A Nope window stops on you when you hold a Nope and the card is not yours, so you can Nope a CPU card and Nope a Nope. Opponents are a count only. See the Future and a planted kitten index show only for you. You choose where a defuse puts the kitten. A CPU's slot never reaches the client. The only words painted as juice are NOPE and BOOM. Each face shows its title, a pixel scene, a one-line rule, and that card's color. Last one alive wins. There is no wallet.
 
 ## Sub-features
 

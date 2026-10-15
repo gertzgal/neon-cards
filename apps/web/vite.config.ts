@@ -11,6 +11,7 @@ export default defineConfig({
       input: {
         index: fileURLToPath(new URL('index.html', import.meta.url)),
         gallery: fileURLToPath(new URL('ui-gallery.html', import.meta.url)),
+        faces: fileURLToPath(new URL('card-faces.html', import.meta.url)),
       },
     },
   },

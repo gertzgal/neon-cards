@@ -1,0 +1,47 @@
+.ek-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(circle at 50% 46%, color-mix(in srgb, var(--ek-ink) 34%, transparent), transparent 62%),
+    var(--ek-field);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ek-ink) 72%, transparent);
+  color: var(--ek-ink);
+}
+
+.ek-face-title {
+  flex: none;
+  padding: 7% 6% 4%;
+  border-bottom: 2px solid color-mix(in srgb, var(--ek-ink) 65%, transparent);
+  text-align: center;
+  line-height: 0.85;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 6px var(--ek-ink);
+}
+
+.ek-face-art {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+}
+
+.ek-face-rule {
+  flex: none;
+  padding: 4% 7% 7%;
+  border-top: 2px solid color-mix(in srgb, var(--ek-ink) 45%, transparent);
+  color: #f4f0ff;
+  text-align: center;
+  line-height: 0.92;
+  text-wrap: balance;
+}
+
+.ek-face-compact .ek-face-rule {
+  display: none;
+}
+
+.ek-face-compact .ek-face-title {
+  padding: 6% 4% 2%;
+  border-bottom: 0;
+}

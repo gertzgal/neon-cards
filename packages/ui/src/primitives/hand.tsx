@@ -1,7 +1,6 @@
 import type { CSSProperties } from 'react'
 import type { CardSize, HandProps } from '../api'
-import { toneColor } from '../theme/tokens'
-import { PlayingCard } from './playing-card'
+import { PlayingCard, cardAccent } from './playing-card'
 import { useTableMetrics, type Size } from './metrics'
 
 export interface SlotPlacement {
@@ -80,7 +79,7 @@ export function Hand<Face>({ cards, renderer, size = 'hand', layout, maxWidth, s
                 height: fitted.h,
                 zIndex: i,
                 transform: `translate(${slot.x}px, ${slot.y}px) rotate(${slot.rotate}deg)`,
-                '--nc-c': toneColor[c.face === null ? 'pink' : renderer.tone(c.face)],
+                '--nc-c': cardAccent(renderer, c.face),
               } as CSSProperties
             }
           >

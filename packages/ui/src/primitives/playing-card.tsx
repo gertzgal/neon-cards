@@ -1,7 +1,13 @@
 import type { CSSProperties } from 'react'
-import type { PlayingCardProps } from '../api'
+import type { CardFaceRenderer, PlayingCardProps } from '../api'
 import { toneColor } from '../theme/tokens'
 import { useTableMetrics, type Size } from './metrics'
+
+/** Rim and glow color for a face. Face-down cards stay pink. */
+export function cardAccent<Face>(renderer: CardFaceRenderer<Face>, face: Face | null): string {
+  if (face === null) return toneColor.pink
+  return renderer.accent?.(face) ?? toneColor[renderer.tone(face)]
+}
 
 /** Frame variables shared by the card rim, the notched pixel corners, and the corner ranks. */
 export function cardFrameStyle({ w, h }: Size): CSSProperties {
@@ -30,7 +36,6 @@ export function PlayingCard<Face>({ card, renderer, size = 'hand', state, box: f
   const box = fitted ?? metrics.card[size]
   const face = card.face
   const faceDown = face === null
-  const tone = face === null ? 'pink' : renderer.tone(face)
   return (
     <div
       className={`nc-card${faceDown ? ' nc-card-back' : ''}`}
@@ -38,7 +43,7 @@ export function PlayingCard<Face>({ card, renderer, size = 'hand', state, box: f
       data-face={faceDown ? 'down' : 'up'}
       data-state={state}
       aria-label={face === null ? 'face-down card' : renderer.label(face)}
-      style={{ ...cardFrameStyle(box), '--nc-c': toneColor[tone] } as CSSProperties}
+      style={{ ...cardFrameStyle(box), '--nc-c': cardAccent(renderer, face) } as CSSProperties}
     >
       <div className="nc-card-in">{face !== null && renderer.render(face, { size, widthPx: box.w })}</div>
     </div>

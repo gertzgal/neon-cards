@@ -21,6 +21,8 @@ export interface CardFaceRenderer<Face = unknown> {
   deck: string
   /** Neon accent for the rim, glow and ink of this face. */
   tone(face: Face): Tone
+  /** Rim color when the face needs a hue outside the five tones. Defaults to `tone`. */
+  accent?(face: Face): string
   /** Short readable label for aria-label and test assertions, e.g. "8♥", "+4", "FREEZE". */
   label(face: Face): string
   render(face: Face, ctx: FaceRenderContext): ReactNode

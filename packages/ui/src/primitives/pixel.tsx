@@ -64,3 +64,60 @@ export function PixelSprite({ bitmap, color, scale, glow = true }: PixelSpritePr
 export function pixelScale(widthPx: number, bitmapWidth: number, fraction = 0.5): number {
   return Math.max(1, Math.round((widthPx * fraction) / bitmapWidth))
 }
+
+/** Like `pixelScale`, but never rounds up past `fraction` of the card. */
+export function fitScale(widthPx: number, bitmapWidth: number, fraction: number): number {
+  return Math.max(1, Math.floor((widthPx * fraction) / Math.max(1, bitmapWidth)))
+}
+
+export interface InkSpriteProps {
+  bitmap: Bitmap
+  /** Bitmap characters other than `.`. */
+  inks: Record<string, string>
+  scale: number
+  glow?: boolean
+}
+
+/** A sprite with more than one ink. `.` is empty. Unknown characters are empty. */
+export function InkSprite({ bitmap, inks, scale, glow = false }: InkSpriteProps) {
+  const w = bitmap[0]?.length ?? 0
+  const h = bitmap.length
+  const groups = new Map<string, { x: number; y: number; w: number }[]>()
+  bitmap.forEach((row, y) => {
+    let start = -1
+    let ch = ''
+    const flush = (x: number) => {
+      if (start < 0) return
+      const list = groups.get(ch) ?? []
+      list.push({ x: start, y, w: x - start })
+      groups.set(ch, list)
+      start = -1
+    }
+    for (let x = 0; x <= row.length; x++) {
+      const c = row[x] ?? '.'
+      const lit = c !== '.' && inks[c] !== undefined
+      if (lit && c === ch && start >= 0) continue
+      flush(x)
+      if (lit) {
+        start = x
+        ch = c
+      }
+    }
+  })
+  const primary = Object.values(inks)[0] ?? '#fff'
+  return (
+    <svg
+      className="nc-sprite"
+      width={w * scale}
+      height={h * scale}
+      viewBox={`0 0 ${w} ${h}`}
+      shapeRendering="crispEdges"
+      style={glow ? { filter: `drop-shadow(0 0 ${Math.max(2, scale)}px ${primary})` } : undefined}
+      aria-hidden
+    >
+      {[...groups.entries()].map(([ch, rects]) =>
+        rects.map((r) => <rect key={`${ch}-${r.x}-${r.y}`} x={r.x} y={r.y} width={r.w + 0.02} height={1.02} fill={inks[ch]} />),
+      )}
+    </svg>
+  )
+}
