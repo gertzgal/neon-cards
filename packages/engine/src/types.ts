@@ -65,6 +65,11 @@ export interface GameDefinition<Config, State, Action, View, Face> {
   legalActions(state: State, seat: SeatId): Action[]
   /** Never mutates `state`. Throws IllegalActionError for anything it rejects. */
   apply(state: State, seat: SeatId, action: Action, rng: Rng): { state: State; events: GameEvent[] }
+  /**
+   * The action that opens a round when nobody is to act. Null while a hand is in progress.
+   * Absent until a game opts in. The room calls this. The CPU loop does not.
+   */
+  opening?(state: State): Action | null
   /** Must hide hidden information (hole card, shoe order, other seats' hidden cards). */
   view(state: State, seat: SeatId): View
   phase(state: State): GamePhase
@@ -125,6 +130,11 @@ export interface ActionRecord<Action = unknown> {
   seq: number
   seat: SeatId
   action: Action
+  /**
+   * Who chose the action when it was applied. Replay uses this instead of the seat's later kind.
+   * Logs written before this field existed omit it. Replay then uses the seat's kind.
+   */
+  kind?: 'human' | 'cpu'
 }
 
 export interface Step<Config = unknown, State = unknown, Action = unknown> {

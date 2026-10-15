@@ -78,7 +78,7 @@ export function step(session: Session, action: EkAction, seat: SeatId | null = e
 }
 
 export function expectReplay(session: Session): void {
-  const out = replay(rules, { seed: session.seed, config: session.config, log: session.log })
+  const out = replay(rules, { seed: session.seed, config: session.config, seats: rules.definition.seatsFor(session.config), log: session.log })
   expect(out.events.filter((event) => event.type !== 'turn')).toEqual(session.events)
   expect(out.match.state.draw.map((card) => card.id)).toEqual(session.state.draw.map((card) => card.id))
   for (const seat of session.state.order) {

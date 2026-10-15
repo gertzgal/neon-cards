@@ -3,7 +3,8 @@ import { expect, test, type Page } from './fixtures'
 const table = (page: Page) => page.getByTestId('flip7-table')
 
 async function settled(page: Page) {
-  await expect(table(page)).toHaveAttribute('data-busy', 'false', { timeout: 15_000 })
+  // An unrigged 3-CPU deal can play a long CPU run before the human. Phone CI playback exceeds 15s on that seed.
+  await expect(table(page)).toHaveAttribute('data-busy', 'false', { timeout: 45_000 })
 }
 
 /** Opens Flip 7 through the pre-game sheet, optionally rigged, and waits for the opening deal to finish. */
@@ -38,6 +39,8 @@ test('the setup sheet seats the chosen number of CPUs; only numbers on the table
   for (const seat of ['cpu-1', 'cpu-2', 'cpu-3']) await expect(page.getByTestId(`seat-${seat}`)).toBeVisible()
   await expect(page.getByTestId('seat-cpu-4')).toHaveCount(0)
   await expect(page.getByTestId('hud-total')).toHaveAttribute('data-value', '0')
+  // A dealt action card keeps its sentence on the felt for about two seconds. Wait it out, then require a quiet table.
+  await expect(page.getByTestId('card-rule')).toHaveCount(0)
   const words = (await table(page).innerText()).match(/[A-Za-z]{2,}/g) ?? []
   expect(words.filter((w) => !['FLIP', 'BUST'].includes(w))).toEqual([])
   await page.screenshot({ path: testInfo.outputPath('setup-3-cpus.png') })

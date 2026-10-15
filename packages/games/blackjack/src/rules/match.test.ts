@@ -7,7 +7,7 @@ type BjStep = Step<BlackjackConfig, BlackjackState, BlackjackAction>
 
 function session(config: unknown, ...actions: BlackjackAction[]) {
   const parsed = rules.definition.parseConfig(config)
-  let step: BjStep = startMatch(rules, parsed, 'seed-1')
+  let step: BjStep = startMatch(rules, { config: parsed, seats: rules.definition.seatsFor(parsed), seed: 'seed-1' })
   const steps = [step]
   for (const action of actions) {
     step = act(rules, step.match, 'player', action)
@@ -64,7 +64,7 @@ describe('blackjack through the engine match runtime', () => {
 
   it('replays a session from seed, config, and log to the same state, events, and rounds', () => {
     const parsed = rules.definition.parseConfig({})
-    let last: BjStep = startMatch(rules, parsed, 'seed-1')
+    let last: BjStep = startMatch(rules, { config: parsed, seats: rules.definition.seatsFor(parsed), seed: 'seed-1' })
     const live: BjStep[] = []
     while (last.match.state.round < 6 || rules.definition.phase(last.match.state) === 'playing') {
       const view = rules.definition.view(last.match.state, 'player')
@@ -76,7 +76,7 @@ describe('blackjack through the engine match runtime', () => {
       live.push(last)
     }
     expect(live.length).toBeGreaterThan(12)
-    const again = replay(rules, { seed: 'seed-1', config: parsed, log: log(live), version: rules.definition.version })
+    const again = replay(rules, { seed: 'seed-1', config: parsed, seats: rules.definition.seatsFor(parsed), log: log(live), version: rules.definition.version })
     expect(again.match).toEqual(last.match)
     expect(again.events).toEqual(live.flatMap((s) => s.events))
     expect(again.rounds).toEqual(roundNets(live))
