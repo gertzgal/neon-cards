@@ -1,5 +1,58 @@
 # Quality report
 
+Current with main `fb227208b5255b14a5988266f4af1c96ab61df16` (2026-10-15). Judged from `88bcd30` through `b30dc33`, and the held-sentence fix on this SHA, phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app). No console errors.
+
+## Raise, then Play
+
+`88bcd30` raises a card in place. A second tap lowers it. Play, on the right, sends the one action. The rule is one sentence above the hand. Exploding Kittens and Flip 7 hands are a straight row. Blackjack stays a fan. The inspect panel is gone.
+
+Played on `88bcd30` with Exploding Kittens seed `ek-gap-open` (two Medium CPUs), Flip 7, and the blackjack rigs. The disabled reason was played again on the build that includes `b30dc33`. Escape and a held Freeze were played again on `fb22720`.
+
+### Exploding Kittens
+
+Rest. No sentence, no Play, no inspect panel. The hand is a strip on one baseline (phone y 504, desktop y 564). A still cursor on Shuffle does not raise it and does not open a rule.
+
+The first tap on Shuffle raises it (`translate(0, -36)`), shows "Shuffle the draw pile.", and leaves Play enabled. That tap sends nothing. The sentence stays off the draw pile (overlap 0). Play stays off the hand (overlap 0). A second tap lowers the card, hides the sentence and Play, and leaves the discard at 0. Play discards it: hand 8 → 7, discard 0 → 1. Draw takes the pile 29 → 26 and the hand 7 → 8, with no sentence of its own.
+
+Two different titles disable Play. The reason text is "Need a matching pair." On `88bcd30` that line drew past the right edge and read as "Need a matching pai" on both viewports. [#73](https://github.com/gertzgal/neon-cards/pull/73) (`b30dc33`) keeps the full sentence on one row and paints a disabled Play flat grey. Retested on `fb22720`. `white-space` is `nowrap` and the line does not scroll. Phone box is x 259, y 601, 123×16, ending at x 382 inside 390. Desktop box is x 1267, y 683, 165×22, ending at x 1432 inside 1440. The disabled button is color rgb(109, 103, 128), background rgb(20, 16, 28), border rgb(58, 51, 72), no shadow, no filter, opacity 1. Phone button is x 214, y 623, 168×84. Desktop button is x 1232, y 711, 200×96. One raised card enables Play: a white label and a pink glow, `rgba(255, 46, 136, 0.8) 0 0 18px`.
+
+A pair of Cattermelons raises without a POST, says "Pick a player.", and a seat tap enables Play without sending. Play sends the pair. Medium nopes it, so the hand goes 8 → 6. Favor raises with "Another player gives you one card." and "Pick a player." Play sends `{ "type": "favor", "target": "cpu-1" }` and the hand stays 8.
+
+Nope has no separate button. Two taps do not send. The sentence is "Stop the card that was just played." Escape with Nope raised lowers it and leaves the window open. On `88bcd30` a second Escape stayed on `nope`. P passed. The key handler's DOM node was named `target`, which shadowed the picked seat, so Escape always cleared and returned. [#72](https://github.com/gertzgal/neon-cards/pull/72) (`f2915a7`) passes on the second Escape. Retested on `fb22720`: the first Escape lowers Nope and `data-pending` stays `nope`; the second Escape returns the table to `turn`.
+
+The phone strip shows Shuffle at 150px and 82px of the next Cattermelon. The rest wait until the strip scrolls, which reveals Defuse at 150px. A scrolled card still raises. Desktop shows all eight cards at 180px. The hand ends at y 707 on the phone and y 807 on desktop. The draw button starts at y 774 and y 822. Overlap 0.
+
+### Flip 7
+
+Rest on `you=8,+10`, one Easy CPU. No sentence, no inspect panel, strip layout. A still cursor on the 8, and a tap on the 8, show nothing. +10 and ×2 show nothing. A drawn Freeze sentence hides on its own. Once it had hidden, a tap on the Freeze waiting in the middle showed nothing: that card is not on a seat. [#74](https://github.com/gertzgal/neon-cards/pull/74) (`fb22720`) looks at the card in the middle and a card set aside. The tap does not pick a target. Retested on both viewports: the sentence is "That player banks their score and sits this round out." and `data-pending` stays `target`. A bust still marks `seat-you` busted and the stage `roundOver`. Hit still draws.
+
+### Blackjack
+
+The raise diff does not touch blackjack. The fan stays. A $25 deal on rig `win` is stage `playing`, hole down, bank `$1,250`, with no inspect panel and no rule sentence.
+
+The same player then ran the rigs, so later pill totals are not a fresh 1,250. History nets, newest first, are 50, 50, 0, −25, −50, 37, −50, 100, 150, 100, 50, −25. Oldest first: a $25 hit loss, a $50 stand (+50, and `data-last-net` was 50), double (+100), split eights (+150), split aces at 1:1 (+100), bust (−50), a natural on $25 (+37), dealer blackjack (−50), a ten-up stand (−25), an ace-up push (0), the resumed stand (+50), and the rebet stand (+50). Ten-up (`10H,10C,6S,7D`) and ace-up (`9H,AH,8S,6D`) keep the hole hidden while the stage is `playing`. Split aces settle to betting before the two hands can be counted on the felt. Reload on the plain path brings back 10♥, 9♠ against 9♣ and a hole card, the `win` rig. Rebet stays 50. A fresh player who loses 1,250 refills to pill 1,250, wallet 1,250, felt 0, with history −1,250.
+
+Nothing else from this pass is open. The phone Exploding Kittens strip still shows one full card and a peek, then scrolls. That is the straight row from `88bcd30`.
+
+![Phone, Exploding Kittens at rest](quality/raise-phone-ek-rest.jpg)
+![Phone, Shuffle raised](quality/raise-phone-ek-raised.jpg)
+![Phone, disabled Play](quality/raise-phone-ek-reason.jpg)
+![Desktop, Exploding Kittens at rest](quality/raise-desktop-ek-rest.jpg)
+![Desktop, Shuffle raised](quality/raise-desktop-ek-raised.jpg)
+![Desktop, disabled Play](quality/raise-desktop-ek-reason.jpg)
+![Phone, Flip 7 at rest](quality/raise-phone-f7-rest.jpg)
+![Phone, the 8](quality/raise-phone-f7-number.jpg)
+![Phone, held Freeze](quality/raise-phone-f7-action.jpg)
+![Phone, Flip 7 bust](quality/raise-phone-f7-bust.jpg)
+![Desktop, Flip 7 at rest](quality/raise-desktop-f7-rest.jpg)
+![Desktop, the 8](quality/raise-desktop-f7-number.jpg)
+![Desktop, held Freeze](quality/raise-desktop-f7-action.jpg)
+![Desktop, Flip 7 bust](quality/raise-desktop-f7-bust.jpg)
+![Phone, blackjack deal](quality/raise-phone-bj-deal.jpg)
+![Desktop, blackjack deal](quality/raise-desktop-bj-deal.jpg)
+
+The earlier passes below were on the SHAs named there.
+
 Current with main `6105ebb8ce6a1c54dc2db0210bcd2377804be539` (2026-10-15). Judged on that SHA, phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app). `6105ebb` is [#69](https://github.com/gertzgal/neon-cards/pull/69), the fix for the pass on `37edf43`. No console errors.
 
 ## Press to read

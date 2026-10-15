@@ -546,3 +546,7 @@ The disabled reason was drawing past the right edge, so "Need a matching pair." 
 ## A held action can be read (Quality, 2026-10-15)
 
 A tap on Freeze, Flip Three, or Second Chance shows that one sentence. The card waiting in the middle, and a card set aside, were not on a seat, so the tap found nothing once the drawn sentence had hidden. The tap looks at those cards too. It does not pick a target. A number or a modifier still shows nothing.
+
+## Raise quality pass (Quality agent, 2026-10-15)
+
+Played `88bcd30` through `b30dc33`, then `fb22720`, on phone and desktop. A tap raises a card, a second tap lowers it, and Play sends the one action. The disabled reason "Need a matching pair." stays on one line inside the screen, and a disabled Play is flat grey (`b30dc33`). Escape with nothing raised passes a Nope window again (`f2915a7`). A tap on a held Freeze shows its sentence and does not pick a target (`fb22720`). Blackjack still deals with the hole down on the felt arc. The write-up and shots are in `docs/quality-report.md` and `docs/quality/raise-*`.
