@@ -59,6 +59,8 @@ Not in this PR: `src/rules/policies/`, `src/view/`. Registry lines stay the tabl
 
 ## Landing
 
+- PR: https://github.com/gertzgal/neon-cards/pull/57
 - Branch: `cursor/exploding-kittens-rules-402a`
+- Rules commit: `619f942427c81d37ea4a7fa9633920848da026a4`
 - `docs/architecture.md`: unchanged
-- Merge: fast-forward `main` to the PR head that CI tested. The main SHA is that head after the push.
+- Merge: fast-forward `main` to the PR head that CI tested. That head is the commit that adds this landing note. The main SHA is that head after the push.
