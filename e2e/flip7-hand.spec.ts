@@ -84,6 +84,10 @@ async function badgeProblems(page: Page): Promise<string[]> {
     const right = Math.max(...cards.map((card) => card.right))
     const mid = (left + right) / 2
     if (Math.abs(mid - viewport.width / 2) > 28) bad.push(`row center ${Math.round(mid)}`)
+    const badgeMid = badge.x + badge.width / 2
+    if (badgeMid < left - 4 || badgeMid > right + 4) {
+      bad.push(`badge center ${Math.round(badgeMid)} is beside the cards ${Math.round(left)}..${Math.round(right)}`)
+    }
     const first = cards[0]
     const second = cards[1]
     if (first && second) {

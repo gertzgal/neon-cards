@@ -236,12 +236,28 @@
   pointer-events: none;
 }
 
-/* The score sits with the progress marks, centered above the cards. Nothing sits beside the row. */
+/* The score is centered on the hand. The progress marks sit just to its left, in the same band above the cards. */
 .f7-head {
-  display: flex;
+  justify-self: stretch;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: center;
-  gap: 10px;
+  column-gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 8px;
+}
+
+.f7-head .f7-slots {
+  justify-self: stretch;
+  justify-content: flex-end;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.f7-head .nc-badge {
+  justify-self: center;
 }
 
 .f7-me .nc-player {
@@ -269,7 +285,9 @@
 }
 
 .f7-slots i {
+  flex: 0 1 18px;
   width: 18px;
+  min-width: 8px;
   height: 8px;
   border: 2px solid rgba(255, 46, 136, 0.45);
   background: transparent;
