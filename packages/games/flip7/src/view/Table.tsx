@@ -24,20 +24,10 @@ import {
   type TableProps,
 } from '@neon-cards/ui'
 import { hasAnyCard, roundValue, type F7Card, type Flip7Action, type Flip7View, type RoundScore } from '../rules'
-import { applyEvent, displayFromView, type Display, type DisplaySeat } from './display'
+import { applyEvent, cardOnTable, displayFromView, type Display, type DisplaySeat } from './display'
 import { ACTION_HINT_MS, actionSentence, flip7Face } from './face'
 import { crown, HitIcon, NextIcon, StayIcon } from './icons'
 import { createJuice } from './juice'
-
-function seatCards(display: Display): F7Card[] {
-  const cards: F7Card[] = []
-  for (const seat of Object.values(display.seats)) {
-    cards.push(...seat.numbers, ...seat.modifiers)
-    if (seat.secondChance) cards.push(seat.secondChance)
-    if (seat.freeze) cards.push(seat.freeze)
-  }
-  return cards
-}
 
 const lineOf = (s: DisplaySeat) => ({ numbers: s.numbers, modifiers: s.modifiers, secondChance: s.secondChance, freeze: s.freeze })
 const valueOf = (s: DisplaySeat) => roundValue({ status: s.status, line: lineOf(s), flip7: s.flip7 })
@@ -252,7 +242,7 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
     if (!(cardEl instanceof HTMLElement)) return
     const raw = cardEl.getAttribute('data-testid') ?? ''
     if (!raw.startsWith('card-')) return
-    const card = seatCards(display).find((item) => item.id === raw.slice('card-'.length))
+    const card = cardOnTable(display, raw.slice('card-'.length))
     if (!card) return
     const sentence = actionSentence(card.face)
     setHint(sentence ? { text: sentence, until: null } : null)

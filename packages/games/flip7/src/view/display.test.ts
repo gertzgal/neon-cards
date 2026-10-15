@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { act, startMatch, type Policy } from '@neon-cards/engine'
 import { HUMAN, RIGS, rules, type Flip7Action, type Flip7View, type RigName } from '../rules'
-import { applyEvent, displayFromView } from './display'
+import { applyEvent, cardOnTable, displayFromView } from './display'
 
 const random: Policy<Flip7View, Flip7Action> = { choose: (_view, legal, rng) => legal[rng.int(legal.length)] as Flip7Action }
 const randomRules = { ...rules, policies: { easy: random, medium: random, hard: random } }
@@ -19,6 +19,29 @@ function check(seed: string, opponents: 1 | 2 | 3, rig?: string) {
     expect(display).toEqual(displayFromView(viewOf()))
   }
 }
+
+describe('cardOnTable', () => {
+  it('finds a held action, a card on a seat, and a card set aside', () => {
+    const config = rules.definition.parseConfig({ opponents: 1, difficulty: 'easy', rig: 'freeze' })
+    const started = startMatch(rules, config, 'held-tap')
+    const step = act(rules, started.match, HUMAN, { type: 'nextRound' })
+    const display = displayFromView(rules.definition.view(step.match.state, HUMAN))
+    const held = display.held
+    expect(held?.card.face).toEqual({ kind: 'action', action: 'freeze' })
+    expect(cardOnTable(display, held?.card.id ?? '')).toBe(held?.card)
+    expect(cardOnTable(display, 'pile')).toBeNull()
+
+    const landed = { ...held!.card, id: 'landed' }
+    const parked = {
+      ...display,
+      held: null,
+      tray: [held!.card],
+      seats: { ...display.seats, [HUMAN]: { ...display.seats[HUMAN]!, freeze: landed } },
+    }
+    expect(cardOnTable(parked, 'landed')).toBe(landed)
+    expect(cardOnTable(parked, held!.card.id)).toBe(held!.card)
+  })
+})
 
 describe('the playback display', () => {
   it('folds every event of whole random games into the same display the view gives', () => {

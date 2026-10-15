@@ -167,3 +167,16 @@ export function applyEvent(d: Display, event: Flip7Event | { type: string }): Di
       return d
   }
 }
+
+/** The card a tap hit: on a seat, held in the middle, or set aside. The draw pile is none of these. */
+export function cardOnTable(display: Display, id: string): F7Card | null {
+  for (const seat of Object.values(display.seats)) {
+    const cards = [...seat.numbers, ...seat.modifiers]
+    if (seat.secondChance) cards.push(seat.secondChance)
+    if (seat.freeze) cards.push(seat.freeze)
+    const found = cards.find((card) => card.id === id)
+    if (found) return found
+  }
+  if (display.held?.card.id === id) return display.held.card
+  return display.tray.find((card) => card.id === id) ?? null
+}
