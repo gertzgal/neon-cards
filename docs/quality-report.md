@@ -1,6 +1,6 @@
 # Quality report
 
-Current with main `fb227208b5255b14a5988266f4af1c96ab61df16` (2026-10-15). Judged from `88bcd30` through `b30dc33`, and the held-sentence fix on this SHA, phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app). No console errors.
+Current with main `3707ffa5ce97d1ea76b1c707910ffff928d60640` (2026-10-15). Judged from `88bcd30` through `b30dc33`, the held-sentence fix, and the phone-reason inset on this SHA, phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app). No console errors.
 
 ## Raise, then Play
 
@@ -14,7 +14,7 @@ Rest. No sentence, no Play, no inspect panel. The hand is a strip on one baselin
 
 The first tap on Shuffle raises it (`translate(0, -36)`), shows "Shuffle the draw pile.", and leaves Play enabled. That tap sends nothing. The sentence stays off the draw pile (overlap 0). Play stays off the hand (overlap 0). A second tap lowers the card, hides the sentence and Play, and leaves the discard at 0. Play discards it: hand 8 → 7, discard 0 → 1. Draw takes the pile 29 → 26 and the hand 7 → 8, with no sentence of its own.
 
-Two different titles disable Play. The reason text is "Need a matching pair." On `88bcd30` that line drew past the right edge and read as "Need a matching pai" on both viewports. [#73](https://github.com/gertzgal/neon-cards/pull/73) (`b30dc33`) keeps the full sentence on one row and paints a disabled Play flat grey. Retested on `fb22720`. `white-space` is `nowrap` and the line does not scroll. Phone box is x 259, y 601, 123×16, ending at x 382 inside 390. Desktop box is x 1267, y 683, 165×22, ending at x 1432 inside 1440. The disabled button is color rgb(109, 103, 128), background rgb(20, 16, 28), border rgb(58, 51, 72), no shadow, no filter, opacity 1. Phone button is x 214, y 623, 168×84. Desktop button is x 1232, y 711, 200×96. One raised card enables Play: a white label and a pink glow, `rgba(255, 46, 136, 0.8) 0 0 18px`.
+Two different titles disable Play. The reason text is "Need a matching pair." On `88bcd30` that line drew past the right edge and read as "Need a matching pai" on both viewports. [#73](https://github.com/gertzgal/neon-cards/pull/73) (`b30dc33`) keeps the line on one row and paints a disabled Play flat grey. Desktop, retested on `fb22720`, shows the full sentence. The box is x 1267, y 683, 165×22, ending at x 1432 inside 1440. The phone shot from that build still reads "Need a matching pai". The period sits in the right edge of the 390px screen. The layout box ended at x 382, and that box is not the ink. [#77](https://github.com/gertzgal/neon-cards/pull/77) (`3707ffa`) sits the phone line 16px in from the dock. Played again at 390×844. The period's ink ends at x 355, and 25px of felt remain before the edge. The line is one row and does not scroll. The disabled button is color rgb(109, 103, 128), background rgb(20, 16, 28), border rgb(58, 51, 72), no shadow, no filter, opacity 1. Phone button is x 214, y 623, 168×84. Desktop button is x 1232, y 711, 200×96. One raised card enables Play: a white label and a pink glow, `rgba(255, 46, 136, 0.8) 0 0 18px`.
 
 A pair of Cattermelons raises without a POST, says "Pick a player.", and a seat tap enables Play without sending. Play sends the pair. Medium nopes it, so the hand goes 8 → 6. Favor raises with "Another player gives you one card." and "Pick a player." Play sends `{ "type": "favor", "target": "cpu-1" }` and the hand stays 8.
 
@@ -36,7 +36,8 @@ Nothing else from this pass is open. The phone Exploding Kittens strip still sho
 
 ![Phone, Exploding Kittens at rest](quality/raise-phone-ek-rest.jpg)
 ![Phone, Shuffle raised](quality/raise-phone-ek-raised.jpg)
-![Phone, disabled Play](quality/raise-phone-ek-reason.jpg)
+![Phone, disabled Play, the period in the edge](quality/raise-phone-ek-reason.jpg)
+![Phone, disabled Play, the period on the felt](quality/raise-phone-ek-reason-after.jpg)
 ![Desktop, Exploding Kittens at rest](quality/raise-desktop-ek-rest.jpg)
 ![Desktop, Shuffle raised](quality/raise-desktop-ek-raised.jpg)
 ![Desktop, disabled Play](quality/raise-desktop-ek-reason.jpg)

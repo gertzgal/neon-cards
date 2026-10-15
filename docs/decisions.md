@@ -558,3 +558,7 @@ Played `88bcd30` through `b30dc33`, then `fb22720`, on phone and desktop. A tap 
 ## The phone reason clears the edge (Quality, 2026-10-15)
 
 On a phone the disabled reason "Need a matching pair." was right-aligned with Play, 8px from the screen edge. The period sat in that edge and the line read as "Need a matching pai". The phone line now sits 16px in from the dock. Played at 390×844, the period's ink ends at x 355 and 25px of felt remain before the edge. Desktop stays right-aligned with Play. The dock width and the flat grey disabled Play are unchanged.
+
+## Phone reason write-up (Quality, 2026-10-15)
+
+The raise write-up said the phone sentence ended inside 390. The shot did not. The period was in the edge. The write-up now uses the shot from `3707ffa`, where the period's ink ends at x 355.
