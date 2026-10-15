@@ -1,6 +1,8 @@
 # Quality report
 
-Played on main `305a0edbb895c3a14adb4a19771edb6ac1141c60` (2026-10-14), phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app).
+Current with main `e2cc09b75bcf785c59128e3b98946334faa4af07`. The commits after `305a0ed` are CI only (Playwright sharding, Workers Builds, spec fixtures, timing notes). They do not change the table, so this report does not replay them.
+
+Played on `305a0edbb895c3a14adb4a19771edb6ac1141c60` (2026-10-14), phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app).
 
 Flip 7's rules (`26eb35f`) and Easy/Medium/Hard policies (`36ea24c`) are in `packages/games/flip7`, and the policy-test timeout fix is `21c516c`. The package exports `./rules` only. It is not in the worker registry or the web registry, and there is no table. A round cannot be played.
 
