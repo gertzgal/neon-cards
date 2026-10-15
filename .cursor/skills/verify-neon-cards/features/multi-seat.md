@@ -1,6 +1,6 @@
 # Multi-seat play (dev game High Card)
 
-The Flip 7 readiness path in the real app, without Flip 7 rules. `/games/high-card` serves the engine's test-only High Card game (1 human + 1 to 3 CPUs) on any stack with `DEV_RIG=1` (`pnpm dev`, `pnpm start`, e2e, verify). It opens the pre-game sheet built from `meta.settings` (opponents, difficulty, seat), sends the choice as `config`, and the Worker builds the seats with `seatsFor`. CPU seats act on the server; their turns come back as `turn` events plus normal events, and the table plays them paced (a THINKING beat per CPU, tap to skip) before handing the turn back. The top zone is the kit's `OpponentRows`: slim stacked rows on phone, side by side on desktop. The lobby never lists the game, and a deployed Worker answers 404 for it.
+The Flip 7 readiness path in the real app, without Flip 7 rules. `/games/high-card` serves the engine's test-only High Card game (1 human + 1 to 3 CPUs) on any stack with `DEV_RIG=1` (`pnpm dev`, `pnpm start`, e2e, verify). It opens the pre-game sheet built from `meta.settings` (opponents, difficulty, seat), sends the choice as `config`, and the Worker builds the seats with the roster. CPU seats act on the server; their turns come back as `turn` events plus normal events, and the table plays them paced (a THINKING beat per CPU, tap to skip) before handing the turn back. The top zone is the kit's `OpponentRows`: slim stacked rows on phone, side by side on desktop. The lobby never lists the game, and a deployed Worker answers 404 for it.
 
 ## Sub-features
 

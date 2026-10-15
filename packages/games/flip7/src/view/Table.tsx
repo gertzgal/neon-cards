@@ -81,7 +81,7 @@ function Tally({ score }: { score: RoundScore }) {
   )
 }
 
-export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons }: TableProps<Flip7View, Flip7Action>) {
+export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons, canOpen = true }: TableProps<Flip7View, Flip7Action>) {
   const [display, setDisplay] = useState<Display>(() => displayFromView(view))
   const [revealing, setRevealing] = useState<SeatId[]>([])
   const [before] = useState(() => new Map<string, Point>())
@@ -157,11 +157,11 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
   // The first round deals itself: setup leaves the shoe untouched so the opening deal plays as events.
   const dealt = useRef(false)
   useEffect(() => {
-    if (interactive && view.stage === 'ready' && !dealt.current) {
+    if (canOpen && interactive && view.stage === 'ready' && !dealt.current) {
       dealt.current = true
       void act({ type: 'nextRound' })
     }
-  }, [interactive, view.stage, act])
+  }, [canOpen, interactive, view.stage, act])
 
   const pick = useCallback(
     (seat: SeatId) => {
@@ -179,13 +179,13 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
       const k = e.key.toLowerCase()
       if (k === 'h' && mine?.kind === 'hitOrStay') send({ type: 'hit' })
       else if (k === 's' && canStay) send({ type: 'stay' })
-      else if ((k === ' ' || k === 'enter') && interactive && view.stage === 'roundOver') send({ type: 'nextRound' })
+      else if ((k === ' ' || k === 'enter') && canOpen && interactive && view.stage === 'roundOver') send({ type: 'nextRound' })
       else return
       e.preventDefault()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [mine, canStay, interactive, view.stage, send])
+  }, [mine, canStay, canOpen, interactive, view.stage, send])
 
   // Opponent seat boxes belong to the kit, so their game state rides on data attributes.
   useLayoutEffect(() => {
@@ -258,7 +258,7 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
   const controls =
     display.stage === 'roundOver' ? (
       <div className="nc-actions f7-next" data-testid="action-bar">
-        <NeonButton primary testId="action-next" ariaLabel="Next round" disabled={!interactive} onClick={() => send({ type: 'nextRound' })}>
+        <NeonButton primary testId="action-next" ariaLabel="Next round" disabled={!canOpen || !interactive} onClick={() => send({ type: 'nextRound' })}>
           <NextIcon />
         </NeonButton>
       </div>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { act, replay, startMatch, type ActionRecord, type Policy, type Step } from '@neon-cards/engine'
+import { act, applyOpening, replay, soloSeats, startMatch, type ActionRecord, type Policy, type Step } from '@neon-cards/engine'
 import { faceKey } from './cards'
 import { HUMAN } from './definition'
 import { rules } from './index'
@@ -30,12 +30,16 @@ function cardsInPlay(s: Flip7State): F7Card[] {
 /** Plays a whole game: the human picks with a seeded counter, CPUs use the random policy. */
 function playGame(seed: string, opponents: 1 | 2 | 3) {
   const config = rules.definition.parseConfig({ opponents })
-  let step: F7Step = startMatch(randomRules, { config: config, seats: randomRules.definition.seatsFor(config), seed: seed })
+  let step: F7Step = startMatch(randomRules, { config: config, seats: soloSeats(randomRules.definition, config), seed: seed })
   const steps: F7Step[] = [step]
-  for (let n = 0; rules.definition.toAct(step.match.state) !== null; n++) {
+  for (let n = 0; step.match.state.stage !== 'gameOver'; n++) {
     if (n > 5000) throw new Error('game did not end')
-    const legal = rules.definition.legalActions(step.match.state, HUMAN)
-    step = act(randomRules, step.match, HUMAN, legal[(n * 7 + seed.length) % legal.length] as Flip7Action)
+    const id = rules.definition.toAct(step.match.state)
+    if (id === null) step = applyOpening(randomRules, step.match)
+    else {
+      const legal = rules.definition.legalActions(step.match.state, id)
+      step = act(randomRules, step.match, id, legal[(n * 7 + seed.length) % legal.length] as Flip7Action)
+    }
     steps.push(step)
     const cards = cardsInPlay(step.match.state)
     expect(cards).toHaveLength(94)
@@ -70,31 +74,25 @@ describe('flip 7 through the engine match runtime', () => {
     const { config, steps, last } = playGame('replay-7', 3)
     const log: ActionRecord<Flip7Action>[] = steps.flatMap((s) => s.log)
     expect(log.some((r) => r.seat !== HUMAN)).toBe(true)
-    const again = replay(randomRules, { seed: 'replay-7', config, seats: randomRules.definition.seatsFor(config), log, version: rules.definition.version })
+    const again = replay(randomRules, { seed: 'replay-7', config, seats: soloSeats(randomRules.definition, config), log, version: rules.definition.version })
     expect(again.match).toEqual(last.match)
     expect(again.events).toEqual(steps.flatMap((s) => s.events))
     expect(again.rounds).toEqual(steps.flatMap((s) => s.rounds))
   })
 
-  it('pins a seeded opening: a CPU deals you its Flip Three and you must hand out the Freeze it set aside', () => {
+  it('pins a seeded opening: the last seat deals, and the first card is the human Flip Three', () => {
     const first: Policy<Flip7View, Flip7Action> = { choose: (_view, legal) => legal[0] as Flip7Action }
     const firstRules = { ...rules, policies: { easy: first, medium: first, hard: first } }
-    const step = act(firstRules, startMatch(firstRules, { config: rules.definition.parseConfig({}), seats: firstRules.definition.seatsFor(rules.definition.parseConfig({})), seed: 'pin' }).match, HUMAN, { type: 'nextRound' })
+    const opened = startMatch(firstRules, { config: rules.definition.parseConfig({}), seats: soloSeats(firstRules.definition, rules.definition.parseConfig({})), seed: 'pin' })
+    const step = applyOpening(firstRules, opened.match)
+    expect(step.match.state.dealer).toBe('cpu-2')
     expect(step.events.map((e) => {
       const c = (e as { card?: F7Card }).card
       return [e.type, e.seat ?? '', c ? faceKey(c.face) : '']
     })).toEqual([
       ['RoundStarted', '', ''],
-      ['CardDealt', 'cpu-1', 'T'],
-      ['turn', 'cpu-1', ''],
-      ['ActionTargeted', 'cpu-1', 'T'],
-      ['FlipThreeStarted', 'you', 'T'],
-      ['CardDealt', 'you', '12'],
-      ['CardDealt', 'you', '5'],
-      ['CardDealt', 'you', 'F'],
-      ['CardSetAside', 'you', 'F'],
-      ['FlipThreeEnded', 'you', ''],
+      ['CardDealt', 'you', 'T'],
     ])
-    expect(step.match.state.pending).toMatchObject({ kind: 'assign', seat: 'you' })
+    expect(step.match.state.pending).toMatchObject({ kind: 'target', seat: 'you' })
   })
 })

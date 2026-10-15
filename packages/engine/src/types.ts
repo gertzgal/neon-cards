@@ -51,13 +51,13 @@ export interface GameDefinition<Config, State, Action, View, Face> {
   name: string
   version: number
   deck: DeckSpec<Face>
-  /** Counts every seat seatsFor() can return, house seats included. */
+  /** Counts every seat a roster can return, house seats included. */
   seats: { min: number; max: number }
+  /** Dealer seats the roster appends. Empty for score games. */
+  house: readonly { id: string; name: string }[]
   defaultConfig: Config
   /** Validates client-sent config at the API boundary. Throws on invalid input. */
   parseConfig(input: unknown): Config
-  /** Seats in turn order. */
-  seatsFor(config: Config): Seat[]
   setup(config: Config, seats: Seat[], rng: Rng): State
   /** Never a 'house' seat. Null while nobody can act. */
   toAct(state: State): SeatId | null
@@ -107,7 +107,7 @@ export interface GameMeta {
 /** What `@neon-cards/game-<id>/rules` exports. Pure: the Worker runs it. */
 export interface GameRules<Config = unknown, State = unknown, Action = unknown, View = unknown, Face = unknown> {
   definition: GameDefinition<Config, State, Action, View, Face>
-  /** Required when seatsFor() can return 'cpu' seats. */
+  /** Required when a roster can return 'cpu' seats. */
   policies?: Policies<View, Action>
   meta: GameMeta
 }

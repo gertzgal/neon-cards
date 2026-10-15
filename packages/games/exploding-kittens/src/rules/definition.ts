@@ -80,18 +80,6 @@ function parseConfig(input: unknown): EkConfig {
   return { opponents: config.opponents, difficulty: config.difficulty, rig }
 }
 
-function seatsFor(config: EkConfig): Seat[] {
-  return [
-    { id: HUMAN, kind: 'human', name: 'You' },
-    ...Array.from({ length: config.opponents }, (_, i): Seat => ({
-      id: `cpu-${i + 1}`,
-      kind: 'cpu',
-      name: `CPU ${i + 1}`,
-      difficulty: config.difficulty,
-    })),
-  ]
-}
-
 function emptyKnown(order: SeatId[]): EkState['known'] {
   const known: EkState['known'] = {}
   for (const seat of order) known[seat] = { top: [], planted: null }
@@ -644,7 +632,7 @@ export const explodingKittens: GameDefinition<EkConfig, EkState, EkAction, EkVie
   seats: { min: 2, max: 4 },
   defaultConfig,
   parseConfig,
-  seatsFor,
+  house: [],
   setup,
   toAct,
   legalActions,

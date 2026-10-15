@@ -611,3 +611,16 @@ Polling and peer-to-peer stay rejected. D1 stays the system of record. The 100,0
 ## The unrigged Flip 7 setup check waits out the felt (2026-10-15)
 
 Phone e2e on the engine slice failed two ways on one unrigged 3-CPU deal. A Second Chance leaves its sentence on `card-rule` for about two seconds after playback, so the "only numbers" word scan ran while that line was still up. A seed where the CPUs act before the human can also keep `data-busy` true past 15 seconds, because busy includes playback. The check now waits until `card-rule` is gone, and the settle wait is 45 seconds. The sentence stays on the felt. The test was reading it too early.
+## The roster owns the seat list (2026-10-15)
+
+`seatsFor` is deleted. `soloSeats` in `packages/engine/src/roster.ts` is the only solo builder. `createSession` calls it and passes the list to `startMatch`. The previous slice's bridge is gone.
+
+Solo score games keep the ids `you` and `cpu-1` onward. `position: 'last'` still puts the human after the CPUs. Blackjack stays `player` plus the house seat `dealer`. This slice does not rename seats to `s0` and does not rotate by `seed % length`. The room roster will do both, and rematch will rotate. Flip 7 and Exploding Kittens tests, rigs, and e2e assert today's ids, and a seed rotation would change who is dealt first on every existing seed. `rigForSeats` already maps the literal `you` onto the human id, so a later id does not rewrite rig strings. e2e selectors stay `seat-you` and `seat-cpu-N`.
+
+`packages/room` does not exist yet. `soloSeats` lives in the engine until that package is the only builder. The worker does not grow a second list.
+
+Flip 7 is version 2. `toAct` is null on `ready` and `roundOver`. `opening()` is `{ type: 'nextRound' }`. The dealer is the last seat on every seed, so the first card goes to the first seat. `Flip7State.human` is gone. `canOpen` defaults to true on the table, so solo still deals itself. A room can pass false later. When `toAct` is null and the posted action deep-equals `opening()`, solo HTTP calls `applyOpening`. Anything else is 400. Replay applies a logged opening the same way, so a saved game still rebuilds. The CPU loop still does not deal.
+
+Cross-project edits, logged here. Flip 7 gained the opening, the fixed dealer, the rig mapping, and the `canOpen` gate. Exploding Kittens and Blackjack lost `seatsFor` and gained `house`. Blackjack's human id stays `player`. The coin contract fixture and the high-card test game gained `house: []`.
+
+`docs/architecture.md` now describes the roster, `house`, and `opening`, because this slice deleted `seatsFor`.

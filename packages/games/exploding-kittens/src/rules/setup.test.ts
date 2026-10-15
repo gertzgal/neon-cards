@@ -1,4 +1,4 @@
-import { buildShoe, ConfigError, createRng, startMatch } from '@neon-cards/engine'
+import { soloSeats, buildShoe, ConfigError, createRng, startMatch } from '@neon-cards/engine'
 import { describe, expect, it } from 'vitest'
 import { COUNTS, FACE_LABEL, ekDeck } from './deck'
 import { rules } from './index'
@@ -74,7 +74,7 @@ describe('config and seats', () => {
   })
 
   it('seats the human first, then CPUs at one difficulty', () => {
-    const seats = ek.seatsFor({ opponents: 3, difficulty: 'easy' })
+    const seats = soloSeats(ek, { opponents: 3, difficulty: 'easy' })
     expect(seats.map((seat) => seat.id)).toEqual(['you', 'cpu-1', 'cpu-2', 'cpu-3'])
     expect(seats[0]).toEqual({ id: 'you', kind: 'human', name: 'You' })
     expect(seats[1]).toEqual({ id: 'cpu-1', kind: 'cpu', name: 'CPU 1', difficulty: 'easy' })
@@ -82,7 +82,7 @@ describe('config and seats', () => {
 
   it('setup throws unless there is exactly one human', () => {
     const config = ek.parseConfig({})
-    const seats = ek.seatsFor(config)
+    const seats = soloSeats(ek, config)
     const rng = createRng('humans')
     expect(() => ek.setup(config, seats.map((seat) => ({ ...seat, kind: 'cpu' as const })), rng)).toThrow(Error)
     expect(() =>
@@ -129,7 +129,7 @@ describe('E65 setup counts', () => {
 describe('E66 opening', () => {
   it('E66 the human is to act after setup and startMatch emits nothing', () => {
     const config = ek.parseConfig({ opponents: 2, difficulty: 'medium' })
-    const started = startMatch(rules, { config: config, seats: rules.definition.seatsFor(config), seed: 'e66' })
+    const started = startMatch(rules, { config: config, seats: soloSeats(rules.definition, config), seed: 'e66' })
     expect(started.events).toEqual([])
     expect(ek.toAct(started.match.state)).toBe(HUMAN)
     expect(started.match.state.seats[HUMAN]?.hand).toHaveLength(8)

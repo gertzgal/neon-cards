@@ -1,7 +1,7 @@
 import { expect, test, type Page } from './fixtures'
 
 // The engine's test-only High Card game, served with DEV_RIG=1, proves the Flip 7 readiness path in the
-// real shell: pre-game settings -> config -> seatsFor, server-side CPU seats, paced playback, opponent rows.
+// real shell: pre-game settings -> config -> roster, server-side CPU seats, paced playback, opponent rows.
 
 // e2e is typed without the DOM lib, so the page-side code names the few browser APIs it uses.
 type PageGlobals = {

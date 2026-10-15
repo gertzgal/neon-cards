@@ -80,7 +80,7 @@ describe('POST /api/sessions (multi-seat, CPU before the human)', () => {
     for (const e of s.events) if (e.type === 'swap' || e.type === 'deal') expect((e.card as { face: unknown }).face).toBeNull()
   })
 
-  it('passes settings through parseConfig into seatsFor', async () => {
+  it('passes settings through parseConfig into the roster', async () => {
     const s = await start(client(), { opponents: 1, difficulty: 'easy', position: 'first' })
     expect(s.seats.map((x) => [x.id, x.kind, x.difficulty])).toEqual([
       ['you', 'human', undefined],
@@ -220,5 +220,27 @@ describe('POST /api/sessions/:id/actions', () => {
     expect(scores).toEqual(last?.view.scores)
     expect((await json<{ rounds: unknown[] }>(p.get('/api/history?gameId=blackjack'))).rounds).toEqual([])
     expect((await json<{ rounds: unknown[] }>(client().get('/api/history'))).rounds).toEqual([])
+  })
+})
+
+describe('Flip 7 opening on solo HTTP', () => {
+  it('deals when the posted action is the opening, and rejects a different action', async () => {
+    const p = client()
+    const created = await p.post('/api/sessions', {
+      gameId: 'flip7',
+      config: { opponents: 1, difficulty: 'easy' },
+      seed: 'open-1',
+    })
+    expect(created.status).toBe(201)
+    const s = await json<{ sessionId: string; seq: number; view: { stage: string } }>(created)
+    expect(s.view.stage).toBe('ready')
+    expect(s.seq).toBe(0)
+    const wrong = await p.post(`/api/sessions/${s.sessionId}/actions`, { action: { type: 'hit' }, seq: 0 })
+    expect(wrong.status).toBe(400)
+    const dealt = await p.post(`/api/sessions/${s.sessionId}/actions`, { action: { type: 'nextRound' }, seq: 0 })
+    expect(dealt.status).toBe(200)
+    const body = await json<{ seq: number; view: { stage: string } }>(dealt)
+    expect(body.view.stage).toBe('playing')
+    expect(body.seq).toBeGreaterThan(0)
   })
 })

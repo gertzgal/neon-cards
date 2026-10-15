@@ -274,6 +274,11 @@ export interface TableProps<View = unknown, Action = unknown> {
   act(action: Action): Promise<void>
   /** True while an action is in flight. */
   busy: boolean
+  /**
+   * When false, the table does not send the action that opens a round.
+   * Solo leaves this unset. A room passes false and deals from the shell.
+   */
+  canOpen?: boolean
   /** The shell's sound and settings buttons. A table that draws its own top bar renders them at its right. */
   hudIcons?: ReactNode
 }

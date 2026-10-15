@@ -1,4 +1,4 @@
-import { createRng, IllegalActionError, replay, type ActionRecord, type Rng, type SeatId } from '@neon-cards/engine'
+import { soloSeats, createRng, IllegalActionError, replay, type ActionRecord, type Rng, type Seat, type SeatId } from '@neon-cards/engine'
 import { expect } from 'vitest'
 import { rules } from './index'
 import type { EkAction, EkCard, EkEvent, EkState, RigName, Title } from './types'
@@ -9,7 +9,7 @@ export const HUMAN = 'you'
 export interface Session {
   seed: string
   config: ReturnType<typeof ek.parseConfig>
-  seats: ReturnType<typeof ek.seatsFor>
+  seats: Seat[]
   rng: Rng
   state: EkState
   log: ActionRecord<EkAction>[]
@@ -19,7 +19,7 @@ export interface Session {
 export function openSession(seed: string, players: 2 | 3 | 4 = 2, rig?: RigName): Session {
   const opponents = (players - 1) as 1 | 2 | 3
   const config = ek.parseConfig(rig ? { opponents, difficulty: 'medium', rig } : { opponents, difficulty: 'medium' })
-  const seats = ek.seatsFor(config)
+  const seats = soloSeats(ek, config)
   const rng = createRng(seed)
   const state = ek.setup(config, seats, rng)
   return { seed, config, seats, rng, state, log: [], events: [] }
@@ -78,7 +78,7 @@ export function step(session: Session, action: EkAction, seat: SeatId | null = e
 }
 
 export function expectReplay(session: Session): void {
-  const out = replay(rules, { seed: session.seed, config: session.config, seats: rules.definition.seatsFor(session.config), log: session.log })
+  const out = replay(rules, { seed: session.seed, config: session.config, seats: soloSeats(rules.definition, session.config), log: session.log })
   expect(out.events.filter((event) => event.type !== 'turn')).toEqual(session.events)
   expect(out.match.state.draw.map((card) => card.id)).toEqual(session.state.draw.map((card) => card.id))
   for (const seat of session.state.order) {

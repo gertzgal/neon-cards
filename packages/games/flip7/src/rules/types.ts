@@ -70,7 +70,6 @@ export interface RoundScore {
 export interface Flip7State {
   config: Flip7Config
   order: SeatId[]
-  human: SeatId
   totals: Record<SeatId, number>
   round: number
   dealer: SeatId

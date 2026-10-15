@@ -52,12 +52,20 @@ export function parseRig(rig: string): ParsedRig {
   return { draws, totals }
 }
 
-/** Expands `cpu` to every CPU seat id. */
+/** Expands `you` onto the human seat and `cpu` onto every CPU seat. */
 export function rigForSeats(parsed: ParsedRig, seats: { id: SeatId; kind: string }[]): Record<SeatId, string[]> {
   const out: Record<SeatId, string[]> = {}
   for (const seat of seats) {
-    const keys = parsed.draws[seat.id] ?? (seat.kind === 'cpu' ? parsed.draws['cpu'] : undefined)
+    const keys = parsed.draws[seat.id] ?? (seat.kind === 'human' ? parsed.draws.you : undefined) ?? (seat.kind === 'cpu' ? parsed.draws.cpu : undefined)
     if (keys) out[seat.id] = [...keys]
   }
   return out
+}
+
+/** Expands `total:you` onto the human seat id. */
+export function totalsForSeats(parsed: ParsedRig, seats: { id: SeatId; kind: string }[]): Record<string, number> {
+  const totals: Record<string, number> = { ...parsed.totals }
+  const human = seats.find((seat) => seat.kind === 'human')
+  if (human && totals.you !== undefined && totals[human.id] === undefined) totals[human.id] = totals.you
+  return totals
 }

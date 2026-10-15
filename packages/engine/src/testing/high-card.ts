@@ -2,7 +2,7 @@ import { buildShoe, faceDown } from '../deck'
 import { standard52, type Rank, type StandardFace } from '../decks/standard52'
 import { IllegalActionError } from '../errors'
 import { parseSettings } from '../settings'
-import type { Card, CardView, Difficulty, GameDefinition, GameEvent, GameRules, Policy, Seat, SeatId, SettingSpec } from '../types'
+import type { Card, CardView, Difficulty, GameDefinition, GameEvent, GameRules, Policy, SeatId, SettingSpec } from '../types'
 
 // Test-only multi-seat game. Each seat holds one face-down card and on its turn keeps it or swaps it for
 // the next card in the shoe. After the last seat, every card is revealed and the highest rank scores a
@@ -102,16 +102,7 @@ const definition: GameDefinition<HighCardConfig, HighCardState, HighCardAction, 
   seats: { min: 2, max: 4 },
   defaultConfig,
   parseConfig: (input) => parseSettings(settings, defaultConfig, input),
-  seatsFor(config) {
-    const cpus: Seat[] = Array.from({ length: config.opponents }, (_, i) => ({
-      id: `cpu-${i + 1}`,
-      kind: 'cpu',
-      name: `CPU ${i + 1}`,
-      difficulty: config.difficulty,
-    }))
-    const human: Seat = { id: HUMAN, kind: 'human', name: 'You' }
-    return config.position === 'first' ? [human, ...cpus] : [...cpus, human]
-  },
+  house: [],
   setup(_config, seats, rng) {
     const order = seats.map((s) => s.id)
     const empty: HighCardState = {

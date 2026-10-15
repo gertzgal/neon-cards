@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { act, startMatch, type Policy } from '@neon-cards/engine'
+import { act, applyOpening, soloSeats, startMatch, type Policy } from '@neon-cards/engine'
 import { HUMAN, RIGS, rules, type Flip7Action, type Flip7View, type RigName } from '../rules'
 import { applyEvent, cardOnTable, displayFromView } from './display'
 
@@ -9,12 +9,16 @@ const randomRules = { ...rules, policies: { easy: random, medium: random, hard: 
 /** Plays a game, folding every batch of events into the display and checking it lands on the view's display. */
 function check(seed: string, opponents: 1 | 2 | 3, rig?: string) {
   const config = rules.definition.parseConfig(rig ? { opponents, rig } : { opponents })
-  let step = startMatch(randomRules, { config: config, seats: randomRules.definition.seatsFor(config), seed: seed })
+  let step = startMatch(randomRules, { config: config, seats: soloSeats(randomRules.definition, config), seed: seed })
   const viewOf = () => rules.definition.view(step.match.state, HUMAN)
   let display = displayFromView(viewOf())
-  for (let n = 0; rules.definition.toAct(step.match.state) !== null && n < 400; n++) {
-    const legal = rules.definition.legalActions(step.match.state, HUMAN)
-    step = act(randomRules, step.match, HUMAN, legal[(n * 5 + seed.length) % legal.length] as Flip7Action)
+  for (let n = 0; step.match.state.stage !== 'gameOver' && n < 400; n++) {
+    const id = rules.definition.toAct(step.match.state)
+    if (id === null) step = applyOpening(randomRules, step.match)
+    else {
+      const legal = rules.definition.legalActions(step.match.state, id)
+      step = act(randomRules, step.match, id, legal[(n * 5 + seed.length) % legal.length] as Flip7Action)
+    }
     for (const e of step.events) display = applyEvent(display, e)
     expect(display).toEqual(displayFromView(viewOf()))
   }
@@ -23,8 +27,8 @@ function check(seed: string, opponents: 1 | 2 | 3, rig?: string) {
 describe('cardOnTable', () => {
   it('finds a held action, a card on a seat, and a card set aside', () => {
     const config = rules.definition.parseConfig({ opponents: 1, difficulty: 'easy', rig: 'freeze' })
-    const started = startMatch(rules, { config: config, seats: rules.definition.seatsFor(config), seed: 'held-tap' })
-    const step = act(rules, started.match, HUMAN, { type: 'nextRound' })
+    const started = startMatch(rules, { config: config, seats: soloSeats(rules.definition, config), seed: 'held-tap' })
+    const step = applyOpening(rules, started.match)
     const display = displayFromView(rules.definition.view(step.match.state, HUMAN))
     const held = display.held
     const you = display.seats[HUMAN]

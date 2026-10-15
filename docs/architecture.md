@@ -68,12 +68,13 @@ interface GameDefinition<Config, State, Action, View, Face> {
   id: string; name: string; version: number
   deck: DeckSpec<Face>
   seats: { min: number; max: number }
+  house: readonly { id: string; name: string }[] // dealer seats the roster appends. Empty for score games.
   defaultConfig: Config
   parseConfig(input: unknown): Config            // validates client-sent config at the API boundary; throws on invalid
-  seatsFor(config: Config): Seat[]               // builds the seat list, in turn order, from config (e.g. opponents, difficulty)
   setup(config: Config, seats: Seat[], rng: Rng): State
   toAct(state: State): SeatId | null             // whose turn it is; null while nobody can act. Never a 'house' seat.
   legalActions(state: State, seat: SeatId): Action[]   // [] for any seat that is not toAct(state)
+  opening?(state: State): Action | null          // the action that opens a round when nobody is to act. Null during a hand.
   apply(state: State, seat: SeatId, action: Action, rng: Rng): { state: State; events: GameEvent[] }  // throws IllegalActionError
   view(state: State, seat: SeatId): View         // MUST hide hidden information (hole card, shoe order, other seats' hidden cards)
   phase(state: State): GamePhase
@@ -91,11 +92,11 @@ Further rules every game follows:
 - `Config`, `State`, `Action`, `View`, and events are plain JSON (no classes, Maps, `undefined` values, or functions), because the server stores them in D1 and sends them over HTTP.
 - `legalActions()` is the menu the UI renders and Policies pick from. A parameterized action appears once with a representative value (Blackjack's `bet` carries the suggested amount). `apply()` is the authority on legality: it throws `IllegalActionError` (exported by the engine) for anything it rejects, and the server answers 400.
 - Every action that leaves `phase` at `'settling'` ends exactly one round, and so does an action that moves it into `'over'` from `'betting'` or `'playing'`. The platform calls `settle()` exactly then. (Blackjack's `bet` from `'settling'` can deal and resolve a natural in one action, settling to settling, and that is a round.) An action taken during `'settling'` that does not finish a new round must leave `'settling'`.
-- `setup()` emits no events. The UI renders the first view as the opening deal. While `'settling'`, `toAct` may return a seat whose action starts the next round (Blackjack's next `bet`, Flip 7's "next round"), or null.
-- `seats.min`/`seats.max` count every seat `seatsFor` can return, house seats included.
+- `setup()` emits no events. A game whose first view is already the deal (Blackjack's betting step) leaves `opening` unset and `toAct` names who acts. Flip 7's first view is an empty `ready` table. `toAct` is null, and `opening()` is `{ type: 'nextRound' }`. The table sends that action. The server applies it as the first seat. The CPU loop does not deal.
+- `seats.min`/`seats.max` count every seat the roster can return, house seats included.
 
 ## Multi-seat turn order
-- `seatsFor(config)` returns seats in turn order. `toAct(state)` is the single source of truth for whose turn it is; the rules advance it inside `apply()`.
+- The roster returns seats in turn order. Solo score games use `you`, then `cpu-1` onward. `position: 'last'` puts the human after the CPUs. A house list (Blackjack) is `player` plus those house seats (`dealer`). `toAct(state)` is the single source of truth for whose turn it is. The rules advance it inside `apply()`.
 - One seat acts at a time. An action that targets another seat (Flip 7's Freeze, Flip Three) carries the target inside the Action; the acting seat is still `toAct`.
 - Only `human` and `cpu` seats are ever returned by `toAct`. Dealer play (house seats) happens inside `apply()` and shows up as events with `seat` set to the house seat.
 
@@ -109,7 +110,7 @@ Further rules every game follows:
 - If CPU seats come before the human in turn order, the `POST /api/sessions` response resolves their turns the same way.
 
 ## Game settings
-- Settings live in `Config` and travel `POST /api/sessions {gameId, config}` → `definition.parseConfig(config)` → `seatsFor(config)` and `setup(config, ...)`. Nothing about seats or difficulty is hard-coded in the platform.
+- Settings live in `Config` and travel `POST /api/sessions {gameId, config}` → `definition.parseConfig(config)` → the roster and `setup(config, seats, rng)`. Nothing about seats or difficulty is hard-coded in the request handler.
 - The game declares which settings the shell should show in `rules.meta.settings` (choice lists only, rendered as segmented pixel buttons on a pre-game sheet). Flip 7's are `opponents: 1 | 2 | 3` and `difficulty: easy | medium | hard`. Blackjack has none in v1.
 - The shell remembers the last-used settings per game in localStorage.
 
@@ -127,7 +128,7 @@ A game package has two entrypoints, because the Worker must run the rules and CP
 // packages/engine. Both registries see GameRules, so everything the Worker needs (economy, settings) lives here.
 interface GameRules<Config = unknown, State = unknown, Action = unknown, View = unknown, Face = unknown> {
   definition: GameDefinition<Config, State, Action, View, Face>
-  policies?: Policies<View, Action>              // required when seatsFor() can return 'cpu' seats
+  policies?: Policies<View, Action>              // required when the roster can return 'cpu' seats
   meta: GameMeta
 }
 
@@ -187,16 +188,17 @@ interface Match<Config, State> {
   state: State; rng: string                      // rng is the deck Rng's state()
   seq: number                                    // next action seq, equal to the action log's length
 }
-interface ActionRecord<Action> { seq: number; seat: SeatId; action: Action }
+interface ActionRecord<Action> { seq: number; seat: SeatId; action: Action; kind?: 'human' | 'cpu' }
 interface Step<Config, State, Action> {
   match: Match<Config, State>
   events: GameEvent[]                            // the human's action's events, then per CPU action: TurnEvent + its events
   log: ActionRecord<Action>[]                    // every action applied in this step (human and CPU), to append to `actions`
   rounds: Settlement[][]                         // one entry per round that ended in this step, in order
 }
-startMatch(rules, config, seed): Step            // config already parsed; runs setup, then leading CPU turns
+startMatch(rules, { config, seats, seed }): Step // config already parsed; seats come from the roster; runs setup, then leading CPU turns
 act(rules, match, seat, action): Step            // throws NotYourTurnError (409), IllegalActionError (400); then runs CPU turns
-replay(rules, { seed, config, log, version? }): Step  // rebuilds the match from the log alone; never runs a policy
+applyOpening(rules, match): Step                 // applies opening() as seats[0], logged human, then CPU turns. Throws when opening is null.
+replay(rules, { seed, config, seats, log, version? }): Step  // rebuilds the match from the log alone; never runs a policy
 ```
 The CPU loop stops when `toAct` is null or not a `cpu` seat. It throws if a CPU seat has no policy for its difficulty or chooses an action outside `legalActions`.
 
@@ -212,8 +214,8 @@ One table composition scales from phone to desktop and from heads-up to a full t
 
 ## Server model (apps/worker)
 The server is authoritative. The shoe and hidden cards live only on the server.
-- `POST /api/sessions {gameId, config}` parses config with `definition.parseConfig` (400 on invalid, 404 for an unknown game), builds seats with `seatsFor`, creates a session with a seed, runs any leading CPU turns, and returns `201 {sessionId, gameId, seats, events, view, seq, status, wallet?}`. For `economy: 'chips'` games the server closes the player's other active chips sessions, because a chips game's stack mirrors the wallet, then sets `config.bankroll` to the wallet balance (overriding any client value). Closing a session forfeits its unsettled round: if `staked(state, humanSeat)` is above 0, the server records that round as lost (a `rounds` row with `net = -staked` and `summary.forfeit: true`, and a `wallet_ledger` row with reason `forfeit`) before reading the wallet, so walking away from a dealt hand costs the same as losing it.
-- `POST /api/sessions/:id/actions {action, seq}` runs the engine's `act()` (409 when the human seat is not `toAct` or the session is over, 400 when `apply()` rejects the action), which applies it and runs the CPU loop, settles every round in `Step.rounds`, persists every action (human and CPU) to `actions`, and returns `{events, view, seq, status, wallet?}`. `seq` is the action log's length (CPU actions included): every response carries the `seq` the next human action must send. A retried `seq` returns the stored response without re-running anything; a `seq` that is ahead, or that a CPU used, is a 409.
+- `POST /api/sessions {gameId, config}` parses config with `definition.parseConfig` (400 on invalid, 404 for an unknown game), builds seats with the roster, creates a session with a seed, runs any leading CPU turns, and returns `201 {sessionId, gameId, seats, events, view, seq, status, wallet?}`. For `economy: 'chips'` games the server closes the player's other active chips sessions, because a chips game's stack mirrors the wallet, then sets `config.bankroll` to the wallet balance (overriding any client value). Closing a session forfeits its unsettled round: if `staked(state, humanSeat)` is above 0, the server records that round as lost (a `rounds` row with `net = -staked` and `summary.forfeit: true`, and a `wallet_ledger` row with reason `forfeit`) before reading the wallet, so walking away from a dealt hand costs the same as losing it.
+- `POST /api/sessions/:id/actions {action, seq}` runs the engine's `act()` when someone is to act (409 when the human seat is not `toAct` or the session is over, 400 when `apply()` rejects the action). When `toAct` is null and the action deep-equals `opening()`, it runs `applyOpening` instead. Any other action while nobody is to act is 400. The step settles every round in `Step.rounds`, persists every action (human and CPU) to `actions`, and returns `{events, view, seq, status, wallet?}`. `seq` is the action log's length (CPU actions included): every response carries the `seq` the next human action must send. A retried `seq` returns the stored response without re-running anything; a `seq` that is ahead, or that a CPU used, is a 409.
 - `GET /api/sessions/:id` returns `{sessionId, gameId, seats, view, seq, status, wallet?}` (for resume after reload). Sessions are visible only to their player (404 otherwise).
 - `GET /api/history?gameId=` returns `{rounds: [{id, sessionId, gameId, roundNo, net, summary, createdAt}]}`, this player's finished rounds, newest first (50 max). `summary` is `{settlements, view?, forfeit?}`; `view` is the human's view when the step that ended the round finished (for a forfeit, when the session was closed).
 - `view` is always `definition.view(state, humanSeat)`; events are public (see Core data shapes). `wallet` is present only for `'chips'` games. Timestamps are epoch milliseconds.

@@ -1,3 +1,4 @@
+import { soloSeats } from '../roster'
 import { describe, expect, it } from 'vitest'
 import { ConfigError, IllegalActionError } from '../errors'
 import { createRng } from '../rng'
@@ -13,7 +14,7 @@ describe('high card config and seats', () => {
   })
 
   it('seats the human first or last with numbered CPUs at the chosen difficulty', () => {
-    expect(def.seatsFor({ opponents: 2, difficulty: 'medium', position: 'last' })).toEqual([
+    expect(soloSeats(def, { opponents: 2, difficulty: 'medium', position: 'last' })).toEqual([
       { id: 'cpu-1', kind: 'cpu', name: 'CPU 1', difficulty: 'medium' },
       { id: 'cpu-2', kind: 'cpu', name: 'CPU 2', difficulty: 'medium' },
       { id: 'you', kind: 'human', name: 'You' },
@@ -31,7 +32,7 @@ describe('high card config and seats', () => {
 
 describe('high card views', () => {
   const config = { opponents: 2, difficulty: 'easy', position: 'first' } as const
-  const state = def.setup(config, def.seatsFor(config), createRng('neon'))
+  const state = def.setup(config, soloSeats(def, config), createRng('neon'))
 
   it('shows a seat its own card and hides everyone else’s while playing', () => {
     const view = def.view(state, 'cpu-1')

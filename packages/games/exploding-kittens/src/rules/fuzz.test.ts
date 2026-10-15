@@ -1,4 +1,4 @@
-import { createRng, replay } from '@neon-cards/engine'
+import { soloSeats, createRng, replay } from '@neon-cards/engine'
 import { describe, expect, it } from 'vitest'
 import { ekDeck } from './deck'
 import { rules } from './index'
@@ -60,7 +60,7 @@ describe('seeded replay', () => {
       const rebuilt = replay(rules, {
         seed: game.seed,
         config: first.session.config,
-        seats: rules.definition.seatsFor(first.session.config),
+        seats: soloSeats(rules.definition, first.session.config),
         log: first.session.log,
       })
       expect(rebuilt.events.filter((event) => event.type !== 'turn')).toEqual(first.session.events)
@@ -78,7 +78,7 @@ describe('seeded replay', () => {
       },
     }
     const ruled = { ...rules, policies: { easy: spy, medium: spy, hard: spy } }
-    const rebuilt = replay(ruled, { seed: game.seed, config: played.session.config, seats: rules.definition.seatsFor(played.session.config), log: played.session.log })
+    const rebuilt = replay(ruled, { seed: game.seed, config: played.session.config, seats: soloSeats(rules.definition, played.session.config), log: played.session.log })
     expect(rebuilt.events.filter((event) => event.type !== 'turn')).toEqual(played.session.events)
   })
 })

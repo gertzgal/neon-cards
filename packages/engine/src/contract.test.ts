@@ -11,13 +11,13 @@ const coin: GameDefinition<CoinConfig, CoinState, CoinAction, CoinState, 'coin'>
   version: 1,
   deck: { id: 'coin', build: () => ['coin'] },
   seats: { min: 1, max: 1 },
+  house: [],
   defaultConfig: { flips: 1 },
   parseConfig: (input) => {
     const flips = (input as { flips?: unknown } | null)?.flips ?? 1
     if (flips !== 1 && flips !== 3) throw new Error('flips must be 1 or 3')
     return { flips }
   },
-  seatsFor: () => [{ id: 'p1', kind: 'human', name: 'You' }],
   setup: (config) => ({ left: config.flips, heads: 0 }),
   toAct: (s) => (s.left > 0 ? 'p1' : null),
   legalActions: (s, seat) => (s.left > 0 && seat === 'p1' ? [{ type: 'flip' }] : []),

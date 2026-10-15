@@ -34,7 +34,7 @@ function seatOf(match: Match, id: SeatId): Seat {
 function checkSeats<C, S, A, V, F>(rules: GameRules<C, S, A, V, F>, seats: Seat[]): void {
   const { min, max } = rules.definition.seats
   if (seats.length < min || seats.length > max) {
-    throw new Error(`${rules.definition.id} needs ${min}..${max} seats, seatsFor returned ${seats.length}`)
+    throw new Error(`${rules.definition.id} needs ${min}..${max} seats, the roster returned ${seats.length}`)
   }
   if (new Set(seats.map((s) => s.id)).size !== seats.length) throw new Error('seat ids must be unique')
   for (const seat of seats) {
@@ -118,6 +118,15 @@ function playedKind<C, S>(match: Match<C, S>, seat: SeatId, kind: 'human' | 'cpu
 function applyLogged<C, S, A, V, F>(rules: GameRules<C, S, A, V, F>, step: Step<C, S, A>, record: ActionRecord<A>): Step<C, S, A> {
   const def = rules.definition
   const toAct = def.toAct(step.match.state)
+  if (toAct === null && matchesOpening(rules, step.match.state, record.action)) {
+    const first = step.match.seats[0]
+    if (!first || record.seat !== first.id) {
+      throw new NotYourTurnError(`"${record.seat}" acted but nobody was to act`)
+    }
+    const kind = playedKind(step.match, record.seat, record.kind)
+    const withTurn = kind === 'cpu' ? { ...step, events: [...step.events, { type: 'turn' as const, seat: record.seat }] } : step
+    return applyOne(rules, withTurn, record.seat, record.action, kind)
+  }
   if (toAct !== record.seat) {
     throw new NotYourTurnError(`"${record.seat}" acted but "${toAct}" was to act`)
   }
@@ -129,6 +138,12 @@ function applyLogged<C, S, A, V, F>(rules: GameRules<C, S, A, V, F>, step: Step<
 /** `config` is already parsed. `seats` is the roster. Runs setup, then CPU turns that come before a human. */
 export function startMatch<C, S, A, V, F>(rules: GameRules<C, S, A, V, F>, input: MatchInput<C>): Step<C, S, A> {
   return runCpuTurns(rules, begin(rules, input))
+}
+
+/** True when `action` is the game's opening action for this state. */
+export function matchesOpening<C, S, A, V, F>(rules: GameRules<C, S, A, V, F>, state: S, action: unknown): boolean {
+  const opening = rules.definition.opening?.(state)
+  return opening != null && jsonEqual(opening, action)
 }
 
 /** Applies `opening()` as seats[0], logged human, then the CPU cascade. Throws when opening is null. */

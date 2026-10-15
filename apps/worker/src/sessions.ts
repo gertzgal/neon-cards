@@ -1,4 +1,16 @@
-import { act, startMatch, type GameEvent, type GameRules, type Match, type Seat, type Settlement, type Step } from '@neon-cards/engine'
+import {
+  act,
+  applyOpening,
+  matchesOpening,
+  soloSeats,
+  startMatch,
+  type GameEvent,
+  type GameRules,
+  type Match,
+  type Seat,
+  type Settlement,
+  type Step,
+} from '@neon-cards/engine'
 import { and, count, desc, eq, inArray, sql } from 'drizzle-orm'
 import { schema, type Db } from './db'
 import { readBalance, readWallet, refillAmount, walletDelta, type LedgerReason } from './wallet'
@@ -186,7 +198,7 @@ export async function createSession(
   const sessionId = crypto.randomUUID()
   let step: Step
   try {
-    step = startMatch(rules, { config: config, seats: rules.definition.seatsFor(config), seed: seed })
+    step = startMatch(rules, { config: config, seats: soloSeats(rules.definition, config), seed: seed })
   } catch (err) {
     throw toApiError(err)
   }
@@ -368,8 +380,14 @@ export async function postAction(
   const human = humanSeat(match)
   let step: Step
   try {
-    step = act(rules, match, human.id, input.action)
+    if (rules.definition.toAct(match.state) === null) {
+      if (!matchesOpening(rules, match.state, input.action)) throw new ApiError(400, 'action does not open the round')
+      step = applyOpening(rules, match)
+    } else {
+      step = act(rules, match, human.id, input.action)
+    }
   } catch (err) {
+    if (err instanceof ApiError) throw err
     throw toApiError(err)
   }
   const balance = chipsBalance(rules, playerId, row.balance)
