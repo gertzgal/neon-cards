@@ -20,6 +20,7 @@ import {
 import { TITLE_ORDER, type EkAction, type EkFace, type EkView, type Title } from '../rules'
 import { FACE_LABEL } from '../rules/deck'
 import { applyEvent, displayFromView, owedBadge, type Display } from './display'
+import { lineForEk, showEffect } from './effect'
 import { ekFace, faceCorner, kittenMark } from './face'
 import { DrawIcon, NopeIcon, PassIcon, crown } from './icons'
 import { createJuice } from './juice'
@@ -47,7 +48,11 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
   })
 
   const apply = useCallback(
-    (event: GameEvent) => setDisplay((current) => applyEvent(current, event, humanSeat)),
+    (event: GameEvent) => {
+      const line = lineForEk(event)
+      if (line) showEffect(line)
+      setDisplay((current) => applyEvent(current, event, humanSeat))
+    },
     [humanSeat],
   )
   const playback = useEkPlayback({ juice, seats, apply })

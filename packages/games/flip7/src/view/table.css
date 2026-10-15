@@ -3,6 +3,81 @@
   inset: 0;
 }
 
+/* The played-card line lives on .nc-fx, so the table still has only FLIP and BUST. */
+.uxc-line {
+  position: absolute;
+  left: 50%;
+  top: 34%;
+  z-index: 32;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  animation: uxc-pop 1.6s ease-out forwards;
+}
+
+.uxc-line b {
+  font-size: clamp(32px, 7vw, 68px);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  color: #fff6c8;
+  text-shadow:
+    0 0 8px #ffd23f,
+    0 0 18px #ff2e88;
+  white-space: nowrap;
+}
+
+.uxc-line i {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 3px solid #ffd23f;
+  border-radius: 50%;
+  box-shadow: 0 0 12px #ff2e88;
+  animation: uxc-ring 0.42s ease-out forwards;
+}
+
+@keyframes uxc-pop {
+  0% {
+    transform: translate(-50%, -30%) scale(0.35);
+    opacity: 0;
+  }
+  14% {
+    transform: translate(-50%, -50%) scale(1.14);
+    opacity: 1;
+  }
+  24% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  76% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -64%) scale(0.96);
+    opacity: 0;
+  }
+}
+
+@keyframes uxc-ring {
+  0% {
+    opacity: 0.95;
+    transform: scale(0.3);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(8);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .uxc-line,
+  .uxc-line i {
+    animation: none;
+  }
+}
+
 /* No words but FLIP 7! and BUST: seats show only pips, cards and numbers. */
 .f7 .nc-seat-name,
 .f7 .nc-pips b {

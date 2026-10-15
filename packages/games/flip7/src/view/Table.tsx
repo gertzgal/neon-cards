@@ -24,6 +24,7 @@ import {
 } from '@neon-cards/ui'
 import { hasAnyCard, roundValue, type F7Card, type Flip7Action, type Flip7View, type RoundScore } from '../rules'
 import { applyEvent, displayFromView, type Display, type DisplaySeat } from './display'
+import { lineForFlip7, showEffect } from './effect'
 import { flip7Face } from './face'
 import { crown, HitIcon, NextIcon, StayIcon } from './icons'
 import { createJuice } from './juice'
@@ -104,6 +105,8 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
         } else before.delete(card.id)
       }
       if (event.type === 'Busted' && typeof event.seat === 'string') setRevealing((r) => [...r, event.seat as SeatId])
+      const line = lineForFlip7(event)
+      if (line) showEffect(line)
       setDisplay((d) => applyEvent(d, event))
     },
     [before],
