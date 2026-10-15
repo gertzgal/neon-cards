@@ -60,4 +60,8 @@ Registry lines are the table PR. `meta.economy` is `score`. Seats are `{ min: 2,
 
 ## Landing
 
-PR URL and the fast-forward SHA are filled in this file before the merge.
+- PR: https://github.com/gertzgal/neon-cards/pull/56
+- Branch: `cursor/exploding-kittens-spec-b8a1`
+- Spec commit: `578ca946bb8c1201e2f93204f8020f0f49a5df66`
+- `docs/architecture.md`: unchanged
+- Merge: fast-forward `main` to the PR head that CI tested. That head is the commit that adds this landing note. The main SHA is that head after the push.
