@@ -160,6 +160,26 @@ test('a Nope chain, including Nope a Nope', async ({ page }, testInfo) => {
   await expect(page.getByTestId('seat-you')).toHaveAttribute('data-count', '4')
 })
 
+test('Escape lowers a raised Nope, then passes the window', async ({ page }) => {
+  await open(page, { rig: 'nope', seed: 'ek-e2e-nope-6', picks: ['pregame-opponents-1', 'pregame-difficulty-medium'] })
+  await tap(page, 'action-card-attack')
+  await page.getByTestId('play-card').click()
+  await expect(table(page)).toHaveAttribute('data-pending', 'nope', { timeout: 20_000 })
+  await settled(page)
+
+  await tap(page, 'action-card-nope')
+  await expect(page.getByTestId('action-card-nope')).toHaveAttribute('data-selected', 'true')
+  await page.keyboard.press('Escape')
+  await expect(page.getByTestId('action-card-nope')).toHaveAttribute('data-selected', 'false')
+  await expect(table(page)).toHaveAttribute('data-pending', 'nope')
+
+  const passed = watchAction(page)
+  await page.keyboard.press('Escape')
+  const result = await readAction(await passed)
+  expect(postedAction(result.posted)).toEqual({ type: 'pass' })
+  await settled(page)
+})
+
 test('you choose where a defuse puts the kitten', async ({ page }, testInfo) => {
   await open(page, { rig: 'kitten', seed: 'ek-e2e-plant-0', picks: ['pregame-opponents-1', 'pregame-difficulty-medium'] })
   await page.getByTestId('action-draw').click()

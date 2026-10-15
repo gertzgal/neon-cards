@@ -126,9 +126,10 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.repeat || event.metaKey || event.ctrlKey || event.altKey) return
-      const target = event.target
-      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return
+      const focus = event.target
+      if (focus instanceof HTMLInputElement || focus instanceof HTMLTextAreaElement) return
       const key = event.key.toLowerCase()
+      // `target` is the picked seat. The event target used to shadow it, so Escape never reached Pass.
       if (key === 'escape' && (selected.length > 0 || target || name)) {
         clearPick()
         event.preventDefault()
