@@ -38,7 +38,7 @@ export interface EkConfig {
   rig?: RigName
 }
 
-export const RIGS = ['kitten', 'explode', 'nope', 'favor', 'five'] as const
+export const RIGS = ['kitten', 'explode', 'nope', 'favor', 'five', 'crowd'] as const
 export type RigName = (typeof RIGS)[number]
 
 export interface SeatState {

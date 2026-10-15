@@ -13,7 +13,7 @@ test('the opening hand stays inside the screen, with the owed digit', async ({ p
   const viewport = page.viewportSize()
   if (!viewport) throw new Error('no viewport')
   const hand = page.getByTestId('you-hand')
-  await expect(hand).toHaveAttribute('data-layout', 'strip')
+  await expect(hand).toHaveAttribute('data-layout', 'fit')
   const cards = page.locator('.ek-card-btn')
   await expect(cards).toHaveCount(8)
   const boxes = await cards.evaluateAll((nodes) =>
@@ -28,12 +28,10 @@ test('the opening hand stays inside the screen, with the owed digit', async ({ p
 
   const handBox = await hand.boundingBox()
   const draw = await page.getByTestId('action-draw').boundingBox()
-  const dock = await page.getByTestId('play-dock').boundingBox()
   expect(handBox).not.toBeNull()
   expect(draw).not.toBeNull()
-  expect(dock).not.toBeNull()
   expect(handBox?.x ?? 0).toBeGreaterThanOrEqual(-1)
-  expect((handBox?.x ?? 0) + (handBox?.width ?? 0)).toBeLessThanOrEqual((dock?.x ?? viewport.width) + 1)
+  expect((handBox?.x ?? 0) + (handBox?.width ?? 0)).toBeLessThanOrEqual(viewport.width + 1)
   expect((handBox?.y ?? 0) + (handBox?.height ?? 0)).toBeLessThanOrEqual((draw?.y ?? 0) + 1)
 })
 

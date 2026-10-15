@@ -37,36 +37,44 @@ export function straightRow(count: number, card: Size, maxWidth: number): { widt
 /**
  * A straight row that scales down until it fits `maxWidth`.
  * No overlap, wrap, fan, rotation, or scroll. `startScale` shrinks the size token first,
- * so a one-card row can open smaller than the shared hand.
+ * so a one-card row can open smaller than the shared hand. `gap` stays put while the row fits
+ * and while the cards can shrink around it. It only tightens once cards would drop below
+ * `minCard`, or once that is the only way to stay inside.
  */
 export function fittedRow(
   count: number,
   card: Size,
   maxWidth: number,
   startScale = 1,
+  gap = 6,
+  minCard = 1,
 ): { width: number; card: Size; slots: SlotPlacement[] } {
-  const gap = 6
   const baseW = card.w * startScale
   const baseH = card.h * startScale
   const full = { w: Math.max(1, Math.round(baseW)), h: Math.max(1, Math.round(baseH)) }
   if (count <= 0 || maxWidth <= 0 || baseW <= 0) return { width: 0, card: full, slots: [] }
-  const natural = count * baseW + gap * (count - 1)
-  const scale = Math.min(1, maxWidth / natural)
-  let w = Math.max(1, Math.floor(baseW * scale))
-  let h = Math.max(1, Math.round(baseH * (w / baseW)))
-  let stepGap = count > 1 ? (scale < 1 ? gap * scale : gap) : 0
-  let row = count * w + stepGap * (count - 1)
-  if (scale < 1 && count > 1 && row < maxWidth) stepGap += (maxWidth - row) / (count - 1)
-  row = count * w + stepGap * (count - 1)
-  if (row > maxWidth + 0.01 && count > 1) {
-    stepGap = Math.max(0, (maxWidth - count * w) / (count - 1))
-    row = count * w + stepGap * (count - 1)
-  }
-  while (row > maxWidth + 0.01 && w > 1) {
-    w -= 1
+  const gaps = Math.max(0, count - 1)
+  let stepGap = gaps > 0 ? gap : 0
+  let w = full.w
+  let h = full.h
+  const rowOf = (cw: number, cg: number) => count * cw + cg * gaps
+  const floor = Math.max(1, Math.min(full.w, minCard))
+  if (rowOf(w, stepGap) > maxWidth) {
+    if (stepGap * gaps >= maxWidth) stepGap = gaps > 0 ? Math.max(0, (maxWidth - count) / gaps) : 0
+    const usable = maxWidth - stepGap * gaps
+    const scale = usable > 0 ? Math.min(1, usable / (count * baseW)) : 0
+    w = Math.max(1, Math.floor(baseW * Math.max(0, scale)))
+    if (w < floor && gaps > 0) {
+      w = floor
+      stepGap = Math.max(0, (maxWidth - count * w) / gaps)
+    }
     h = Math.max(1, Math.round(baseH * (w / baseW)))
-    stepGap = count > 1 ? Math.max(0, (maxWidth - count * w) / (count - 1)) : 0
-    row = count * w + stepGap * (count - 1)
+    if (rowOf(w, stepGap) > maxWidth + 0.01 && gaps > 0) stepGap = Math.max(0, (maxWidth - count * w) / gaps)
+    while (rowOf(w, stepGap) > maxWidth + 0.01 && w > 1) {
+      w -= 1
+      h = Math.max(1, Math.round(baseH * (w / baseW)))
+      stepGap = gaps > 0 ? Math.max(0, (maxWidth - count * w) / gaps) : 0
+    }
   }
   const advance = w + stepGap
   const slots = Array.from({ length: count }, (_, i) => ({ x: i * advance, y: 0, rotate: 0 }))
@@ -95,7 +103,7 @@ export function handLayout(
 }
 
 /** A row or fan of cards. Each card sits in a slot that the juice system animates. */
-export function Hand<Face>({ cards, renderer, size = 'hand', layout, maxWidth, scale, state, testId }: HandProps<Face>) {
+export function Hand<Face>({ cards, renderer, size = 'hand', layout, maxWidth, scale, gap, state, testId }: HandProps<Face>) {
   const metrics = useTableMetrics()
   const box = metrics.card[size]
   const mode = layout ?? (size === 'hand' ? 'fan' : 'row')
@@ -110,7 +118,7 @@ export function Hand<Face>({ cards, renderer, size = 'hand', layout, maxWidth, s
         : metrics.phone
           ? metrics.width * 0.4
           : Math.min(metrics.width * 0.2, 280))
-  const fit = mode === 'fit' ? fittedRow(cards.length, box, limit, scale ?? 1) : null
+  const fit = mode === 'fit' ? fittedRow(cards.length, box, limit, scale ?? 1, gap) : null
   const strip = mode === 'strip' ? straightRow(cards.length, box, limit) : null
   const straightMode = mode === 'fan' || mode === 'row' ? mode : 'row'
   const laid = fit ?? strip ?? handLayout(cards.length, box, straightMode, limit, size)

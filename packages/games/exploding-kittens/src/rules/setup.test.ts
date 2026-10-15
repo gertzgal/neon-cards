@@ -55,7 +55,7 @@ describe('config and seats', () => {
       difficulty: 'hard',
       rig: 'kitten',
     })
-    expect(RIGS).toEqual(['kitten', 'explode', 'nope', 'favor', 'five'])
+    expect(RIGS).toEqual(['kitten', 'explode', 'nope', 'favor', 'five', 'crowd'])
     expect(rules.meta).toMatchObject({
       title: 'Exploding Kittens',
       description: 'Draw cards. Do not explode. Last one alive wins.',
@@ -139,7 +139,7 @@ describe('E66 opening', () => {
 })
 
 describe('rigs', () => {
-  it('kitten, explode, nope, favor, and five only swap cards that already exist', () => {
+  it('rigs only move cards that already exist', () => {
     const plain = openSession('rigs', 2)
     const yours = plain.state.seats[HUMAN]?.hand.find((card) => card.face.title === 'defuse')
     const cpuDefuse = plain.state.seats['cpu-1']?.hand.find((card) => card.face.title === 'defuse')
@@ -169,6 +169,13 @@ describe('rigs', () => {
     expect(favor.state.seats['cpu-1']?.hand.length).toBeGreaterThanOrEqual(2)
     expect(favor.state.seats[HUMAN]?.hand.some((card) => card.id === yours.id)).toBe(true)
     expect(cardIds(favor.state)).toEqual(cardIds(plain.state))
+
+    const crowd = openSession('rigs', 2, 'crowd')
+    expect(crowd.state.seats[HUMAN]?.hand).toHaveLength(13)
+    expect(crowd.state.draw[0]?.face.title).toBe('kitten')
+    expect(holds(crowd.state, HUMAN, 'defuse')).toBe(true)
+    expect(crowd.state.seats[HUMAN]?.hand.some((card) => card.face.title === 'kitten')).toBe(false)
+    expect(cardIds(crowd.state)).toEqual(cardIds(plain.state))
 
     const five = openSession('rigs', 2, 'five')
     expect(five.state.discard.some((card) => card.id === cpuDefuse.id)).toBe(true)

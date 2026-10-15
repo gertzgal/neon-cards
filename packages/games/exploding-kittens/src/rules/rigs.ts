@@ -128,9 +128,29 @@ function diversify(state: EkState, locked: Set<string>, protect: string | null):
   }
 }
 
+/** Thirteen cards is the desktop bar: the old straight row put exactly three of them past x=1440. */
+const CROWD_HAND = 13
+
+function fillHand(state: EkState, count: number, locked: Set<string>, protect: string | null): void {
+  const hand = state.seats[HUMAN]?.hand
+  if (!hand) throw new Error('crowd rig needs you')
+  while (hand.length < count) {
+    const index = state.draw.findIndex((card) => card.face.title !== 'kitten' && card.id !== protect && !locked.has(card.id))
+    const card = index >= 0 ? state.draw.splice(index, 1)[0] : undefined
+    if (!card) throw new Error('crowd rig cannot fill the hand')
+    hand.push(card)
+    locked.add(card.id)
+  }
+}
+
 export function applyRig(state: EkState, rig: RigName): void {
   const locked = new Set<string>()
   const protect = soleDefuse(state, HUMAN)
+  if (rig === 'crowd') {
+    fillHand(state, CROWD_HAND, locked, protect)
+    ensureDrawTop(state, 'kitten', locked, protect)
+    return
+  }
   if (rig === 'kitten') {
     ensureDrawTop(state, 'kitten', locked, protect)
     return

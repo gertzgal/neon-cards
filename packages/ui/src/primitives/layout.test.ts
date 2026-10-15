@@ -118,6 +118,32 @@ describe('fittedRow', () => {
     expect(row.card).toEqual({ w: 144, h: 194 })
     expect(row.width).toBe(144 * 7 + 6 * 6)
   })
+
+  it('keeps a 12px gap and does not stretch five desktop cards across the room', () => {
+    const row = fittedRow(5, desktop, 1268, 0.56, 12)
+    expect(row.card.w).toBe(101)
+    expect(row.slots[1]?.x).toBe(113)
+    expect(row.width).toBe(5 * 101 + 4 * 12)
+    expect(row.width).toBeLessThan(600)
+  })
+
+  it('holds a thirteen-card phone row at a readable width by spending the gap', () => {
+    const row = fittedRow(13, phone, 374, 1, 12, 28)
+    expect(row.width).toBeLessThanOrEqual(374.01)
+    expect(row.card.w).toBeGreaterThanOrEqual(28)
+    expect((row.slots[1]?.x ?? 0) - row.card.w).toBeLessThan(12)
+  })
+
+  it('fits eight phone cards in one row with a gap and no overlap', () => {
+    const row = fittedRow(8, phone, 374, 1, 12)
+    expect(row.width).toBeLessThanOrEqual(374.01)
+    expect(row.card.w).toBeGreaterThanOrEqual(28)
+    for (let i = 1; i < row.slots.length; i++) {
+      const prev = row.slots[i - 1]
+      const slot = row.slots[i]
+      expect((slot?.x ?? 0) - (prev?.x ?? 0)).toBeGreaterThanOrEqual(row.card.w - 0.01)
+    }
+  })
 })
 
 describe('chips', () => {

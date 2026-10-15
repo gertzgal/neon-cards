@@ -26,7 +26,7 @@ import {
 import { hasAnyCard, roundValue, type F7Card, type Flip7Action, type Flip7View, type RoundScore } from '../rules'
 import { applyEvent, cardOnTable, displayFromView, type Display, type DisplaySeat } from './display'
 import { ACTION_HINT_MS, feltSentence, flip7Face } from './face'
-import { FLIP7_HAND_GAP, FLIP7_HAND_PAD, FLIP7_OPEN_SCALE, flip7HandRoom } from './hand-room'
+import { FLIP7_CARD_GAP, FLIP7_HAND_PAD, flip7HandRoom, flip7OpenScale } from './hand-room'
 import { crown, HitIcon, NextIcon, StayIcon } from './icons'
 import { createJuice } from './juice'
 
@@ -100,20 +100,17 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
     const root = rootRef.current
     if (!root) return
     const player = root.querySelector('[data-testid="player-spot"]')
-    const badge = root.querySelector('[data-testid="round-value"]')
-    if (!(player instanceof HTMLElement) || !(badge instanceof HTMLElement)) return
+    if (!(player instanceof HTMLElement)) return
     const measure = () => {
       if (player.clientWidth < 40) return
       const style = getComputedStyle(player)
       const paddingX = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0)
-      const gap = parseFloat(style.columnGap) || parseFloat(style.gap) || 0
-      const next = flip7HandRoom(player.clientWidth, paddingX, gap, badge.offsetWidth)
+      const next = flip7HandRoom(player.clientWidth, paddingX)
       setHandRoom((prev) => (prev === next ? prev : next))
     }
     measure()
     const observer = new ResizeObserver(measure)
     observer.observe(player)
-    observer.observe(badge)
     return () => observer.disconnect()
   }, [spotReady])
   useLayoutEffect(() => {
@@ -273,8 +270,8 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
   }
 
   const myScore = scoreOf(humanSeat)
-  const badgeGuess = Math.ceil(metrics.card.hand.h * 0.16 * 3.4 + 6)
-  const room = handRoom ?? flip7HandRoom(metrics.width, FLIP7_HAND_PAD * 2, FLIP7_HAND_GAP, badgeGuess)
+  const room = handRoom ?? flip7HandRoom(metrics.width, FLIP7_HAND_PAD * 2)
+  const openScale = flip7OpenScale(metrics.phone)
   const held = display.held
   const flipThree = display.flipThree
   const pendingCard = mine && mine.kind === 'assign' ? mine.card.id : held?.card.id
@@ -367,33 +364,33 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
                   renderer={flip7Face}
                   size="compact"
                   layout="fit"
+                  gap={FLIP7_CARD_GAP}
                   maxWidth={Math.max(72, metrics.width - FLIP7_HAND_PAD * 2)}
                   testId="you-extras"
                 />
               </div>
-              <Slots filled={me.status === 'busted' ? 0 : unique} gold={me.flip7} />
+              <div className="f7-head">
+                <Slots filled={me.status === 'busted' ? 0 : unique} gold={me.flip7} />
+                <ScoreBadge
+                  value={me.status === 'busted' ? 0 : valueOf(me)}
+                  testId="round-value"
+                  tone={me.flip7 ? 'gold' : 'pink'}
+                  state={myState}
+                />
+              </div>
               {hint && (
                 <p className="nc-rule-line" data-testid="card-rule">
                   {hint.text}
                 </p>
               )}
-              <PlayerSpot
-                state={myState}
-                badge={
-                  <ScoreBadge
-                    value={me.status === 'busted' ? 0 : valueOf(me)}
-                    testId="round-value"
-                    tone={me.flip7 ? 'gold' : 'pink'}
-                    state={myState}
-                  />
-                }
-              >
+              <PlayerSpot state={myState}>
                 <Hand
                   cards={cardsOf(humanSeat, me)}
                   renderer={flip7Face}
                   size="hand"
                   layout="fit"
-                  scale={FLIP7_OPEN_SCALE}
+                  scale={openScale}
+                  gap={FLIP7_CARD_GAP}
                   maxWidth={room}
                   testId="you-hand"
                   state={myState}
