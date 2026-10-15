@@ -83,7 +83,7 @@ function stubFor(code: string) {
 }
 
 function usageOf(code: string): Promise<Usage> {
-  return runInDurableObject(stubFor(code), (instance: { usage(): Usage }) => instance.usage())
+  return runInDurableObject(stubFor(code), (instance: unknown) => (instance as { usage(): Usage }).usage())
 }
 
 async function rewriteDeadlines(code: string, deadlines: { turn: boolean; grace: boolean }): Promise<void> {

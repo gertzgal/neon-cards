@@ -688,3 +688,23 @@ The sample is the `win` rig. One human and three medium CPUs. Deal, hit, stay. T
 Local `performance.now` around the command peaked at 3 ms, and the handler peak was the same 3 ms. The snapshot read was under the timer, so it recorded 0 ms. No alarm ran in this test, so alarm time is 0. These are local wall times. They do not decide the free-plan CPU cap.
 
 At 9 writes for a hand of this length, 100,000 writes a day is about 11,000 such hands. A longer match repeats the per-command cost. One human command is one snapshot, one primary-key index update, and one `setAlarm` while a human still has a turn. That replaces the 330 illustration for this short hand only. The free-plan alarm and WebSocket sample is still open until the preview worker records it.
+
+## The preview worker completed the room command and the alarm (2026-10-15)
+
+The sample is a separate Worker, `neon-cards-multiplayer-preview`, at `https://neon-cards-multiplayer-preview.gal-9700.workers.dev`. It is not the production script `neon-cards`. Its D1 is `neon-cards-multiplayer-preview` (`184cecdd-8ee7-436b-9cad-82f7ad09ea4b`). The Durable Object class `RoomObject` is the SQLite migration `v1`. `DEV_RIG` is unset. Usage model on the script is `standard`. Observability invocation logs are on.
+
+Two browsers played Flip 7 room `Z4Z8` on that URL. The host was Lucky Robin on a 1440x900 window. The guest was Neon Ace on a 390x844 window. The host dealt, hit, and stayed. Both clients showed the same code, their nicknames, `spectator-count` 0, and the Flip 7 table.
+
+Workers observability `cpuTimeMs` for script version `3e77cf3b-0efd-49c6-af03-8e933e6ebe3b` (the app upload, not the probe):
+
+| Request | CPU | Outcome |
+| --- | --- | --- |
+| RoomObject alarm | 4 ms | ok |
+| RoomObject WebSocket message | 1 ms and 6 ms | ok |
+| RoomObject WebSocket close | 2 ms and 2 ms | ok |
+| POST /api/rooms (Flip 7, HTTP 201) | 15 ms and 17 ms | ok |
+| GET /api/wallet (HTTP 200) | 5 ms, 10 ms, and 19 ms | ok |
+| GET /api/health (HTTP 200) | 3 ms | ok |
+| POST /api/rooms blackjack (HTTP 400) | 10 ms | ok |
+
+No invocation returned `exceededCpu` or error 1102. The room command peaked at 6 ms and the alarm completed at 4 ms. Both are under 10 ms, so this sample does not authorize splitting the CPU cascade. Isolate fetches for wallet and room create went to 19 ms and 17 ms and still finished with outcome ok. Two GETs of `/api/rooms/Z4Z8` were `canceled` at 10 ms and 11 ms because the WebSocket upgrade leaves the worker. That is the handoff, not a CPU cap. Production `neon-cards` was not the upload target. Its binding is still the production D1 and it has no `ROOMS` binding.
