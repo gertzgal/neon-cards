@@ -78,7 +78,7 @@ Register one line in `apps/worker/src/games.ts` (the `/rules` entry) and one in 
 
 Face labels, for aria and tests: `EXPLODING KITTEN`, `DEFUSE`, `NOPE`, `ATTACK`, `SKIP`, `FAVOR`, `SHUFFLE`, `SEE THE FUTURE`, `TACOCAT`, `HAIRY POTATO CAT`, `RAINBOW-RALPHING CAT`, `BEARD CAT`, `CATTERMELON`.
 
-Card ids come from one `buildShoe(ekDeck, 1, rng)` inside `setup`. Later shuffles permute those same card objects. An id never encodes a title.
+Card ids come from one `buildShoe(ekDeck, 1, rng)` inside `setup`. Later shuffles permute those same card objects. An id is `exploding-kittens-<shoe index>`. The deck id contains the letters of `kitten`; the index does not name a title.
 
 ## 3. Setup
 

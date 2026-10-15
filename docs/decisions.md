@@ -423,3 +423,28 @@ Consider items decided above (stack, human-last, every five combination, die, de
 ### Build order
 
 Not this PR. Next is the rules package and E1–E68, then the policies and the strength floors, then the table, the two registry lines, e2e, and the verify feature file. `docs/exploding-kittens-status.md` is the status.
+
+## Exploding Kittens rules (Exploding Kittens agent, 2026-10-15)
+
+The rules package is `packages/games/exploding-kittens` (`@neon-cards/game-exploding-kittens`). `docs/architecture.md` is unchanged. No `src/view`, no `definePlugin`, and no registry line in `apps/worker` or `apps/web`. `src/index.ts` re-exports `rules` until the table PR. `tsconfig.json` already has DOM libs and `jsx: react-jsx`, so that PR does not rewrite it. The package does not depend on React or `@neon-cards/ui`.
+
+### Policies stay out
+
+`EkPolicy` is the engine `Policy<EkView, EkAction>`. Easy, Medium, and Hard are not implemented. `rules.policies` is three placeholders whose `choose` throws `Exploding Kittens ${difficulty} policy is not in the rules package`. The engine's `checkSeats` refuses a CPU seat with no policy, and E66 calls `startMatch`. The human is first, so `choose` is not called. `definition.ts` does not import the policies. The policies PR replaces the placeholders and the test that asserts the throw.
+
+### Spec clarification
+
+`buildShoe` prefixes ids with the deck id `exploding-kittens`, so the id string contains the letters of `kitten`. The face is not encoded. The suffix is the shoe index (`exploding-kittens-<n>`). One sentence in `docs/exploding-kittens-spec.md` says that. There is no second ruleset.
+
+### Implementation choices
+
+- `apply` deep-clones with `JSON.parse(JSON.stringify(state))` before it writes, and throws `IllegalActionError` without the caller seeing a change.
+- A five's cards are discarded in `TITLE_ORDER`, so the top of the discard is deterministic. The spec requires the stored effect's `titles` to be sorted and does not specify discard order.
+- Rigs only swap cards that already exist and do not read the rng, so a rigged setup and an unrigged setup of the same seed are the same multiset of ids. `five` moves `cpu-1`'s dealt defuse onto the discard.
+- `nope.ts` is imported only by `definition.ts` and is not exported from the barrel.
+- E29's death half uses four seats. With three seats that explosion leaves one living player, the game ends, and `turn` is null, so there is no next seat to receive leftover `owed`. Four seats leave two players. The next living seat starts at `owed` 0.
+- E67 asserts `knownTop[0]` is the new kitten and `plantedIndex` is 6, which is why `pTop` would be 1. This PR does not ship `pTop`. E68 asserts the single listed five, that `apply` accepts a different legal five, and that a chooser can return the listed menu object by reference.
+
+### Tests
+
+TDD: `pnpm exec vitest run packages/games/exploding-kittens --project unit` failed first with `Error: not implemented` (79 failed, 3 passed), then passed (82 passed) after the engine. One test per edge-case id E1–E68. Twelve fuzz games, seeds `ek-fuzz-0` through `ek-fuzz-11`, at 2, 3, and 4 players, with the nope, kitten, explode, favor, and five rigs. The same seed reproduces the same public event log, and engine `replay` matches it without calling a policy. E41 scans seeds `e41-0` through `e41-399`. E64 scans `e64-0` through `e64-2499`.
