@@ -1,6 +1,6 @@
 # Exploding Kittens status
 
-Rules package only. Nothing is registered, so nothing is playable. `docs/architecture.md` did not change.
+Playable. Rules, Easy / Medium / Hard, the table, and e2e are in the repo. `docs/architecture.md` did not change.
 
 The contract is [`docs/exploding-kittens-spec.md`](exploding-kittens-spec.md) (2026-10-15). The decision log for this package is the 2026-10-15 rules section of [`docs/decisions.md`](decisions.md).
 
@@ -12,12 +12,12 @@ The contract is [`docs/exploding-kittens-spec.md`](exploding-kittens-spec.md) (2
 | `docs/architecture.md` | Unchanged. Nope is a `pending` cursor. No contract change. |
 | Rules package `@neon-cards/game-exploding-kittens` | This PR. `src/index.ts` re-exports `rules`. No `src/view`. |
 | Easy / Medium / Hard policies and the strength floors | Done. `src/rules/policies/`. Floors passed at `HARD_P` 0.15 and Easy draw weight 2. Record is in the CPU section below. |
-| Table, juice, the two registry lines, e2e, verify feature | Not started. `apps/worker` and `apps/web` do not import this package. |
+| Table, juice, the two registry lines, verify feature | Done. See the table section. |
+| e2e | This PR. `e2e/exploding-kittens.spec.ts` on phone and desktop. |
 
 ## What's next
 
-1. Policies, including the 200-seed strength floors. Done in the CPU section below.
-2. Table, registry lines in `apps/worker/src/games.ts` and `apps/web/src/games.ts`, e2e, verify feature file. `src/index.ts` becomes `definePlugin`. The tsconfig already has DOM and `jsx: react-jsx`.
+The build order in the spec is done: rules, policies, table, registry lines, e2e, and the verify feature file.
 
 ## Rules package
 
@@ -95,3 +95,22 @@ TDD: the new choice and strength tests failed first on `Exploding Kittens ${diff
 `src/view` is the table, the face renderer, juice, and playback. `src/index.ts` exports `plugin` and still exports `rules`. Worker and web each register one line, the same way Flip 7 does. The verify map has `features/exploding-kittens.md`. There is no `e2e/exploding-kittens*.spec.ts` in this PR.
 
 Easy, Medium, and Hard are the policies from the CPU section above. The opening deal does not call them, because the human is first. A later turn does.
+
+## E2E (Exploding Kittens agent, 2026-10-15)
+
+`e2e/exploding-kittens.spec.ts` drives the real shell. `?rig=` and `?seed=` are the only rig channel (`DEV_RIG=1`). No new test id. Phone and desktop come from the Playwright projects.
+
+Seeds are fixed because Medium does not read `cpuRng`, and these deals make the clicks land:
+
+| Seed | Rig | What it locks |
+| --- | --- | --- |
+| `ek-e2e-nope-6` | `nope` | One Attack and one Nope. Medium nopes the Attack. Noping that Nope makes two, and the Attack resolves. |
+| `ek-e2e-plant-0` | `kitten` | Draw, then `insert-4`. The view's `plantedIndex` stays 4. The response has no `index` field. |
+| `ek-e2e-defuse-13` | `kitten` | `insert-0`. Medium draws that kitten and defuses. The payload has both `Defused` faces and no index. `planted` and `known-top` are absent. The CPU seat is `{ alive, count }`. |
+| `ek-e2e-explode-0` | `explode` | The draw kills you. `game-over` is `cpu-1`. That CPU's row stays eight backs. |
+| `ek-e2e-win-38` | `five` | Shuffle is doubled, so the first tap selects. Five titles take the discarded defuse. The next draw is a kitten. `insert-0` leaves it for the CPU, who has no defuse. `game-over` is `you`. |
+
+Setup covers opponents 1, 2, and 3 and Easy, Medium, and Hard. Draw size is 35, 29, and 23. Opponent rows are counts of face-down cards. Your eight cards are face up.
+
+- `docs/architecture.md`: unchanged
+- Merge: fast-forward `main` to the PR head that CI tested. That head is the commit that adds this landing note.

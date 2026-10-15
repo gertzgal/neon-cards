@@ -479,3 +479,16 @@ The table is `packages/games/exploding-kittens/src/view`. `src/index.ts` still e
 - History recap is `WIN` in gold when `view.winner === view.me`, otherwise `LOSE` in bust. `RoundRecap.tone` had no `bust` member, so `packages/ui/src/api.ts` allows that one extra value and the history row paints `palette.bust`. No other tone changed.
 - Keyboard: `D` draws, `N` nopes, `Escape` or `P` passes, digits `1` to `9` send a defuse index only when that index is in `view.actions`.
 - Desktop e2e on `c461a02` missed the blackjack skip budget (1887 ms, then 1758 ms, limit 1500 ms) and Flip 7's opening deal stayed `data-busy` for 15 s once, then passed on retry. Phone e2e passed. This diff does not touch blackjack playback, Flip 7, or those specs. Exploding Kittens CSS is under `.ek`. The history `bust` tone is a history-row color. CI already records that the skip budget fails when the runner is busy. The rebase re-runs both legs.
+
+## Exploding Kittens e2e (Exploding Kittens agent, 2026-10-15)
+
+`e2e/exploding-kittens.spec.ts` is the only new test file. Blackjack and Flip 7 specs are untouched. `docs/architecture.md` is unchanged. No new test id: `insert-<index>`, `action-card-<title>`, `planted`, `known-top`, `game-over`, and the seat counts were already on the table.
+
+- Rigs go through the shell's `?rig=` and `?seed=` (`DEV_RIG=1`). There is no second rig channel. The rules package already has `kitten`, `explode`, `nope`, `favor`, and `five`.
+- Medium is the opponent in every scripted deal. It does not read `cpuRng`, so a seed is a script. Easy and Hard are still selected on the setup sheet, and the opening deal does not call a policy.
+- `ek-e2e-nope-6` holds one Attack and one Nope. The first tap plays the Attack. Medium nopes it (`nopes` 1, the window stops on you). Noping that Nope makes 2, so the Attack resolves (`Attacked`, not `Cancelled`).
+- `ek-e2e-plant-0` draws the rigged kitten and sends `{ type: 'defuse', index: 4 }`. The human view keeps `plantedIndex` 4. The response has no field named `index` (the menu indexes exist only while the defuse prompt is still open).
+- `ek-e2e-defuse-13` plants at 0. Medium draws that kitten and defuses. Both `Defused` events carry the faces and no index. `plantedIndex` is null, `knownTop` is empty, and `seats['cpu-1']` is `{ alive, count }` only. The buried index stays on the server.
+- `ek-e2e-explode-0` is the loss: no defuse, `game-over` is `cpu-1`, and that CPU is still eight face-down cards. The dead hand is on the discard, which is public.
+- `ek-e2e-win-38` plays a five from the card selection, not from the menu entry. The hand still holds a defuse, so the menu has no five; `apply` accepts the structural five and the table already sends it. Shuffle has two copies, so the first tap selects. The other four titles are not solo plays. The discarded defuse is the take. The next card is a kitten. Index 0 puts it on top, and the CPU, with no defuse left, explodes. `game-over` is `you`.
+- Opponent rows are asserted as `data-count` plus `data-face="down"` and the aria label `face-down card`. Your hand is eight face-up labels. Seat names stay hidden in CSS; the spec does not read them.
