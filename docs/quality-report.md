@@ -1,6 +1,38 @@
 # Quality report
 
-Current with main `bdbc4b6fe3eeddfd9cefeae541718103e6c5a0f6` (2026-10-15). Judged on `cede64d`, phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app). `cede64d` is past the Exploding Kittens table ([#59](https://github.com/gertzgal/neon-cards/pull/59), `12d08a4`). On top of that table: the e2e (`8507c5a`), `?seed=` forwarded as the match seed (`4606663`), and the key-skip clock ([#62](https://github.com/gertzgal/neon-cards/pull/62), `cede64d`). The phone hand is [#61](https://github.com/gertzgal/neon-cards/pull/61) (`bdbc4b6`).
+Current with main `d3d0e35c591ec484bc95cb79e47f7e92e0386cb5` (2026-10-15). Judged on that SHA, phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app). `d3d0e35` is [#63](https://github.com/gertzgal/neon-cards/pull/63): physical-layout faces (`4316d00`) and the phone-hand type size (`6d6148d`). The two commits after `6d6148d` only retrigger CI. No console errors.
+
+## Card faces
+
+Played the way a round goes. Blackjack is still the mock: a dark face, an oversized corner rank, one center pip, and a face-down hole. Hearts came up pink. Spades and clubs came up cyan. Flip 7 numbers are the card. A modifier is the mark, in the compact extra row. Exploding Kittens cards are a title, a pixel scene, and one rule line. The table did not grow any extra words.
+
+- Blackjack, rig `AH,9C,5S,7D,3C`, $25. Deal shows A♥ and 5♠ against 9♣ and a hole card. The hole stays down. Hit adds 3♣ and the hand stays in play (soft 19). Phone ranks are 55px on the player cards and 30px on the dealer. Desktop is 53px and 33px. Every rank's box stays inside its card. Phone hand box ends at y 707; the buttons start at y 710. The rotated corners reach y 717 and graze the button box. The HIT label stays clear. Desktop hand ends at y 798, buttons at y 822.
+- Flip 7, rig `you=8,+10`, one Easy CPU. The 8 fills the hand card (117px on a 150×203 phone card, 140px on a 180×243 desktop card). +10 sits above it (31px on a 42×57 phone card, 53px on a 71×96 desktop card). Both marks stay inside the frame. Neither card meets the HUD or the buttons. The only numeral on the CPU is 12.
+- Exploding Kittens, seed `ek-gap-open`, two Medium CPUs. The hand is Shuffle, Cattermelon, Skip, Skip, Favor, Tacocat, Cattermelon, Defuse. On the phone the cards run from x 16 to 374, the same span as `bdbc4b6`. The lowest corner is y 730 and the draw button is y 774. The owed digit reads 1 at (16, 14). Cattermelon is 16px, one line, inside the card. Rules are 18px. Desktop is the same fan as that pass: x 258 to 1182, digit at x 1170. The outer corners still cross the top of the draw button (Shuffle and Defuse end at y 854, the button starts at y 822). DRAW in the middle stays clear. That overlap is the fan from [#61](https://github.com/gertzgal/neon-cards/pull/61), not a new face.
+
+No face was clipped, and no new bug turned up. Nothing is open.
+
+![Phone, blackjack deal](quality/faces-phone-bj-deal.jpg)
+![Phone, blackjack hit](quality/faces-phone-bj-hit.jpg)
+![Desktop, blackjack deal](quality/faces-desktop-bj-deal.jpg)
+![Desktop, blackjack hit](quality/faces-desktop-bj-hit.jpg)
+![Phone, hole card](quality/faces-phone-bj-hole.jpg)
+![Desktop, hole card](quality/faces-desktop-bj-hole.jpg)
+![Phone, ace](quality/faces-phone-bj-ace.jpg)
+![Phone, the hit](quality/faces-phone-bj-hit-card.jpg)
+![Phone, Flip 7 eight](quality/faces-phone-f7-number.jpg)
+![Phone, Flip 7 +10](quality/faces-phone-f7-mod.jpg)
+![Desktop, Flip 7 eight](quality/faces-desktop-f7-number.jpg)
+![Desktop, Flip 7 +10](quality/faces-desktop-f7-mod.jpg)
+![Phone, the eight](quality/faces-phone-f7-eight.jpg)
+![Phone, +10](quality/faces-phone-f7-plus10.jpg)
+![Desktop, +10](quality/faces-desktop-f7-plus10.jpg)
+![Phone, Exploding Kittens hand](quality/faces-phone-ek.jpg)
+![Desktop, Exploding Kittens hand](quality/faces-desktop-ek.jpg)
+![Phone, Cattermelon](quality/faces-phone-ek-cattermelon.jpg)
+![Desktop, Cattermelon](quality/faces-desktop-ek-cattermelon.jpg)
+
+The earlier passes below were on the SHAs named there.
 
 ## Exploding Kittens
 
@@ -148,7 +180,7 @@ Wallet matched the round's net on the earlier rig pass too.
 
 ## Still open
 
-The phone fan on `cede64d` is fixed in [#61](https://github.com/gertzgal/neon-cards/pull/61). Nothing else from this pass is open. The resume-pill fix is [#53](https://github.com/gertzgal/neon-cards/pull/53), merged. No new bug on the earlier `ea1c952` pass.
+Nothing from the card-face pass on `d3d0e35` is open. The phone fan on `cede64d` is fixed in [#61](https://github.com/gertzgal/neon-cards/pull/61). The resume-pill fix is [#53](https://github.com/gertzgal/neon-cards/pull/53), merged. No new bug on the earlier `ea1c952` pass.
 
 ## Flip 7
 
@@ -182,8 +214,8 @@ Shots from this pass live in `docs/quality/` (`phone-flip7-*`, `desktop-flip7-*`
 
 ## Other open PRs
 
-[#63](https://github.com/gertzgal/neon-cards/pull/63) draws physical-layout card faces. Left alone. [#61](https://github.com/gertzgal/neon-cards/pull/61) and [#62](https://github.com/gertzgal/neon-cards/pull/62) are merged. [#52](https://github.com/gertzgal/neon-cards/pull/52) is merged (`ea1c952`). [#33](https://github.com/gertzgal/neon-cards/pull/33) is closed. [#46](https://github.com/gertzgal/neon-cards/pull/46) and [#53](https://github.com/gertzgal/neon-cards/pull/53) are merged.
+No open PRs. [#63](https://github.com/gertzgal/neon-cards/pull/63) is merged (`d3d0e35`). [#61](https://github.com/gertzgal/neon-cards/pull/61) and [#62](https://github.com/gertzgal/neon-cards/pull/62) are merged. [#52](https://github.com/gertzgal/neon-cards/pull/52) is merged (`ea1c952`). [#33](https://github.com/gertzgal/neon-cards/pull/33) is closed. [#46](https://github.com/gertzgal/neon-cards/pull/46) and [#53](https://github.com/gertzgal/neon-cards/pull/53) are merged.
 
 ## Left
 
-Flip 7's own later list, not quality bugs: the bust-% assist meter, Hard splitting a set-aside Freeze and Flip Three onto different seats, a history recap, and the solo 200-point challenge. No quality bug is waiting on a fix.
+Flip 7's own later list, not quality bugs: the bust-% assist meter, Hard splitting a set-aside Freeze and Flip Three onto different seats, a history recap, and the solo 200-point challenge. No quality bug is waiting on a fix. The desktop Exploding Kittens fan still meets the draw button the way it did on `bdbc4b6`.
