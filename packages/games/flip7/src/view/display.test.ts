@@ -27,19 +27,21 @@ describe('cardOnTable', () => {
     const step = act(rules, started.match, HUMAN, { type: 'nextRound' })
     const display = displayFromView(rules.definition.view(step.match.state, HUMAN))
     const held = display.held
-    expect(held?.card.face).toEqual({ kind: 'action', action: 'freeze' })
-    expect(cardOnTable(display, held?.card.id ?? '')).toBe(held?.card)
+    const you = display.seats[HUMAN]
+    if (!held || !you) throw new Error('freeze rig did not hold an action')
+    expect(held.card.face).toEqual({ kind: 'action', action: 'freeze' })
+    expect(cardOnTable(display, held.card.id)).toBe(held.card)
     expect(cardOnTable(display, 'pile')).toBeNull()
 
-    const landed = { ...held!.card, id: 'landed' }
+    const landed = { ...held.card, id: 'landed' }
     const parked = {
       ...display,
       held: null,
-      tray: [held!.card],
-      seats: { ...display.seats, [HUMAN]: { ...display.seats[HUMAN]!, freeze: landed } },
+      tray: [held.card],
+      seats: { ...display.seats, [HUMAN]: { ...you, freeze: landed } },
     }
     expect(cardOnTable(parked, 'landed')).toBe(landed)
-    expect(cardOnTable(parked, held!.card.id)).toBe(held!.card)
+    expect(cardOnTable(parked, held.card.id)).toBe(held.card)
   })
 })
 
