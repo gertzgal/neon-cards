@@ -501,3 +501,7 @@ The key-skip spec still checks the settled felt, one history row, and the wallet
 ## Phone hand stays on the screen (Quality agent, 2026-10-15)
 
 Played on `12d08a4`. An eight-card fan plus the owed badge beside it is wider than a 390px phone. The hand box started at x −28 and the first card at x −44, so the leftmost face was cut in half. Desktop (1440) kept the same fan inside the screen. The fix does not change the shared kit. On a phone the owed digit moves to the top bar, where a score game has no wallet, and the fan's limit is `width - 64` so the rotated corners stay inside. Desktop still draws the digit beside the hand. `seat-you` keeps `data-owed`. `e2e/exploding-kittens-hand.spec.ts` asserts every opening card is inside the viewport and above the draw button.
+
+## Exploding Kittens quality pass (Quality agent, 2026-10-15)
+
+Judged on `cede64d`, phone and desktop, after the table (`12d08a4`), the e2e (`8507c5a`), and the seed forward (`4606663`). Draw, defuse, explode, Nope, Attack, Favor, Shuffle, See the Future, Skip, Easy/Medium/Hard, history, and a reload on the plain path all matched the table. Blackjack and Flip 7 still open a round from the lobby. The one player bug was the phone fan: on seed `ek-gap-open` the first card started at x −44. [#61](https://github.com/gertzgal/neon-cards/pull/61) is that fix. Retested on `bdbc4b6`: the same cards run from x 16 to 374 and the digit sits in the top bar. Card-face PR #63 was left alone. The write-up and shots are in `docs/quality-report.md` and `docs/quality/ek-*`.

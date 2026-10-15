@@ -1,8 +1,58 @@
 # Quality report
 
-Current with main `ea1c952897173ba67ae2a724b9fdcc87aaa8fec3` (2026-10-15). That commit is [#52](https://github.com/gertzgal/neon-cards/pull/52): a blackjack action is two D1 round trips, and hit, stand, double, and split start the non-secret motion on the click. Under it, `a9af660` shows the wallet on a resumed hand, and `4df911c` keeps the desktop stake off the player cards and paints the hole card's back.
+Current with main `bdbc4b6fe3eeddfd9cefeae541718103e6c5a0f6` (2026-10-15). Judged on `cede64d`, phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app). `cede64d` is past the Exploding Kittens table ([#59](https://github.com/gertzgal/neon-cards/pull/59), `12d08a4`). On top of that table: the e2e (`8507c5a`), `?seed=` forwarded as the match seed (`4606663`), and the key-skip clock ([#62](https://github.com/gertzgal/neon-cards/pull/62), `cede64d`). The phone hand is [#61](https://github.com/gertzgal/neon-cards/pull/61) (`bdbc4b6`).
 
-Played on `ea1c952`, phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app). No regression. The pill, the wallet, and history agreed on every round below. No console errors.
+## Exploding Kittens
+
+Played on `cede64d` the way a round goes. A score game: no wallet, no chips. The owed count is a digit. The only juice words are `NOPE` and `BOOM`. Seat names and the difficulty line are in the DOM and `display: none`, same as Flip 7. A rig URL starts a fresh sheet. The plain `/games/exploding-kittens` path resumes the stored session.
+
+- Lobby tile, then the sheet. Default is 2 opponents, Medium. The line on the sheet is "Draw cards. Do not explode. Last one alive wins."
+- Hard, 3 CPUs. Eight face-up cards, three rows of backs, draw pile 23, owed digit 1.
+- Draw. The hand goes 8→9 on one POST. A double-click sends one POST and one more card.
+- `D` draws. On seed `ek-gap-open` it drew the kitten and opened the defuse prompt.
+- Resume. The plain path brings the same cards back, including an open defuse prompt.
+- Defuse (`?rig=kitten`). 35 insert slots. The bottom slot plants index 34. Digit `1` plants on top and `known-top` is 1.
+- Explode (`?rig=explode`). `BOOM`, `game-over` is `cpu-1`, your seat is empty. History says `LOSE` / `Round 1` for `exploding-kittens`. The filter row is All / Blackjack / Flip 7 / Exploding Kittens, because more than one game has rows.
+- Nope (`?rig=nope&seed=ek-e2e-nope-6`). Attack opens the window (`nopes` 1, effect attack). Noping it, or Pass, returns to your turn.
+- Favor (`?rig=favor`). The seat lights. Medium nopes it. The hand goes 8→7.
+- Shuffle, See the Future, Skip, and Attack, on Easy. One copy plays on the first tap. A second copy selects, then plays. See the Future leaves `known-top` at 3.
+- Easy, one CPU. One draw takes the pile from 35 to 34.
+- Five rig, seed `ek-e2e-win-38`. The hand is the scripted eight cards and the discard count is 1. The URL seed is the deal.
+- Blackjack from the lobby: $25, deal, stage `playing` (desktop total 14).
+- Flip 7 from the lobby: Play, stage `playing`, Hit enabled once the deal settles.
+
+On `cede64d` at 390px the owed digit sat beside the fan. Shuffle started at x −44 and Defuse ended at x 350. Desktop kept that same seed from x 258 to 1182, with the digit beside the hand at x 1170.
+
+[#61](https://github.com/gertzgal/neon-cards/pull/61) puts the phone digit in the top bar and limits the fan to `width - 64`. The shared kit is unchanged. Retested on `bdbc4b6` with seed `ek-gap-open`: the phone cards run from x 16 to 374, the digit reads 1 at (16, 14), there is no wallet, and the hand box ends at y 707 above the draw button at y 774. Desktop is the same fan, digit still beside the hand.
+
+![Phone, hand off the screen](quality/ek-phone-clipped.jpg)
+![Phone, hand on the screen](quality/ek-phone-fixed.jpg)
+![Desktop, opening hand](quality/ek-desktop-opening.jpg)
+![Phone, defuse](quality/ek-phone-defuse.jpg)
+![Desktop, defuse](quality/ek-desktop-defuse.jpg)
+![Phone, nope](quality/ek-phone-nope.jpg)
+![Desktop, nope](quality/ek-desktop-nope.jpg)
+![Phone, boom](quality/ek-phone-boom.jpg)
+![Desktop, boom](quality/ek-desktop-boom.jpg)
+![Phone, see the future](quality/ek-phone-future.jpg)
+![Desktop, see the future](quality/ek-desktop-future.jpg)
+![Desktop, shuffle](quality/ek-desktop-shuffle.jpg)
+![Desktop, attack](quality/ek-desktop-attack.jpg)
+![Desktop, favor](quality/ek-desktop-favor.jpg)
+![Phone, history](quality/ek-phone-history.jpg)
+![Desktop, history](quality/ek-desktop-history.jpg)
+![Phone, blackjack](quality/ek-phone-blackjack.jpg)
+![Desktop, blackjack](quality/ek-desktop-blackjack.jpg)
+![Phone, Flip 7](quality/ek-phone-flip7.jpg)
+![Desktop, Flip 7](quality/ek-desktop-flip7.jpg)
+
+The earlier passes below were on the SHAs named there.
+
+## Instant actions
+
+The pass below is `ea1c952897173ba67ae2a724b9fdcc87aaa8fec3` ([#52](https://github.com/gertzgal/neon-cards/pull/52)): a blackjack action is two D1 round trips, and hit, stand, double, and split start the non-secret motion on the click. Under it, `a9af660` shows the wallet on a resumed hand, and `4df911c` keeps the desktop stake off the player cards and paints the hole card's back.
+
+Played on `ea1c952`, phone 390×844 and desktop 1440×900. The pill, the wallet, and history agreed on every round below. No console errors.
 
 ## Instant actions
 
@@ -98,7 +148,7 @@ Wallet matched the round's net on the earlier rig pass too.
 
 ## Still open
 
-Nothing in the quality list is still open. No new bug on `ea1c952`. The resume-pill fix is [#53](https://github.com/gertzgal/neon-cards/pull/53), merged.
+The phone fan on `cede64d` is fixed in [#61](https://github.com/gertzgal/neon-cards/pull/61). Nothing else from this pass is open. The resume-pill fix is [#53](https://github.com/gertzgal/neon-cards/pull/53), merged. No new bug on the earlier `ea1c952` pass.
 
 ## Flip 7
 
@@ -132,7 +182,7 @@ Shots from this pass live in `docs/quality/` (`phone-flip7-*`, `desktop-flip7-*`
 
 ## Other open PRs
 
-None. [#52](https://github.com/gertzgal/neon-cards/pull/52) is merged (`ea1c952`). [#33](https://github.com/gertzgal/neon-cards/pull/33) is closed. [#46](https://github.com/gertzgal/neon-cards/pull/46) and [#53](https://github.com/gertzgal/neon-cards/pull/53) are merged.
+[#63](https://github.com/gertzgal/neon-cards/pull/63) draws physical-layout card faces. Left alone. [#61](https://github.com/gertzgal/neon-cards/pull/61) and [#62](https://github.com/gertzgal/neon-cards/pull/62) are merged. [#52](https://github.com/gertzgal/neon-cards/pull/52) is merged (`ea1c952`). [#33](https://github.com/gertzgal/neon-cards/pull/33) is closed. [#46](https://github.com/gertzgal/neon-cards/pull/46) and [#53](https://github.com/gertzgal/neon-cards/pull/53) are merged.
 
 ## Left
 
