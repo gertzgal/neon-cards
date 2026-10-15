@@ -14,7 +14,9 @@ const GLYPH: Record<string, readonly string[]> = {
   R: ['XX.', 'X.X', 'XX.', 'X.X', 'X.X'],
   S: ['.XX', 'X..', '.X.', '..X', 'XX.'],
   T: ['XXX', '.X.', '.X.', '.X.', '.X.'],
+  W: ['X.X', 'X.X', 'X.X', 'XXX', 'X.X'],
   Z: ['XXX', '..X', '.X.', 'X..', 'XXX'],
+  M: ['XXX', 'X.X', 'X.X', 'X.X', 'X.X'],
 }
 
 export function wordBitmap(word: string): string[] {
@@ -29,6 +31,23 @@ export function wordBitmap(word: string): string[] {
       const line = glyph[y]
       if (row === undefined || line === undefined) throw new Error(`glyph row ${ch}`)
       rows[y] = row + line + gap
+    }
+  })
+  return [...rows]
+}
+
+/** A rule line, including a one-pixel gap between words. Letters stay sprites, not text. */
+export function lineBitmap(text: string): string[] {
+  const rows: [string, string, string, string, string] = ['', '', '', '', '']
+  const parts = text.split(' ')
+  parts.forEach((part, i) => {
+    const word = wordBitmap(part)
+    const gap = i === 0 ? '' : '.'
+    for (let y = 0; y < 5; y++) {
+      const row = rows[y]
+      const line = word[y]
+      if (row === undefined || line === undefined) throw new Error(`rule row ${part}`)
+      rows[y] = row + gap + line
     }
   })
   return [...rows]

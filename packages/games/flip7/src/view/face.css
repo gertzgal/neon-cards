@@ -43,3 +43,15 @@
   position: relative;
   z-index: 1;
 }
+
+/* The rule sits on the face. It is out of flow, so the name and picture stay put. */
+.f7-face-rule {
+  position: absolute;
+  left: 50%;
+  bottom: 5%;
+  z-index: 2;
+  transform: translateX(-50%);
+  line-height: 0;
+  background: var(--f7-field);
+  box-shadow: 0 0 0 3px var(--f7-field);
+}

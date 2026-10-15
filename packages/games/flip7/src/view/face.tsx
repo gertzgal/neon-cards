@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 import type { Flip7Face } from '@neon-cards/engine'
 import { InkSprite, PixelSprite, fitScale, type CardFaceRenderer, type Tone } from '@neon-cards/ui'
-import { burstIcon, flipThreeIcon, freezeIcon, secondChanceIcon, wordBitmap } from './glyphs'
+import { burstIcon, flipThreeIcon, freezeIcon, lineBitmap, secondChanceIcon, wordBitmap } from './glyphs'
 import './face.css'
 
 /** One hue per number, echoing the physical deck's rainbow. The numeral is that color. */
@@ -32,9 +32,9 @@ const ADD_INK: Record<2 | 4 | 6 | 8 | 10, string> = {
 }
 
 const ACTION = {
-  freeze: { tone: 'cyan' as const, ink: '#9af6ff', words: ['FREEZE'], icon: freezeIcon },
-  flipThree: { tone: 'gold' as const, ink: '#ffe14a', words: ['FLIP', 'THREE'], icon: flipThreeIcon },
-  secondChance: { tone: 'cyan' as const, ink: '#7dff6a', words: ['SECOND', 'CHANCE'], icon: secondChanceIcon },
+  freeze: { tone: 'cyan' as const, ink: '#9af6ff', words: ['FREEZE'], rule: 'STOP', icon: freezeIcon },
+  flipThree: { tone: 'gold' as const, ink: '#ffe14a', words: ['FLIP', 'THREE'], rule: 'MORE', icon: flipThreeIcon },
+  secondChance: { tone: 'cyan' as const, ink: '#7dff6a', words: ['SECOND', 'CHANCE'], rule: 'SAFE', icon: secondChanceIcon },
 }
 
 const FIELD = '#0c0a12'
@@ -56,6 +56,28 @@ export function faceInk(face: Flip7Face): string {
   if (face.kind === 'number') return NUMBER_INK[face.value] ?? NUMBER_INK[0]
   if (face.kind === 'modifier') return face.op === 'add' ? ADD_INK[face.value] : '#fff3b0'
   return ACTION[face.action].ink
+}
+
+/** Pixel caption under the merged name. Wide enough to read on a phone extra, short enough to stay a line. */
+export function faceRule(face: Flip7Face): string | null {
+  if (face.kind === 'number') return null
+  if (face.kind === 'modifier') return face.op === 'add' ? 'ADD' : 'TWO'
+  return ACTION[face.action].rule
+}
+
+export function ruleScale(widthPx: number, bitmapWidth: number): number {
+  const fit = fitScale(widthPx, bitmapWidth, 0.98)
+  const cap = Math.max(2, Math.floor(((widthPx / 0.74) * 0.21) / 5))
+  return Math.min(fit, cap)
+}
+
+function RuleLine({ text, ink, widthPx }: { text: string; ink: string; widthPx: number }) {
+  const bitmap = lineBitmap(text)
+  return (
+    <div className="f7-face-rule">
+      <InkSprite bitmap={bitmap} inks={{ X: ink }} scale={ruleScale(widthPx, bitmap[0]?.length ?? 1)} />
+    </div>
+  )
 }
 
 function shell(ink: string, className: string, children: ReactNode) {
@@ -88,6 +110,7 @@ export const flip7Face: CardFaceRenderer<Flip7Face> = {
           <InkSprite bitmap={art.icon} inks={{ K: ink }} scale={iconScale} />
           {showWords &&
             art.words.map((word) => <InkSprite key={word} bitmap={wordBitmap(word)} inks={{ X: ink }} scale={wordScale} />)}
+          <RuleLine text={art.rule} ink={ink} widthPx={widthPx} />
         </>,
       )
     }
@@ -109,6 +132,7 @@ export const flip7Face: CardFaceRenderer<Flip7Face> = {
         <span className="f7-face-mark" style={{ fontSize }}>
           {text}
         </span>
+        {!numeral && <RuleLine text={faceRule(face) ?? ''} ink={ink} widthPx={widthPx} />}
       </>,
     )
   },
