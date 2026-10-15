@@ -181,6 +181,22 @@ export function burstFlight(origin: Point, ceiling: number, width: number, avoid
 }
 
 /**
+ * The first two chips of the fountain, sent to opposite sides of the table.
+ * A random spray sometimes stays in the middle, and the burst has to cross half the table.
+ * These two leave first, so that width is on screen before the felt sweeps.
+ */
+export function wideEnds(origin: Point, ceiling: number, width: number, avoid: Rect | null): [BurstFlight, BurstFlight] {
+  const reach = width * 0.34
+  const start = inBand(origin, ceiling, avoid)
+  const side = (dir: number): BurstFlight => {
+    const peak = inBand({ x: origin.x + dir * reach, y: origin.y }, ceiling, avoid)
+    const end = inBand({ x: peak.x, y: peak.y + 28 }, ceiling, avoid)
+    return { start, peak, end }
+  }
+  return [side(-1), side(1)]
+}
+
+/**
  * The blackjack chip fountain. Chips spray across the table from `origin` (the pot), staying under the
  * dealer row (`ceiling` is its bottom edge) and off the player's cards (`avoid`).
  */
@@ -188,11 +204,13 @@ export function chipBurst(layer: HTMLElement, origin: Point, ceiling: number, co
   const values: ChipValue[] = [5, 25, 100, 500]
   const n = reducedMotion() ? 8 : count
   const width = layer.getBoundingClientRect().width || innerWidth
+  const ends = wideEnds(origin, ceiling, width, avoid)
   const jobs: Promise<void>[] = []
   for (let i = 0; i < n; i++) {
     const el = chipElement(values[i % 4] ?? 5, 'bj-flychip big')
     layer.appendChild(el)
-    const flight = burstFlight(origin, ceiling, width, avoid, Math.random)
+    const aimed = i === 0 ? ends[0] : i === 1 ? ends[1] : undefined
+    const flight = aimed ?? burstFlight(origin, ceiling, width, avoid, Math.random)
     const spin = () => (Math.random() - 0.5) * 640
     const at = (p: Point, scale: number, rot: number) => `translate(${p.x - CHIP_HALF_W}px,${p.y - CHIP_HALF_H}px) scale(${scale}) rotate(${rot}deg)`
     const frames: Keyframe[] = [

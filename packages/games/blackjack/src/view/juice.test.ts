@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { burstFlight, type Rect } from './juice'
+import { burstFlight, wideEnds, type Rect } from './juice'
 
 /** A tiny deterministic stand-in for Math.random. */
 function rng(seed: number): () => number {
@@ -32,5 +32,17 @@ describe('blackjack burst', () => {
     }
     const spread = Math.max(...peaks) - Math.min(...peaks)
     expect(spread).toBeGreaterThan(width * 0.5)
+  })
+
+  it.each([
+    ['phone', 195, 340, 120, 390, phoneHand],
+    ['desktop', 720, 400, 160, 1440, desktopHand],
+  ] as const)('sends the first two chips to opposite sides on %s', (_name, x, y, ceiling, width, hand) => {
+    const [left, right] = wideEnds({ x, y }, ceiling, width, hand)
+    expect(right.peak.x - left.peak.x).toBeGreaterThan(width * 0.5)
+    for (const p of [left.start, left.peak, left.end, right.start, right.peak, right.end]) {
+      expect(p.y).toBeGreaterThanOrEqual(ceiling + 23)
+      expect(covers(p.x, p.y, hand)).toBe(false)
+    }
   })
 })

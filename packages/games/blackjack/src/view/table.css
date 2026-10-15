@@ -45,7 +45,8 @@
 @keyframes bj-blink { 50% { color: #fff; background: #ff2e5a; box-shadow: 0 0 22px #ff2e5a; } }
 
 /* pot */
-.bj-pot-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 80px; position: relative; z-index: 2; }
+/* The stake lives in the open band between the dealer and the player. It must not shrink onto the cards. */
+.bj-pot-area { flex: 1 0 132px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 132px; position: relative; z-index: 2; }
 .bj-pot { display: flex; gap: 4px; align-items: flex-end; min-height: 44px; }
 .bj-pot .bj-chip, .bj-pot .bj-stack { width: 56px; height: 42px; }
 .bj-pot .bj-chip span { font-size: 18px; }
@@ -84,10 +85,12 @@
 .bj-slot { --g: var(--cyan); }
 .bj-slot:has(.bj-card[data-tone='pink']), .bj-slot:has(.bj-card[data-tone='back']) { --g: var(--pink); }
 .bj-card[data-tone='pink'] { --c: var(--pink); }
-.bj-card-in { position: absolute; inset: var(--bw); clip-path: inherit; background: #0e0b16; background-image: radial-gradient(rgba(255, 255, 255, .07) 1px, transparent 1.2px); background-size: 4px 4px; }
-.bj-card[data-tone='back'] { --c: var(--pink); filter: brightness(.55) saturate(.85); }
-.bj-card[data-tone='back'] .bj-card-in { background-color: #2a0619; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'><rect x='3' y='2' width='1' height='3' fill='%23ff2e88'/><rect x='2' y='3' width='3' height='1' fill='%23ff2e88'/></svg>"); background-size: calc(var(--rk) * .6) calc(var(--rk) * .6); image-rendering: pixelated; }
-.bj-card[data-tone='back'] .bj-card-in::after { content: ''; position: absolute; left: 50%; top: 50%; width: 28%; aspect-ratio: 1; transform: translate(-50%, -50%) rotate(45deg); background: #ffd0e4; box-shadow: 0 0 0 4px #2a0619, 0 0 0 7px var(--pink); }
+/* The parent card already clips to the notched shape. A second clip-path on this layer, under the
+   tray and sway filters, dropped the face-down fill on desktop and left the cyan tray showing through. */
+.bj-card-in { position: absolute; inset: var(--bw); background: #0e0b16; background-image: radial-gradient(rgba(255, 255, 255, .07) 1px, transparent 1.2px); background-size: 4px 4px; }
+.bj-card[data-tone='back'] { --c: var(--pink); }
+.bj-card[data-tone='back'] .bj-card-in { background-color: #2a0619; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'><rect x='3' y='2' width='1' height='3' fill='%23ff2e88'/><rect x='2' y='3' width='3' height='1' fill='%23ff2e88'/></svg>"); background-size: calc(var(--rk) * .55) calc(var(--rk) * .55); image-rendering: pixelated; }
+.bj-card[data-tone='back'] .bj-card-in::after { content: ''; position: absolute; left: 50%; top: 50%; width: 34%; aspect-ratio: 1; transform: translate(-50%, -50%) rotate(45deg); background: #ffd0e4; box-shadow: 0 0 0 4px #2a0619, 0 0 0 8px #ff2e88; }
 .bj-face { position: absolute; inset: 0; color: var(--cyan); }
 .bj-face[data-tone='pink'] { color: var(--pink); }
 .bj-rank { position: absolute; font-size: calc(var(--rk) * 1.35); line-height: .8; text-shadow: 0 0 6px currentColor; }

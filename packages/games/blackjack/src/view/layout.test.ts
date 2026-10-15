@@ -30,6 +30,16 @@ describe('player hand', () => {
     const size = measure(1440, 900)
     for (let n = 1; n <= 6; n++) expect(layoutHand(size, 'player', n, false).w).toBeCloseTo(size.pw)
   })
+
+  it('caps desktop cards so a 1440x900 table keeps a band for the stake', () => {
+    const size = measure(1440, 900)
+    expect(size.ph).toBeLessThanOrEqual(210)
+    expect(size.ph).toBeGreaterThan(170)
+    // Hud 84 + felt 142 + dealer row (about 1.36× dh) + player hand, from table.css.
+    const dealerRow = 4 + size.dh * 1.36
+    const band = 900 - 84 - 142 - dealerRow - size.ph
+    expect(band).toBeGreaterThan(150)
+  })
 })
 
 describe('dealer row', () => {
@@ -56,9 +66,13 @@ describe('dealer row', () => {
     for (let n = 3; n <= 8; n++) expect(layoutHand(size, 'dealer', n, false).width).toBeCloseTo(two)
   })
 
-  it('leaves the desktop dealer hand as wide as before', () => {
+  it('lets a long desktop dealer hand grow until the 700px cap', () => {
     const size = measure(1440, 900)
-    expect(layoutHand(size, 'dealer', 5, false).width).toBeCloseTo(size.dw + 4 * (size.dw + 8))
-    expect(layoutHand(size, 'dealer', 7, false).width).toBeCloseTo(700)
+    const five = layoutHand(size, 'dealer', 5, false)
+    expect(five.width).toBeCloseTo(size.dw + 4 * (size.dw + 8))
+    const seven = layoutHand(size, 'dealer', 7, false)
+    expect(seven.width).toBeGreaterThan(five.width)
+    expect(seven.width).toBeLessThanOrEqual(700)
+    expect(seven.width).toBeGreaterThan(layoutHand(measure(390, 844), 'dealer', 7, false).width)
   })
 })

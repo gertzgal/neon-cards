@@ -14,7 +14,10 @@ export interface TableSize {
 
 export function measure(width: number, height: number): TableSize {
   const phone = width < 700
-  const ph = Math.max(140, Math.min(height * 0.27, width * 0.52, 270))
+  // Desktop is wide but short. A phone-proportioned card (27% of the height) eats the band the
+  // stake sits in, so the chip lands on the player hand. Cap desktop cards a little lower and
+  // leave that band open. Phone stays on the width cap (about 203px at 390).
+  const ph = Math.max(140, Math.min(height * (phone ? 0.27 : 0.22), width * 0.52, phone ? 270 : 210))
   const dh = ph * (phone ? 0.55 : 0.62)
   return { width, height, phone, ph, pw: ph * 0.74, dh, dw: dh * 0.74 }
 }
