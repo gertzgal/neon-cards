@@ -1,5 +1,56 @@
 # Quality report
 
+Judged on `b0c130126df1b7f7d21f0cf9634629f31e184c2b` (2026-10-15). The setup card. Phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app). No console errors. `a060934` is the failing spec. `b0c1301` is the fix. `afdfcc0` and `f481485` landed on main after these shots. The pictures do not include them.
+
+## The setup card
+
+`b0c1301` leaves the top bar above the card. The dim starts at y 72. The phone bar ends at y 58. The desktop bar ends at y 70. A tap on the dim felt leaves the card open.
+
+Played from the lobby, and from a direct open, on Blackjack, Flip 7, and Exploding Kittens. The guide does not open on the card. It still opens the first time the table mounts.
+
+### The bar
+
+The center of the arrow, the book, history, mute, and settings is that control. Mute toggles and the card stays. The book opens the page. Escape closes the page and the card stays. Settings is music, effects, and motion, with no table buttons. Escape closes it and the card stays. History opens the list. Browser back from history returns to the card.
+
+Blackjack's card is the description, Play, and Back. Flip 7 and Exploding Kittens add opponents (1, 2, 3) and difficulty (Easy, Medium, Hard). Nothing else is on the card.
+
+Back under Play, the arrow, Escape, and browser back each land on the lobby. A direct open does too. The lobby is the bankroll, Neon Cards, and the three games. Play lands on the table. The first-visit page is over it. Closing that page leaves the felt.
+
+### One round
+
+Blackjack, rig `AH,9C,5S,7D,3C`, $25. Stage `playing`, bank `$1,250`, 9♣ and a hole card (`data-face` `hidden`). Hit keeps the hole down. No rule line.
+
+Flip 7, rig `bust`. A still cursor on the 5 shows nothing. A tap shows nothing 2.2s later. Hit takes the pile 91 → 90. `seat-you` is busted. The line stays absent.
+
+Exploding Kittens, seed `ek-gap-open`, two Medium CPUs. A still cursor on Shuffle does not raise it and does not open a rule. The first tap raises it (`translate(0, -36)`), shows "Shuffle the draw pile.", and leaves Play enabled. That tap sends nothing. Shuffle and Cattermelon disable Play. The reason is "Need a matching pair." The line is `nowrap` and does not scroll. The phone box is x 243, y 601, 123×16, ending at x 366 inside 390. The period glyph ends at x 366, and 24px of felt remain. The desktop box is x 1267, y 683, 165×22, ending at x 1432 inside 1440. The period glyph ends at x 1432. The disabled button is color rgb(109, 103, 128), background rgb(20, 16, 28), border rgb(58, 51, 72), no shadow, opacity 1. Play on Shuffle alone sends one `{ "type": "play", "title": "shuffle" }`. The hand goes 8 → 7 and the discard 0 → 1. The sentence is gone.
+
+Nothing else from this pass is open. [#84](https://github.com/gertzgal/neon-cards/pull/84) was left alone.
+
+![Phone, blackjack setup](quality/setup-phone-bj.jpg)
+![Desktop, blackjack setup](quality/setup-desktop-bj.jpg)
+![Phone, Flip 7 setup](quality/setup-phone-f7.jpg)
+![Desktop, Flip 7 setup](quality/setup-desktop-f7.jpg)
+![Phone, Exploding Kittens setup](quality/setup-phone-ek.jpg)
+![Desktop, Exploding Kittens setup](quality/setup-desktop-ek.jpg)
+![Phone, back to the lobby](quality/setup-phone-lobby.jpg)
+![Desktop, back to the lobby](quality/setup-desktop-lobby.jpg)
+![Phone, blackjack deal](quality/setup-phone-bj-deal.jpg)
+![Desktop, blackjack deal](quality/setup-desktop-bj-deal.jpg)
+![Phone, blackjack hit](quality/setup-phone-bj-hit.jpg)
+![Desktop, blackjack hit](quality/setup-desktop-bj-hit.jpg)
+![Phone, a tap on the 5](quality/setup-phone-f7-tap.jpg)
+![Desktop, a tap on the 5](quality/setup-desktop-f7-tap.jpg)
+![Phone, Flip 7 bust](quality/setup-phone-f7-hit.jpg)
+![Desktop, Flip 7 bust](quality/setup-desktop-f7-hit.jpg)
+![Phone, Shuffle raised](quality/setup-phone-ek-raised.jpg)
+![Desktop, Shuffle raised](quality/setup-desktop-ek-raised.jpg)
+![Phone, disabled Play](quality/setup-phone-ek-reason.jpg)
+![Desktop, disabled Play](quality/setup-desktop-ek-reason.jpg)
+![Phone, Shuffle played](quality/setup-phone-ek-played.jpg)
+![Desktop, Shuffle played](quality/setup-desktop-ek-played.jpg)
+
+The earlier passes below were on the SHAs named there.
+
 Current with main `f0d64cf043cc5ffc90f0f566cba63312e8487047` (2026-10-15). The how-to page. Phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app). No console errors. The felt fix was retested on `f8912e2`. `a443568` only adds the cloud-session hook and does not change the table.
 
 ## How to play
