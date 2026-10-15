@@ -1,14 +1,20 @@
 import { useState } from 'react'
-import { BackIcon, GearIcon, Hud as KitHud, IconButton, SoundIcon } from '@neon-cards/ui'
+import { BackIcon, GearIcon, Hud as KitHud, IconButton, SoundIcon, type GameGuide } from '@neon-cards/ui'
+import { useTableGuide } from '../guide-seen'
 import { Link } from '../router'
 import type { Route } from '../routes'
 import { updateSettings, useSettings } from '../settings'
-import { HistoryIcon } from './icons'
+import { GuidePage } from './guide'
+import { BookIcon, HistoryIcon } from './icons'
 import { SettingsSheet, type TableControls } from './SettingsSheet'
 import { useWallet } from './wallet'
 
-/** The sound and settings buttons. Tables render them in their own top bar via `TableProps.hudIcons`. */
-export function HudIcons({ table }: { table?: TableControls }) {
+/** Table bar has a guide. Lobby bar has neither field. */
+export type HudIconsProps =
+  | { readonly table?: undefined }
+  | { readonly table: TableControls; readonly guide: GameGuide }
+
+function BarIcons({ table }: { table?: TableControls }) {
   const { muted } = useSettings()
   const [settingsOpen, setSettingsOpen] = useState(false)
   return (
@@ -22,6 +28,25 @@ export function HudIcons({ table }: { table?: TableControls }) {
       {settingsOpen && <SettingsSheet onClose={() => setSettingsOpen(false)} {...(table && { table })} />}
     </>
   )
+}
+
+function TableIcons({ table, guide }: { table: TableControls; guide: GameGuide }) {
+  const guideUi = useTableGuide(table.gameId)
+  return (
+    <>
+      <IconButton label="How to play" testId="hud-guide" onClick={guideUi.openGuide}>
+        <BookIcon />
+      </IconButton>
+      <BarIcons table={table} />
+      {guideUi.open && <GuidePage guide={guide} onClose={guideUi.closeGuide} />}
+    </>
+  )
+}
+
+/** The sound and settings buttons. Tables render them in their own top bar via `TableProps.hudIcons`. */
+export function HudIcons(props: HudIconsProps) {
+  if (props.table) return <TableIcons table={props.table} guide={props.guide} />
+  return <BarIcons />
 }
 
 export function Hud({ back, history, showWallet = true }: { back?: Route; history?: Route; showWallet?: boolean }) {

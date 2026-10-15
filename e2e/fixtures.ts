@@ -5,8 +5,10 @@ import { test as base } from '@playwright/test'
 // so two tests never write the same SQLite file.
 const external = process.env['BASE_URL']
 const port = Number(process.env['E2E_PORT'] ?? 8800)
+const guideIds = ['blackjack', 'flip7', 'exploding-kittens', 'high-card']
 
-export const test = base.extend({
+export const test = base.extend<{ guideSeen: boolean }>({
+  guideSeen: [true, { option: true }],
   // Replaces the built-in baseURL. The empty pattern is Playwright's fixture bag.
   // eslint-disable-next-line no-empty-pattern
   baseURL: async ({}, use, info) => {
@@ -19,6 +21,14 @@ export const test = base.extend({
       throw new Error(`parallelIndex ${info.parallelIndex} has no D1 (only ${workers} stacks)`)
     }
     await use(`http://127.0.0.1:${port + info.parallelIndex}`)
+  },
+  page: async ({ page, guideSeen }, use) => {
+    if (guideSeen) {
+      await page.addInitScript((ids) => {
+        for (const id of ids) localStorage.setItem(`neon-cards:guide-seen:${id}`, '1')
+      }, guideIds)
+    }
+    await use(page)
   },
 })
 

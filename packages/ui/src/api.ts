@@ -357,6 +357,13 @@ declare const guideCloseBrand: unique symbol
 /** A dismiss. Only `useTableGuide` mints one, so a raw lambda cannot close the page. */
 export type GuideClose = (() => void) & { readonly [guideCloseBrand]: true }
 
+/** Open is first-visit until `closeGuide`. The book calls `openGuide` and does not clear the flag. */
+export interface TableGuide {
+  readonly open: boolean
+  openGuide(): void
+  readonly closeGuide: GuideClose
+}
+
 /** The browser plugin a game package exports. The shell reads title, settings and economy from `rules.meta`. */
 export interface GamePlugin<View = unknown, Action = unknown, Face = unknown> {
   rules: GameRules<unknown, unknown, Action, View, Face>

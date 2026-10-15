@@ -42,7 +42,7 @@ export function GameScreen({ plugin }: { plugin: GamePlugin }) {
           wallet={chips && wallet.status === 'ok' ? wallet.balance : null}
           busy={state.busy}
           act={act}
-          hudIcons={<HudIcons table={{ gameId: definition.id, newGame: reset }} />}
+          hudIcons={<HudIcons key={definition.id} table={{ gameId: definition.id, newGame: reset }} guide={plugin.guide} />}
         />
       )}
     </div>
