@@ -1,5 +1,46 @@
 # Quality report
 
+Current with main `6105ebb8ce6a1c54dc2db0210bcd2377804be539` (2026-10-15). Judged on that SHA, phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app). `6105ebb` is [#69](https://github.com/gertzgal/neon-cards/pull/69), the fix for the pass on `37edf43`. No console errors.
+
+## Press to read
+
+`37edf43` is the three inspect commits: the rule only when you ask (`b696f7f`), the panel pinned under the HUD (`af2a507`), and read-before-play (`37edf43`). Played Flip 7 (`you=8,+10`, one Easy CPU) and Exploding Kittens (seed `ek-gap-open`, two Medium CPUs). Blackjack was one $25 deal, rig `AH,9C,5S,7D`.
+
+On `37edf43` the rule was off the face until a tap or a hover, and Play on Shuffle still discarded it. Hit took the Flip 7 pile from 92 to 90. The panel was the problem. It was a tall card-plus-sentence under the HUD, and it covered the draw pile. Flip 7 phone: the panel ran y 58–345 over a pile at y 241–318. Desktop Flip 7 covered the whole pile (y 282–398). Desktop Exploding Kittens covered 77px of the 96px pile. The buttons stayed clear. Leaving the cursor on Play also opened the Flip 7 rule by itself, because the 8 deals into that spot.
+
+[#69](https://github.com/gertzgal/neon-cards/pull/69) makes the panel a short row. It sits under the pile when that gap is free, and beside the pile when a modifier or the hand is already there. A card that lands under a still cursor stays closed until the pointer moves. Retested on `6105ebb`.
+
+- Flip 7 rest, both viewports. No inspect panel, no rule sentence on the face, and the deal callout is gone once the table settles. The CPU `+9` is the score line that was already there.
+- Asking for the 8 opens “A second copy busts. Seven different numbers scores Flip 7.” Phone panel is x 117, y 326, 156×121. The pile ends at y 318, the hand starts at y 504, the buttons at y 774. Overlap with the pile, the hand, the slots, and the buttons is 0. Desktop panel is x 570, y 406, 300×112, under a pile that ends at y 398 and above a hand at y 564. Overlap 0. Escape closes it. Hit still draws: the pile goes 92 → 90.
+- Three CPUs and a +10 already out. Phone and desktop panels sit beside the pile. Overlap with the pile, the +10, the slots, the hand, and the buttons is 0.
+- Exploding Kittens rest. Titles stay on the faces. The rule sentences do not. No panel.
+- Phone tap opens the card under the finger (Cattermelon, on top of the fan). The panel is y 436–528. The pile ends at y 428. The hand cards start at y 585. Overlap 0. Desktop hover on Shuffle opens “Shuffle the pile.” The panel is x 757, beside a pile that ends at x 749. Overlap 0.
+- Play still plays a single card. On the phone, Play and a second tap each discard Shuffle (hand 8 → 7, discard 1). On desktop, the hover does not play, the click after the hover does not play, and Play does (discard 1, Shuffle on the discard). Draw still draws: the pile goes 29 → 26 on both viewports.
+- Blackjack. $25, stage `playing`, bank `$1,250`, two cards each, hole down, Hit and Stand up. No inspect panel.
+
+Nothing else from this pass is open. The desktop Exploding Kittens fan still meets the draw button the way it did on `bdbc4b6`.
+
+![Phone, Flip 7 before you ask](quality/inspect-phone-f7-rest.jpg)
+![Phone, Flip 7 rule](quality/inspect-phone-f7.jpg)
+![Phone, Flip 7 after Hit](quality/inspect-phone-f7-hit.jpg)
+![Phone, Flip 7 +10 with three CPUs](quality/inspect-phone-f7-mod.jpg)
+![Desktop, Flip 7 before you ask](quality/inspect-desktop-f7-rest.jpg)
+![Desktop, Flip 7 rule](quality/inspect-desktop-f7.jpg)
+![Desktop, Flip 7 after Hit](quality/inspect-desktop-f7-hit.jpg)
+![Desktop, Flip 7 +10 with three CPUs](quality/inspect-desktop-f7-mod.jpg)
+![Phone, Exploding Kittens before you ask](quality/inspect-phone-ek-rest.jpg)
+![Phone, Exploding Kittens rule](quality/inspect-phone-ek.jpg)
+![Phone, Exploding Kittens after a draw](quality/inspect-phone-ek-drew.jpg)
+![Desktop, Exploding Kittens before you ask](quality/inspect-desktop-ek-rest.jpg)
+![Desktop, Exploding Kittens rule](quality/inspect-desktop-ek.jpg)
+![Desktop, Shuffle played](quality/inspect-desktop-ek-played.jpg)
+![Phone, blackjack deal](quality/inspect-phone-bj.jpg)
+![Desktop, blackjack deal](quality/inspect-desktop-bj.jpg)
+
+The earlier passes below were on the SHAs named there.
+
+## Card faces
+
 Current with main `d3d0e35c591ec484bc95cb79e47f7e92e0386cb5` (2026-10-15). Judged on that SHA, phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app). `d3d0e35` is [#63](https://github.com/gertzgal/neon-cards/pull/63): physical-layout faces (`4316d00`) and the phone-hand type size (`6d6148d`). The two commits after `6d6148d` only retrigger CI. No console errors.
 
 ## Card faces

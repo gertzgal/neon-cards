@@ -529,3 +529,7 @@ When any seat plays a card, including a CPU, a short line pops on the juice laye
 ## Inspect panel stays off the pile (Quality agent, 2026-10-15)
 
 Played `37edf43` on phone and desktop. The rule stayed off the card until a tap or a hover, and Play on a single Exploding Kittens card still played it. Hit and draw still worked. The panel itself was pinned under the HUD and covered the draw pile on Flip 7 (both viewports) and on desktop Exploding Kittens. On a phone with three CPUs and a modifier, the open gap under the pile is only about 28px, so a tall preview cannot live there. The panel is now a short row. It sits in the gap under the pile when that gap is free, and beside the pile when a modifier, the slots, or the hand already fill it. A card dealt under a cursor that has not moved does not open the rule; the pointer has to move onto the card. The preview boxes in the Flip 7 and Exploding Kittens tables shrink to match that row. `docs/architecture.md` is unchanged.
+
+## Inspect quality pass (Quality agent, 2026-10-15)
+
+Played `6105ebb` on phone and desktop after [#69](https://github.com/gertzgal/neon-cards/pull/69). The rule stays off the face until you ask. The panel no longer covers the draw pile, the hand, or the buttons, including a three-CPU Flip 7 with +10 already out. Shuffle still plays from Play and from a second tap, Hit and draw still draw, and a blackjack deal still shows the hole down. The write-up and shots are in `docs/quality-report.md` and `docs/quality/inspect-*`.
