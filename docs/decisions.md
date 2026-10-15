@@ -607,3 +607,7 @@ Polling and peer-to-peer stay rejected. D1 stays the system of record. The 100,0
 `startMatch` and `replay` now take `{ config, seats, seed }`. `createSession` still builds that list with `seatsFor` and passes it in. Shipped games behave the same. Game tests pass the same list so they compile. That bridge dies when `seatsFor` is deleted.
 
 `GameDefinition.opening` is optional in this slice. A required method would force every game to change before the roster slice. `applyOpening` throws when it is missing or returns null. `ActionRecord.kind` is optional because D1 rows written before this field have no kind. New records set it. Replay uses the recorded kind, and falls back to the seat's kind when the field is absent. `applyOpening`, `autoAct`, `continueMatch`, and `replayTail` return a `Step`, the same shape as `act`, so the caller still gets events. The type sketch's `StoredMatch` stays the room's box. These are calls this slice makes. `docs/architecture.md` is unchanged.
+
+## The unrigged Flip 7 setup check waits out the felt (2026-10-15)
+
+Phone e2e on the engine slice failed two ways on one unrigged 3-CPU deal. A Second Chance leaves its sentence on `card-rule` for about two seconds after playback, so the "only numbers" word scan ran while that line was still up. A seed where the CPUs act before the human can also keep `data-busy` true past 15 seconds, because busy includes playback. The check now waits until `card-rule` is gone, and the settle wait is 45 seconds. The sentence stays on the felt. The test was reading it too early.
