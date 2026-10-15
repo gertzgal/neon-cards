@@ -5,7 +5,7 @@
 ## Sub-features
 
 - `ek-table` carries `data-state` (`playing` or `over`), `data-busy` (true while a batch plays or a request is in flight), `data-pending` (`turn`, `nope`, `give`, `defuse`, or empty), `data-nopes`, `data-effect`, and `data-picking`.
-- You: `seat-you` (`data-alive`, `data-count`, `data-owed`), `you-hand`, `action-card-<title>` on the next unselected card of that title, and `owed` (the digit `owed === 0 ? 1 : owed` while it is your turn).
+- You: `seat-you` (`data-alive`, `data-count`, `data-owed`), `you-hand`, `action-card-<title>` on the next unselected card of that title, and `owed` (the digit `owed === 0 ? 1 : owed` while it is your turn). On a phone that digit sits in the top bar, so the fan stays on the screen. On desktop it stays beside the hand.
 - CPUs: `seat-cpu-N` from the kit, plus `data-alive`, `data-count`, `data-owed`, and `data-pick`. A dead seat is an empty row.
 - Middle: `draw` (`data-count`), `discard` (`data-count`), `known-top` (`data-count`), `planted` (`data-index`), and `defuse-kitten` while you are burying one.
 - Controls: `action-draw`, `action-nope`, `action-pass`, `insert-<index>` (`data-end` `top` or `bottom`), `give-<cardId>`, `ask-<title>` after a three picks a seat, and `game-over` (`data-winner`).

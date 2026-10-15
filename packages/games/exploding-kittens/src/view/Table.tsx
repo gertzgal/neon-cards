@@ -204,7 +204,8 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
   }
 
   const hand = display.hand
-  const limit = metrics.phone ? metrics.width - 28 : Math.min(metrics.width * 0.7, 860)
+  // Phone keeps the owed digit in the top bar. Beside the fan it shoved the first card off the screen.
+  const limit = metrics.phone ? metrics.width - 64 : Math.min(metrics.width * 0.7, 860)
   const layout = handLayout(hand.length, metrics.card.hand, 'fan', limit, 'hand')
   const owner = new Map<Title, string>()
   if (mine?.kind === 'turn') {
@@ -219,6 +220,8 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
   const kitten = mine?.kind === 'defuse' ? mine.kitten : display.revealed
   const topDiscard = display.discard.slice(-4)
   const myState = stateOf(humanSeat)
+  const owed =
+    display.turn === humanSeat ? <ScoreBadge value={owedBadge(display.owed)} testId="owed" tone="pink" state={myState} /> : null
 
   const controls =
     display.winner ? (
@@ -279,7 +282,7 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
       data-picking={String(picks.length > 0)}
     >
       <TableLayout
-        hud={<Hud bankroll={null} right={hudIcons} />}
+        hud={<Hud bankroll={null} left={metrics.phone ? owed : null} right={hudIcons} />}
         top={
           <div className="ek-top" onClick={onTopClick}>
             <OpponentRows seats={opponents} renderer={ekFace} />
@@ -350,11 +353,7 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
           >
             <PlayerSpot
               state={myState}
-              badge={
-                display.turn === humanSeat ? (
-                  <ScoreBadge value={owedBadge(display.owed)} testId="owed" tone="pink" state={myState} />
-                ) : null
-              }
+              badge={metrics.phone ? null : owed}
             >
               <div className="ek-hand" data-testid="you-hand" data-count={hand.length} style={{ width: layout.width, height: layout.card.h }}>
                 {hand.map((card, index) => {

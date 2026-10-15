@@ -185,6 +185,14 @@
   padding-bottom: 12px;
 }
 
+@media (max-width: 699px) {
+  .ek-me .nc-player {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+}
+
 :root[data-motion='reduced'] .ek .nc-seat[data-pick='true'] {
   animation: none;
 }

@@ -497,3 +497,7 @@ The table is `packages/games/exploding-kittens/src/view`. `src/index.ts` still e
 ## Skip timing budget on a busy runner (Quality agent, 2026-10-15)
 
 The key-skip spec still checks the settled felt, one history row, and the wallet. Only the clock moved. Desktop e2e on main `4606663` measured 1840 ms, then 1702 ms, against 1500 ms. The same assertion missed at 1887 ms and 1758 ms on `c461a02`, and at 1560 ms and 1622 ms on the phone-hand branch. An unskipped round is about 4 s. The budget is now 2500 ms, which still fails a skip that did not skip. The tap-skip budget stays 1800 ms. This is the Blackjack spec `e2e/blackjack-skip.spec.ts`, the smallest edit that lets main go green. Playback is unchanged.
+
+## Phone hand stays on the screen (Quality agent, 2026-10-15)
+
+Played on `12d08a4`. An eight-card fan plus the owed badge beside it is wider than a 390px phone. The hand box started at x −28 and the first card at x −44, so the leftmost face was cut in half. Desktop (1440) kept the same fan inside the screen. The fix does not change the shared kit. On a phone the owed digit moves to the top bar, where a score game has no wallet, and the fan's limit is `width - 64` so the rotated corners stay inside. Desktop still draws the digit beside the hand. `seat-you` keeps `data-owed`. `e2e/exploding-kittens-hand.spec.ts` asserts every opening card is inside the viewport and above the draw button.
