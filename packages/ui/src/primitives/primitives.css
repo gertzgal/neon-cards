@@ -38,19 +38,45 @@
 .nc-hud {
   width: 100%;
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
+  column-gap: 10px;
+  row-gap: 8px;
   padding: 14px 16px 0;
   height: 58px;
   flex: none;
   position: relative;
   z-index: 6;
+  box-sizing: border-box;
 }
 
 .nc-hud-left {
+  order: 1;
+  flex: none;
   display: flex;
   gap: 10px;
   align-items: center;
+}
+
+/* Chips take the next full row so they cannot cover the score or the icons. */
+.nc-hud-center {
+  order: 3;
+  flex: 1 0 100%;
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* A room bar grows under the score. A solo bar stays the fixed height the setup sheet clears. */
+.nc-hud:has(.nc-hud-center) {
+  height: auto;
+  padding-bottom: 8px;
+}
+
+.nc-icons {
+  order: 2;
+  margin-left: auto;
 }
 
 .nc-pill {
@@ -70,6 +96,7 @@
 
 .nc-icons {
   display: flex;
+  flex: none;
   gap: 12px;
   padding: 6px 12px;
 }
@@ -755,7 +782,7 @@
 .nc-seat {
   display: grid;
   grid-template-columns: 1fr auto;
-  grid-template-areas: 'head body' 'status body';
+  grid-template-areas: 'head head' 'status body';
   align-items: center;
   column-gap: 10px;
   padding: 6px 10px;
@@ -794,12 +821,20 @@
 }
 
 .nc-seat-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
   font-size: 22px;
   line-height: 1;
   color: var(--nc-ink);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+.nc-bot {
+  display: inline-flex;
+  flex: none;
+  image-rendering: pixelated;
 }
 
 .nc-seat-status {
@@ -1016,7 +1051,7 @@
     justify-items: center;
     row-gap: 6px;
     padding: 10px 16px;
-    min-width: 200px;
+    min-width: 220px;
   }
   .nc-seat-name {
     font-size: 26px;

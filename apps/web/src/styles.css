@@ -195,11 +195,20 @@ a.nc-icon-btn {
   z-index: 30;
   top: 8px;
   left: 8px;
-  right: 88px;
+  right: 8px;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   align-items: center;
+  pointer-events: none;
+}
+
+.room-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  width: 100%;
   pointer-events: none;
 }
 

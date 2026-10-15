@@ -1,7 +1,22 @@
-import type { Difficulty } from '@neon-cards/engine'
+import type { Difficulty, Seat } from '@neon-cards/engine'
 import type { OpponentRowsProps, OpponentSeatModel, CardFaceRenderer } from '../api'
 import { ScoreBadge } from './badge'
 import { Hand } from './hand'
+import { PixelSprite, bitmaps } from './pixel'
+
+/** The seat caption. A CPU also gets the pixel bot beside its name. */
+export function SeatCaption({ seat }: { seat: Pick<Seat, 'id' | 'name' | 'kind'> }) {
+  return (
+    <span className="nc-seat-name" data-testid={`seat-${seat.id}-name`}>
+      {seat.kind === 'cpu' && (
+        <span className="nc-bot" data-testid={`seat-${seat.id}-bot`}>
+          <PixelSprite bitmap={bitmaps.bot} color="var(--nc-cyan)" scale={3} glow={false} />
+        </span>
+      )}
+      {seat.name}
+    </span>
+  )
+}
 
 const difficultyLevel: Record<Difficulty, number> = { easy: 1, medium: 2, hard: 3 }
 
@@ -24,7 +39,7 @@ function OpponentSeat<Face>({ model, renderer }: { model: OpponentSeatModel<Face
   return (
     <div className="nc-seat" data-testid={`seat-${seat.id}`} data-state={state} data-kind={seat.kind}>
       <div className="nc-seat-head">
-        <span className="nc-seat-name">{seat.name}</span>
+        <SeatCaption seat={seat} />
         {seat.difficulty && <DifficultyPip difficulty={seat.difficulty} />}
       </div>
       <div className="nc-seat-body">

@@ -7,6 +7,7 @@ import {
   NeonButton,
   OpponentRows,
   PlayerSpot,
+  SeatCaption,
   PlayingCard,
   PixelSprite,
   ScoreBadge,
@@ -36,7 +37,7 @@ function backs(id: SeatId, count: number, drawn: string | undefined): CardView<E
   }))
 }
 
-export function ExplodingKittensTable({ seats, humanSeat, view, events, act, busy, hudIcons }: TableProps<EkView, EkAction>) {
+export function ExplodingKittensTable({ seats, humanSeat, view, events, act, busy, hudIcons, hudCenter }: TableProps<EkView, EkAction>) {
   const [display, setDisplay] = useState<Display>(() => displayFromView(view))
   const [selected, setSelected] = useState<string[]>([])
   const [target, setTarget] = useState<SeatId | null>(null)
@@ -216,6 +217,7 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
   const kitten = mine?.kind === 'defuse' ? mine.kitten : display.revealed
   const topDiscard = display.discard.slice(-4)
   const myState = stateOf(humanSeat)
+  const mySeat = seats.find((seat) => seat.id === humanSeat)
   const owed =
     display.turn === humanSeat ? <ScoreBadge value={owedBadge(display.owed)} testId="owed" tone="pink" state={myState} /> : null
 
@@ -275,7 +277,7 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
       data-picking={String(picks.length > 0)}
     >
       <TableLayout
-        hud={<Hud bankroll={null} left={metrics.phone ? owed : null} right={hudIcons} />}
+        hud={<Hud bankroll={null} left={metrics.phone ? owed : null} center={hudCenter} right={hudIcons} />}
         top={
           <div className="ek-top" onClick={onTopClick}>
             <OpponentRows seats={opponents} renderer={ekFace} />
@@ -345,6 +347,7 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
             data-alive={display.seats[humanSeat]?.alive === false ? 'false' : 'true'}
             data-count={hand.length}
           >
+            {mySeat && <SeatCaption seat={mySeat} />}
             <div className="ek-bottom-row">
               <div className="ek-hand-col">
                 {focusRule && (

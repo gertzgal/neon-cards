@@ -53,8 +53,8 @@ function Bankroll({ value }: { value: number }) {
   )
 }
 
-/** The top bar: bankroll pill on the left, sound and settings icons on the right. */
-export function Hud({ bankroll, left, right, sound, onSettings }: HudProps) {
+/** The top bar: score on the left, room chips on the next row, icons on the right. */
+export function Hud({ bankroll, left, center, right, sound, onSettings }: HudProps) {
   const icons = right || sound || onSettings
   return (
     <div className="nc-hud" data-testid="hud">
@@ -62,6 +62,11 @@ export function Hud({ bankroll, left, right, sound, onSettings }: HudProps) {
         {bankroll !== null && bankroll !== undefined && <Bankroll value={bankroll} />}
         {left}
       </div>
+      {center && (
+        <div className="nc-hud-center" data-testid="hud-center">
+          {center}
+        </div>
+      )}
       {icons && (
         <div className="nc-pill nc-icons">
           {right}

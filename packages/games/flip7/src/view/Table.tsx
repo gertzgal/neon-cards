@@ -10,6 +10,7 @@ import {
   OpponentRows,
   PixelSprite,
   PlayerSpot,
+  SeatCaption,
   PlayingCard,
   ScoreBadge,
   TableLayout,
@@ -81,7 +82,7 @@ function Tally({ score }: { score: RoundScore }) {
   )
 }
 
-export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons, canOpen = true }: TableProps<Flip7View, Flip7Action>) {
+export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons, hudCenter, canOpen = true }: TableProps<Flip7View, Flip7Action>) {
   const [display, setDisplay] = useState<Display>(() => displayFromView(view))
   const [revealing, setRevealing] = useState<SeatId[]>([])
   const [before] = useState(() => new Map<string, Point>())
@@ -254,6 +255,7 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
   const pendingCard = mine && mine.kind === 'assign' ? mine.card.id : held?.card.id
   const unique = me ? uniqueOf(me) : 0
   const myState = stateOf(humanSeat)
+  const mySeat = seats.find((seat) => seat.id === humanSeat)
 
   const controls =
     display.stage === 'roundOver' ? (
@@ -291,7 +293,7 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
       onClick={onCardClick}
     >
       <TableLayout
-        hud={<Hud bankroll={null} left={<TotalPill total={me?.total ?? 0} target={view.targetScore} />} right={hudIcons} />}
+        hud={<Hud bankroll={null} left={<TotalPill total={me?.total ?? 0} target={view.targetScore} />} center={hudCenter} right={hudIcons} />}
         top={
           <div className="f7-top" onClick={onTopClick}>
             <OpponentRows seats={opponents} renderer={flip7Face} />
@@ -335,6 +337,7 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
               data-tied={String(display.tiebreak && isTied(display, humanSeat))}
               onClick={() => pick(humanSeat)}
             >
+              {mySeat && <SeatCaption seat={mySeat} />}
               <div className="f7-extras">
                 <Hand cards={extrasOf(me)} renderer={flip7Face} size="compact" layout="row" testId="you-extras" />
               </div>
