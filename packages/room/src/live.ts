@@ -1,3 +1,5 @@
+import type { Deadlines } from './clock'
+import { earliest } from './clock'
 import type { LiveFrame, OutFrame, PresenceRow, Remembered, SeqFrame } from './lobby'
 import type { LiveChair, RoomSeat } from './seats'
 
@@ -23,7 +25,7 @@ export interface LiveRoom {
   watching: string[]
   holds: []
   present: PresenceRow[]
-  deadlines: { turn: null; quick: null; hostGrace: null }
+  deadlines: Deadlines
   match: EngineMatch
   generation: number
   remembered: Remembered[]
@@ -115,6 +117,6 @@ export function liveFrame(input: {
     view: input.view,
     events: input.events,
     snap: input.snap,
-    deadline: null,
+    deadline: earliest(input.room.deadlines),
   }
 }
