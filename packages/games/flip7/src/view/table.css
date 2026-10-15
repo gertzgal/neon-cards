@@ -3,8 +3,7 @@
   inset: 0;
 }
 
-/* No words but FLIP 7! and BUST: seats show only pips, cards and numbers. */
-.f7 .nc-seat-name,
+/* The difficulty word stays off the felt. Seat names stay visible. */
 .f7 .nc-pips b {
   display: none;
 }

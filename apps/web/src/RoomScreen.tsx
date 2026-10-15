@@ -73,10 +73,9 @@ export function RoomScreen({ code }: { code: string }) {
   const plugin = frame?.type === 'live' ? findGame(frame.gameId) : undefined
   const rematch = frame?.type === 'live' && frame.host && stageOf(frame.view) === 'gameOver'
   const openCpu = frame?.type === 'live' && you === null && frame.backSeat === null ? frame.seats.filter((seat) => seat.kind === 'cpu' && seat.difficulty) : []
-
-  return (
-    <div className="screen room" data-testid="room-screen" data-you={you ?? ''} data-state={room.status}>
-      <div className="room-bar">
+  const live = frame?.type === 'live' && plugin
+  const bar = (
+    <div className={live ? 'room-chips' : 'room-bar'} data-testid="room-bar">
         <span className="room-chip" data-testid="room-code">
           {code}
         </span>
@@ -113,7 +112,12 @@ export function RoomScreen({ code }: { code: string }) {
             Leave
           </button>
         )}
-      </div>
+    </div>
+  )
+
+  return (
+    <div className="screen room" data-testid="room-screen" data-you={you ?? ''} data-state={room.status}>
+      {live ? null : bar}
       <div className="room-body">
         {room.status === 'connecting' && (
           <p className="center-msg" data-testid="room-joining">
@@ -149,7 +153,8 @@ export function RoomScreen({ code }: { code: string }) {
             busy={room.busy}
             act={room.act}
             canOpen={false}
-            hudIcons={<HudIcons />}
+            hudIcons={<HudIcons guide={plugin.guide} gameId={frame.gameId} />}
+            hudCenter={bar}
           />
         )}
       </div>

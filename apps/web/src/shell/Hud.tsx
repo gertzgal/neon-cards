@@ -9,10 +9,12 @@ import { BookIcon, HistoryIcon } from './icons'
 import { SettingsSheet, type TableControls } from './SettingsSheet'
 import { useWallet } from './wallet'
 
-/** Table bar has a guide. Lobby bar has neither field. */
-export type HudIconsProps =
-  | { readonly table?: undefined }
-  | { readonly table: TableControls; readonly guide: GameGuide }
+/** A table bar can show the how-to-play book. `table` adds the solo new-game controls. */
+export interface HudIconsProps {
+  readonly table?: TableControls
+  readonly guide?: GameGuide
+  readonly gameId?: string
+}
 
 function BarIcons({ table }: { table?: TableControls }) {
   const { muted } = useSettings()
@@ -42,19 +44,18 @@ function GuideButton({ guide, gameId, autoOpen }: { guide: GameGuide; gameId: st
   )
 }
 
-function TableIcons({ table, guide }: { table: TableControls; guide: GameGuide }) {
-  return (
-    <>
-      <GuideButton guide={guide} gameId={table.gameId} autoOpen />
-      <BarIcons table={table} />
-    </>
-  )
-}
-
-/** The sound and settings buttons. Tables render them in their own top bar via `TableProps.hudIcons`. */
-export function HudIcons(props: HudIconsProps) {
-  if (props.table) return <TableIcons table={props.table} guide={props.guide} />
-  return <BarIcons />
+/** The sound and settings buttons, plus the how-to-play book when a guide is passed. */
+export function HudIcons({ table, guide, gameId }: HudIconsProps) {
+  const id = table?.gameId ?? gameId
+  if (guide && id) {
+    return (
+      <>
+        <GuideButton guide={guide} gameId={id} autoOpen />
+        <BarIcons {...(table ? { table } : {})} />
+      </>
+    )
+  }
+  return <BarIcons {...(table ? { table } : {})} />
 }
 
 export function Hud({

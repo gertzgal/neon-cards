@@ -148,6 +148,8 @@ export interface HudProps {
   /** The bankroll pill (data-testid="hud-bankroll"), counting up or down on change. Null hides it, for score games. */
   bankroll?: number | null
   left?: ReactNode
+  /** Room chips and other bar items that must sit clear of the score and the icons. */
+  center?: ReactNode
   /** Extra icon buttons placed before the sound and settings icons. */
   right?: ReactNode
   /** The sound icon (data-testid="hud-sound"). */
@@ -279,8 +281,10 @@ export interface TableProps<View = unknown, Action = unknown> {
    * Solo leaves this unset. A room passes false and deals from the shell.
    */
   canOpen?: boolean
-  /** The shell's sound and settings buttons. A table that draws its own top bar renders them at its right. */
+  /** The shell's sound, settings, and how-to-play buttons. A table that draws its own top bar renders them at its right. */
   hudIcons?: ReactNode
+  /** Room chips rendered in the same top bar as the score, clear of every other bar item. */
+  hudCenter?: ReactNode
 }
 
 /** A finished round's `summary` as `GET /api/history` returns it. */

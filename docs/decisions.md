@@ -708,3 +708,9 @@ Workers observability `cpuTimeMs` for script version `3e77cf3b-0efd-49c6-af03-8e
 | POST /api/rooms blackjack (HTTP 400) | 10 ms | ok |
 
 No invocation returned `exceededCpu` or error 1102. The room command peaked at 6 ms and the alarm completed at 4 ms. Both are under 10 ms, so this sample does not authorize splitting the CPU cascade. Isolate fetches for wallet and room create went to 19 ms and 17 ms and still finished with outcome ok. Two GETs of `/api/rooms/Z4Z8` were `canceled` at 10 ms and 11 ms because the WebSocket upgrade leaves the worker. That is the handoff, not a CPU cap. Production `neon-cards` was not the upload target. Its binding is still the production D1 and it has no `ROOMS` binding.
+
+## The room bar sits clear of the score (2026-10-15)
+
+Gal's proof shots showed the room chips covering the `0/200` pill, no how-to-play book, and opponent rows with no names. The chips were an absolute bar painted over the table HUD. They now render in that HUD, on a full-width row under the score and the icons. The book is the same guide button solo uses. A room does not pass the solo new-game control, because a room has no solo reset.
+
+Flip 7 and Exploding Kittens had hidden `.nc-seat-name`. Captions are visible on every seat, including the human's own. A human caption is the nickname. A CPU caption is the name `roomSeats` already assigns from the nickname list, plus an 8-bit bot. A covered friend stays a CPU chair and keeps that player's nickname, with the bot, because the chair is being played. The difficulty word stays off the felt. The phone seat puts the caption on its own row so the name is not squeezed into the card column.

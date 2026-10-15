@@ -12,6 +12,7 @@ export const bitmaps = {
   snowflake: ['...X...', '.X.X.X.', '..XXX..', 'XXXXXXX', '..XXX..', '.X.X.X.', '...X...'],
   bolt: ['...XX', '..XX.', '.XX..', 'XXXX.', '..XX.', '.XX..', 'XX...'],
   shield: ['XXXXXXX', 'X.....X', 'X..X..X', 'X.XXX.X', '.X.X.X.', '..X.X..', '...X...'],
+  bot: ['.XXXXXX.', 'X.X..X.X', 'X......X', 'X.XXXX.X', 'X......X', '.XXXXXX.', 'X.X..X.X', 'XX.XX.XX'],
 } as const satisfies Record<string, Bitmap>
 
 /** Fills each run of lit pixels in a row with one rect, so sprites stay light on the DOM. */

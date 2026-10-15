@@ -164,10 +164,11 @@ interface TableProps<View, Action> {
   wallet: number | null      // null for 'score' games
   act(action: Action): Promise<void>   // resolves once the response and its new batch arrived
   busy: boolean
-  hudIcons?: ReactNode       // the shell's sound and settings buttons; a table that draws its own top bar renders them at its right
+  hudIcons?: ReactNode       // sound, settings, and the how-to-play book; a table that draws its own top bar renders them at its right
+  hudCenter?: ReactNode      // room chips in that same top bar, on their own row, clear of the score and the icons
 }
 ```
-While a table is live the shell draws no HUD of its own: the table's top bar (bankroll pill on the left) is the only one, as in the mock.
+While a table is live the shell draws no HUD of its own: the table's top bar is the only one, as in the mock. A room's code, nickname, eye count, and leave control are `hudCenter` in that bar. Nothing in the bar overlaps or clips. Every seat shows its name. A human caption is the nickname. A CPU caption is the name from the chair plus a pixel bot. A covered chair keeps the player's nickname.
 There are two registries, one line per game each: apps/web/src/games.ts (an array of `GamePlugin`, the home screen lists them) and apps/worker/src/games.ts (an array of `GameRules`, keyed by `definition.id`). Only Blackjack exists in v1; Flip 7 is next.
 
 Shared juice primitives in packages/ui (every game reuses them, so all games feel the same): deal (fly-in plus a squash on landing), flip (squash-and-stretch), shake (small or big), flash (color), numberPop (+$75), chipBurst, chipsToPot, chipsToPlayer, badgePulse. Durations stay short, following the brief. A blackjack-level moment is the only "big" one (a Flip 7 "flip 7" bonus is the same tier).
