@@ -56,6 +56,9 @@ test('an illegal selection keeps the reason on one line', async ({ page }) => {
   expect(box).not.toBeNull()
   expect(box?.x ?? 0).toBeGreaterThanOrEqual(4)
   expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(viewport.width - 4)
+  if (viewport.width < 700) {
+    expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(viewport.width - 20)
+  }
   const clipped = await reason.evaluate((el) => el.scrollWidth - el.clientWidth)
   expect(clipped).toBeLessThanOrEqual(1)
 })

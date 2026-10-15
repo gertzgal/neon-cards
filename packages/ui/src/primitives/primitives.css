@@ -349,7 +349,7 @@
   align-self: flex-end;
   width: max-content;
   max-width: calc(100vw - 32px);
-  margin: 0;
+  margin: 0 16px 0 0;
   text-align: right;
   white-space: nowrap;
   font-size: 16px;
@@ -984,6 +984,7 @@
     font-size: 36px;
   }
   .nc-play-reason {
+    margin-right: 0;
     font-size: 22px;
   }
   .nc-rule-line {
