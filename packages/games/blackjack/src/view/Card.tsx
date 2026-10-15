@@ -1,10 +1,19 @@
-import { useLayoutEffect, useRef } from 'react'
+import { useLayoutEffect, useRef, type CSSProperties } from 'react'
 import type { BlackjackFace, VisibleCard } from '../rules'
 import { BlackjackFaceArt, faceLabel, suitTone } from './face'
 import { reducedMotion } from './juice'
 import type { Slot } from './layout'
 
 export const faceCode = (face: BlackjackFace | null) => (face ? face.rank + face.suit : 'hidden')
+
+/** Notch, rim, and rank. The table hand and the guide card both read this, so the felt card matches. */
+export function cardFrameVars(w: number, h: number): CSSProperties {
+  return {
+    '--n': `${Math.max(4, w * 0.05)}px`,
+    '--bw': `${Math.max(3, Math.round(w * 0.025))}px`,
+    '--rk': `${h * 0.2}px`,
+  } as CSSProperties
+}
 
 interface CardProps {
   card: VisibleCard

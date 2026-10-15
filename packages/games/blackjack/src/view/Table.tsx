@@ -2,7 +2,7 @@ import './table.css'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import type { BlackjackAction, BlackjackEvent, BlackjackView, VisibleCard } from '../rules'
-import { DEAL_FROM, PlayingCard } from './Card'
+import { cardFrameVars, DEAL_FROM, PlayingCard } from './Card'
 import { Chip } from './Chip'
 import type { EventBatch, TableProps } from './contract'
 import {
@@ -766,10 +766,8 @@ function handVars(l: { w: number; h: number; width: number }): React.CSSProperti
   return {
     width: l.width,
     height: l.h,
-    '--n': `${Math.max(4, l.w * 0.05)}px`,
-    '--bw': `${Math.max(3, Math.round(l.w * 0.025))}px`,
-    '--rk': `${l.h * 0.2}px`,
-  } as React.CSSProperties
+    ...cardFrameVars(l.w, l.h),
+  }
 }
 
 function sizeVars(s: TableSize): React.CSSProperties {
