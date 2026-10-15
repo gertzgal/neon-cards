@@ -3,6 +3,7 @@ import type { Db } from './db'
 export interface Env {
   DB: D1Database
   ASSETS: Fetcher
+  ROOMS: DurableObjectNamespace
   /** "1" enables `config.rig` in local dev and tests. Never set in production. */
   DEV_RIG?: string
 }

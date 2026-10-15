@@ -17,7 +17,7 @@ import { readBalance, readWallet, refillAmount, walletDelta, type LedgerReason }
 
 export class ApiError extends Error {
   constructor(
-    readonly status: 400 | 404 | 409,
+    readonly status: 400 | 404 | 409 | 429,
     message: string,
   ) {
     super(message)

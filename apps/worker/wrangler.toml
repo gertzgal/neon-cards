@@ -14,6 +14,14 @@ database_name = "neon-cards"
 database_id = "dafeddad-28c4-4a44-b8c5-ae91530aa082"
 migrations_dir = "migrations"
 
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "RoomObject"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RoomObject"]
+
 # `wrangler preview` does not inherit D1. Bind the same remote database so a preview URL can serve /api.
 [previews]
 

@@ -1,7 +1,11 @@
 import type { GameRules } from '@neon-cards/engine'
+import { parseCode } from '@neon-cards/room'
+import { eq } from 'drizzle-orm'
 import { Hono } from 'hono'
+import { schema } from './db'
 import type { AppEnv } from './env'
 import { ensurePlayer, withPlayer } from './player'
+import { allowFailedJoin, mintUnique, nicknameFor } from './rooms'
 import { ApiError, createSession, getSession, history, postAction, registry } from './sessions'
 import { readWallet } from './wallet'
 
@@ -102,6 +106,56 @@ export function createApp(games: readonly GameRules[], devGames: readonly GameRu
   app.get('/history', withPlayer, async (c) => {
     await ensurePlayer(c)
     return c.json({ rounds: await history(c.var.db, c.var.playerId, c.req.query('gameId') || undefined) })
+  })
+
+  app.post('/rooms', withPlayer, async (c) => {
+    await ensurePlayer(c)
+    const body = await jsonBody(c.req.raw)
+    if (body.gameId !== 'flip7') throw new ApiError(400, 'that game has no rooms')
+    const rules = regFor(c.env).get('flip7')
+    if (!rules) throw new ApiError(404, 'unknown game "flip7"')
+    const nickname = await nicknameFor(c.var.db, c.var.playerId)
+    const code = await mintUnique(c.var.db)
+    await c.var.db.insert(schema.roomDirectory).values({
+      code,
+      gameId: 'flip7',
+      hostPlayerId: c.var.playerId,
+      createdAt: Date.now(),
+      closedAt: null,
+    })
+    const stub = c.env.ROOMS.get(c.env.ROOMS.idFromName(code))
+    const opened = await stub.fetch('https://room/init', {
+      method: 'POST',
+      body: JSON.stringify({
+        code,
+        gameId: 'flip7',
+        hostId: c.var.playerId,
+        nickname,
+        seats: rules.definition.seats.max,
+      }),
+    })
+    if (!opened.ok) throw new Error('room did not open')
+    return c.json({ code, frame: await opened.json() }, 201)
+  })
+
+  app.get('/rooms/:code', withPlayer, async (c) => {
+    if (c.req.header('Upgrade')?.toLowerCase() !== 'websocket') throw new ApiError(400, 'expected a websocket')
+    await ensurePlayer(c)
+    const code = parseCode(c.req.param('code'))
+    const missing = async () => {
+      if (!allowFailedJoin(c.var.playerId)) throw new ApiError(429, 'too many failed joins')
+      throw new ApiError(404, 'unknown room')
+    }
+    if (!code) return missing()
+    const row = await c.var.db.select().from(schema.roomDirectory).where(eq(schema.roomDirectory.code, code)).get()
+    if (!row || row.closedAt !== null) return missing()
+    const nickname = await nicknameFor(c.var.db, c.var.playerId)
+    const url = new URL(c.req.url)
+    url.searchParams.set('nickname', nickname)
+    const headers = new Headers(c.req.raw.headers)
+    headers.set('cookie', `nc_player=${c.var.playerId}`)
+    const stub = c.env.ROOMS.get(c.env.ROOMS.idFromName(code))
+    return stub.fetch(new Request(url, { headers }))
   })
 
   return app
