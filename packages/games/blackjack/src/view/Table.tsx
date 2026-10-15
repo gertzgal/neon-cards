@@ -70,7 +70,9 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
   // A new batch is busy from the render that delivers it, not from the effect that starts playback.
   // Otherwise data-busy drops for a frame and a test (or a tap) reads the table mid-update.
   const busy = sending || animating || events.id !== startedId
-  const [shownStack, setShownStack] = useState(initialView.stack)
+  // The pill shows the wallet, which on a resumed hand is stack plus the bet already taken.
+  // Seeding from `stack` alone left a remount showing $1,225 while the wallet was still $1,250.
+  const [shownStack, setShownStack] = useState(() => bankrollOf(initialDisplay(initialView)))
   const [lastRound, setLastRound] = useState<LastRound | null>(null)
   const roundCount = useRef(0)
   const dealerNote = useRef('')

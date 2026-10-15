@@ -232,11 +232,13 @@ test('resume: a reload mid-hand restores the same hand from the server and plays
   await deal(page, table)
   await page.goto('/games/blackjack')
   await expect(table).toHaveAttribute('data-stage', 'playing')
+  await expect(bankroll(page)).toHaveText('$1,250')
   await page.reload()
   await expect(table).toHaveAttribute('data-stage', 'playing')
   expect(await cardFaces(page.getByTestId('hand-0'))).toEqual(['10H', '9S'])
   expect(await cardFaces(page.getByTestId('dealer-hand'))).toEqual(['9C', 'hidden'])
   await expect(bankroll(page)).toHaveAttribute('data-value', '1250')
+  await expect(bankroll(page)).toHaveText('$1,250')
   await act(page, table, 'stand')
   await expect(bankroll(page)).toHaveAttribute('data-value', '1300')
   const wallet = (await (await page.request.get('/api/wallet')).json()) as { balance: number }
