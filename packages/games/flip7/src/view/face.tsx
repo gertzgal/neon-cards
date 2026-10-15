@@ -52,12 +52,40 @@ export function faceTone(face: Flip7Face): Tone {
   return ACTION[face.action].tone
 }
 
-/** One sentence for an action card. Numbers and modifiers have none. */
-export function actionSentence(face: Flip7Face): string | null {
-  if (face.kind !== 'action') return null
-  if (face.action === 'freeze') return 'That player banks their score and sits this round out.'
-  if (face.action === 'flipThree') return 'That player flips the next three cards.'
-  return 'Your next duplicate is discarded instead of busting you.'
+/** The rule line and the guide both read this. Every face has one sentence. */
+export function actionSentence(face: Flip7Face): string {
+  switch (face.kind) {
+    case 'number':
+      return 'A second copy busts. Seven different numbers scores Flip 7.'
+    case 'modifier':
+      switch (face.op) {
+        case 'add':
+          return `Add ${face.value} to the round.`
+        case 'times':
+          return 'Double your number cards.'
+        default: {
+          const unreachable: never = face
+          return unreachable
+        }
+      }
+    case 'action':
+      switch (face.action) {
+        case 'freeze':
+          return 'That player banks their score and sits this round out.'
+        case 'flipThree':
+          return 'That player flips the next three cards.'
+        case 'secondChance':
+          return 'Your next duplicate is discarded instead of busting you.'
+        default: {
+          const unreachable: never = face.action
+          return unreachable
+        }
+      }
+    default: {
+      const unreachable: never = face
+      return unreachable
+    }
+  }
 }
 
 /** How long a drawn action's sentence stays up. A tap does not use this. */

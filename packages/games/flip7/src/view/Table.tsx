@@ -108,8 +108,7 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
     (event: GameEvent) => {
       if (event.type === 'CardDealt') {
         const dealt = event as { card?: F7Card }
-        const sentence = dealt.card ? actionSentence(dealt.card.face) : null
-        if (sentence) setHint({ text: sentence, until: Date.now() + ACTION_HINT_MS })
+        if (dealt.card) setHint({ text: actionSentence(dealt.card.face), until: Date.now() + ACTION_HINT_MS })
       }
       const card = (event as { card?: F7Card }).card
       if (card) {
@@ -244,8 +243,7 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
     if (!raw.startsWith('card-')) return
     const card = cardOnTable(display, raw.slice('card-'.length))
     if (!card) return
-    const sentence = actionSentence(card.face)
-    setHint(sentence ? { text: sentence, until: null } : null)
+    setHint({ text: actionSentence(card.face), until: null })
   }
 
   const myScore = scoreOf(humanSeat)
