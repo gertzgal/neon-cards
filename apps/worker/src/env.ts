@@ -9,5 +9,5 @@ export interface Env {
 
 export interface AppEnv {
   Bindings: Env
-  Variables: { db: Db; playerId: string }
+  Variables: { db: Db; playerId: string; playerVerified: boolean }
 }

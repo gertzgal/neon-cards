@@ -1,7 +1,7 @@
 import './table.css'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
-import type { BlackjackAction, BlackjackEvent, BlackjackView } from '../rules'
+import type { BlackjackAction, BlackjackEvent, BlackjackView, VisibleCard } from '../rules'
 import { DEAL_FROM, PlayingCard } from './Card'
 import { Chip } from './Chip'
 import type { EventBatch, TableProps } from './contract'
@@ -17,7 +17,8 @@ import {
   type ChipValue,
   type Display,
 } from './display'
-import { center, chipBurst, flash, flyChip, hop, numberPop, pulse, riffle, shake, type Point, type PopStyle } from './juice'
+import { center, chipBurst, flash, flyChip, hop, numberPop, pulse, reducedMotion, riffle, shake, type Point, type PopStyle } from './juice'
+import { absorbPending, PENDING_FLY_MS, pendingAt, pendingCard, type PendingAction } from './optimistic'
 import { layoutHand, useTableSize, type TableSize } from './layout'
 import { createSfx, type Sfx } from './sfx'
 import { createSkip, finishAnimations } from './skip'
@@ -89,6 +90,8 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
   const goldFlash = useRef<HTMLDivElement>(null)
   const [skip] = useState(createSkip)
   const wait = (ms: number) => skip.wait(ms)
+  /** Non-secret prefix already on the felt, plus the display to restore if the server disagrees. */
+  const pending = useRef<{ action: PendingAction; at: number; display: Display; pot: ChipValue[] } | null>(null)
   /** Jump the playing batch to its end: effects finish now, and the rest of the batch applies with no juice. */
   const hurry = () => {
     finishAnimations(root.current?.getAnimations({ subtree: true }) ?? [])
@@ -370,14 +373,43 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
     else commit(e)
   }
 
+  function replacePending(hand: number, placeholderId: string, card: VisibleCard) {
+    const d = displayRef.current
+    commitDisplay({
+      ...d,
+      hands: d.hands.map((h, i) =>
+        i === hand ? { ...h, cards: h.cards.map((c) => (c.id === placeholderId ? card : c)) } : h,
+      ),
+    })
+  }
+
   async function playBatch(batch: EventBatch, v: BlackjackView) {
     skip.reset()
     popped.current = false
     setAnimating(true)
     setStartedId(batch.id)
+    const armed = pending.current
+    pending.current = null
+    let batchEvents = batch.events as BlackjackEvent[]
     try {
+      if (armed) {
+        const absorbed = absorbPending(batchEvents, armed.action)
+        if (!absorbed) {
+          commitDisplay(armed.display)
+          setPot(armed.pot)
+        } else {
+          batchEvents = absorbed.rest
+          if (absorbed.deals.length) {
+            // The face-down card has been flying since the click. Reveal it as that flight ends.
+            const remain = reducedMotion() || skip.skipped ? 0 : Math.max(0, PENDING_FLY_MS - (pendingAt() - armed.at))
+            if (remain) await wait(remain)
+            for (const dealt of absorbed.deals) replacePending(dealt.hand, dealt.placeholderId, dealt.card)
+            if (!skip.skipped) sfx.play('flip')
+          }
+        }
+      }
       let result: RoundEnd | null = null
-      for (const e of batch.events as BlackjackEvent[]) {
+      for (const e of batchEvents) {
         if (e.type === 'roundEnd') result = e
         if (skip.skipped) applyQuietly(e)
         else await step(e)
@@ -452,7 +484,53 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
     void send({ type: 'bet', amount: sum(potRef.current) })
   }
   const play = (type: 'hit' | 'stand' | 'double' | 'split') => {
-    if (legal.includes(type)) void send({ type })
+    if (pending.current || !legal.includes(type)) return
+    const d = displayRef.current
+    const hand = d.active
+    const current = d.hands[hand]
+    if (!current) return
+    const seat = 'player' as const
+    const shot = { at: pendingAt(), display: d, pot: [...potRef.current] }
+    if (type === 'stand') {
+      pending.current = { ...shot, action: { kind: 'stand', hand } }
+      sfx.play('tap')
+      commit({ type: 'stand', seat, hand })
+    } else if (type === 'hit') {
+      const card = pendingCard(hand, current.cards.length)
+      pending.current = { ...shot, action: { kind: 'hit', hand, placeholderId: card.id } }
+      sfx.play('card')
+      commit({ type: 'deal', seat, hand, card })
+    } else if (type === 'double') {
+      const card = pendingCard(hand, current.cards.length)
+      pending.current = { ...shot, action: { kind: 'double', hand, placeholderId: card.id } }
+      sfx.play('chip')
+      void flyChips(current.bet, center(q('[data-testid="hud-bankroll"]')), center(q('.bj-pot')))
+      setPot([...potRef.current, ...chipsFor(current.bet)])
+      commit({ type: 'double', seat, hand, amount: current.bet, stack: d.stack - current.bet })
+      sfx.play('card')
+      commit({ type: 'deal', seat, hand, card })
+    } else {
+      const left = pendingCard(0, 1)
+      const right = pendingCard(1, 1)
+      pending.current = {
+        ...shot,
+        action: {
+          kind: 'split',
+          placeholders: [
+            { hand: 0, id: left.id },
+            { hand: 1, id: right.id },
+          ],
+        },
+      }
+      sfx.play('chip')
+      void flyChips(current.bet, center(q('[data-testid="hud-bankroll"]')), center(q('.bj-pot')))
+      setPot([...potRef.current, ...chipsFor(current.bet)])
+      commit({ type: 'split', seat, amount: current.bet, stack: d.stack - current.bet })
+      sfx.play('card')
+      commit({ type: 'deal', seat, hand: 0, card: left })
+      commit({ type: 'deal', seat, hand: 1, card: right })
+    }
+    void send({ type })
   }
 
   const keys = useRef({ clearBet, deal, play, hurry })
@@ -571,7 +649,9 @@ export function BlackjackTable({ view, events, act: send, busy: sending, sfx = s
                 <div className="bj-hand bj-hand-player" style={handVars(lay)}>
                   {hand.cards.map((card, j) => (
                     <PlayingCard
-                      key={card.id}
+                      // Slot key, not the card id: a face-down card dealt on click keeps this
+                      // component when the server names the face, and flips in place.
+                      key={`h${i}-${j}`}
                       card={card}
                       slot={lay.slots[j] ?? ORIGIN}
                       w={lay.w}

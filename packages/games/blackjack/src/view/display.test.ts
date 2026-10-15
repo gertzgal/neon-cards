@@ -60,6 +60,12 @@ describe('totalLabel', () => {
   ])('%j reads %s', (codes, label) => {
     expect(totalLabel(cards(...codes))).toBe(label)
   })
+
+  it('keeps the shown total while a pending face-down card is in flight', () => {
+    const pending = { id: 'optimistic-0-2', deck: 'optimistic', face: null }
+    expect(totalLabel([...cards('AH', '6S'), pending])).toBe('7/17')
+    expect(totalLabel([...cards('10H', '6S'), pending])).toBe('16')
+  })
 })
 
 describe('bankrollOf', () => {

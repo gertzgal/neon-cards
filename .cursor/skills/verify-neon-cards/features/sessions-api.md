@@ -37,5 +37,6 @@ $C "$U/history?gameId=blackjack" | jq '.rounds[] | {roundNo, net}'
 ## Gotchas
 
 - `seq` counts CPU actions too, so never compute it client-side; use the last response's.
+- A play action is two D1 round trips: one read of the session joined to the wallet and the round count, then one write batch. A cookie that is already set is not looked up again on that path. `apps/worker/test/action-queries.test.ts` fails if a hit, stand, double, or split grows past that.
 - Starting a new chips session closes the player's other active chips sessions (actions on them are 409) and forfeits any chips staked on a dealt, unsettled hand. Undealt chips on the felt are client-only and cost nothing.
 - Without `DEV_RIG=1` (production), `config.rig` and `seed` are 400s.

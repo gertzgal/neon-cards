@@ -1,5 +1,6 @@
 import { handValue, type BlackjackFace } from '../rules'
 import type { BlackjackEvent, BlackjackView, HandStatus, Outcome, RoundResult, VisibleCard } from '../rules'
+import { isPendingCard } from './optimistic'
 
 export const CHIP_VALUES = [5, 25, 100, 500] as const
 export type ChipValue = (typeof CHIP_VALUES)[number]
@@ -127,10 +128,13 @@ const shown = (cards: VisibleCard[]) => cards.flatMap((c) => (c.face ? [c.face a
 
 /** Badge text: "7/17" while a soft total can still go either way, otherwise the total; empty with no cards. */
 export function totalLabel(cards: VisibleCard[]): string {
-  const faces = shown(cards)
+  // A pending card is face-down until the server names it. Leave it out so the badge doesn't
+  // drop to the hard total for the frames the card is in flight.
+  const known = cards.filter((card) => !isPendingCard(card))
+  const faces = shown(known)
   if (!faces.length) return ''
   const { total, soft } = handValue(faces)
-  return soft && total < 21 && faces.length === cards.length ? `${total - 10}/${total}` : String(total)
+  return soft && total < 21 && faces.length === known.length ? `${total - 10}/${total}` : String(total)
 }
 
 export function totalOf(cards: VisibleCard[]): number {

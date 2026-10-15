@@ -1,7 +1,7 @@
 import type { GameRules } from '@neon-cards/engine'
 import { Hono } from 'hono'
 import type { AppEnv } from './env'
-import { withPlayer } from './player'
+import { ensurePlayer, withPlayer } from './player'
 import { ApiError, createSession, getSession, history, postAction, registry } from './sessions'
 import { readWallet } from './wallet'
 
@@ -46,9 +46,13 @@ export function createApp(games: readonly GameRules[], devGames: readonly GameRu
     }
   })
 
-  app.get('/wallet', withPlayer, async (c) => c.json(await readWallet(c.var.db, c.var.playerId)))
+  app.get('/wallet', withPlayer, async (c) => {
+    await ensurePlayer(c)
+    return c.json(await readWallet(c.var.db, c.var.playerId))
+  })
 
   app.post('/sessions', withPlayer, async (c) => {
+    await ensurePlayer(c)
     const body = await jsonBody(c.req.raw)
     if (typeof body.gameId !== 'string') throw new ApiError(400, 'gameId must be a string')
     const config = body.config ?? {}
@@ -67,22 +71,38 @@ export function createApp(games: readonly GameRules[], devGames: readonly GameRu
     return c.json(created, 201)
   })
 
-  app.get('/sessions/:id', withPlayer, async (c) =>
-    c.json(await getSession(c.var.db, regFor(c.env), c.var.playerId, c.req.param('id'))),
-  )
+  app.get('/sessions/:id', withPlayer, async (c) => {
+    try {
+      return c.json(await getSession(c.var.db, regFor(c.env), c.var.playerId, c.req.param('id')))
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) await ensurePlayer(c)
+      throw err
+    }
+  })
 
   app.post('/sessions/:id/actions', withPlayer, async (c) => {
+    const started = performance.now()
     const body = await jsonBody(c.req.raw)
     if (!Number.isInteger(body.seq) || (body.seq as number) < 0) throw new ApiError(400, 'seq must be a whole number')
     if (body.action === undefined) throw new ApiError(400, 'action is required')
-    return c.json(
-      await postAction(c.var.db, regFor(c.env), c.var.playerId, c.req.param('id'), { action: body.action, seq: body.seq as number }),
-    )
+    try {
+      const result = await postAction(c.var.db, regFor(c.env), c.var.playerId, c.req.param('id'), {
+        action: body.action,
+        seq: body.seq as number,
+      })
+      // Worker time only (D1 included). The client TTFB is this plus the network.
+      c.header('Server-Timing', `action;dur=${(performance.now() - started).toFixed(1)}`)
+      return c.json(result)
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) await ensurePlayer(c)
+      throw err
+    }
   })
 
-  app.get('/history', withPlayer, async (c) =>
-    c.json({ rounds: await history(c.var.db, c.var.playerId, c.req.query('gameId') || undefined) }),
-  )
+  app.get('/history', withPlayer, async (c) => {
+    await ensurePlayer(c)
+    return c.json({ rounds: await history(c.var.db, c.var.playerId, c.req.query('gameId') || undefined) })
+  })
 
   return app
 }

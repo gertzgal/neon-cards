@@ -1,5 +1,5 @@
 import { act, startMatch, type GameEvent, type GameRules, type Match, type Seat, type Settlement, type Step } from '@neon-cards/engine'
-import { and, count, desc, eq, inArray } from 'drizzle-orm'
+import { and, count, desc, eq, inArray, sql } from 'drizzle-orm'
 import { schema, type Db } from './db'
 import { readBalance, readWallet, refillAmount, walletDelta, type LedgerReason } from './wallet'
 
@@ -282,20 +282,51 @@ async function closeSessions(db: Db, playerId: string, live: LiveSession[], now:
   }
 }
 
-async function loadSession(db: Db, playerId: string, sessionId: string) {
+interface OwnedSession {
+  gameId: string
+  gameVersion: number
+  stateJson: string
+  status: SessionStatus
+  /** Joined wallet balance. Null when the player has no wallet row. */
+  balance: number | null
+  /** Rounds already stored for this session, from the same read. */
+  roundCount: number
+}
+
+/**
+ * One D1 round trip for everything an action needs before the engine runs: the match, the wallet,
+ * and how many rounds are already stored. The rounds count rides a subquery so it doesn't wait
+ * on its own query; `rounds(session_id, round_no)` is already unique, so the count is an index range.
+ */
+async function loadOwned(db: Db, playerId: string, sessionId: string): Promise<OwnedSession> {
   const row = await db
-    .select()
+    .select({
+      gameId: schema.sessions.gameId,
+      gameVersion: schema.sessions.gameVersion,
+      stateJson: schema.sessions.stateJson,
+      status: schema.sessions.status,
+      balance: schema.wallets.balance,
+      roundCount: sql<number>`(select count(*) from ${schema.rounds} where ${schema.rounds.sessionId} = ${schema.sessions.id})`,
+    })
     .from(schema.sessions)
+    .leftJoin(schema.wallets, eq(schema.wallets.playerId, schema.sessions.playerId))
     .where(and(eq(schema.sessions.id, sessionId), eq(schema.sessions.playerId, playerId)))
     .get()
   if (!row) throw new ApiError(404, 'session not found')
-  return row
+  return { ...row, balance: row.balance ?? null, roundCount: Number(row.roundCount) }
+}
+
+function chipsBalance(rules: GameRules, playerId: string, balance: number | null): number | null {
+  if (!isChips(rules)) return null
+  if (balance === null) throw new Error(`wallet missing for player ${playerId}`)
+  return balance
 }
 
 export async function getSession(db: Db, games: Registry, playerId: string, sessionId: string): Promise<SessionView> {
-  const row = await loadSession(db, playerId, sessionId)
+  const row = await loadOwned(db, playerId, sessionId)
   const rules = rulesFor(games, row.gameId)
   const match = JSON.parse(row.stateJson) as Match
+  const wallet = chipsBalance(rules, playerId, row.balance)
   return {
     sessionId,
     gameId: row.gameId,
@@ -303,7 +334,7 @@ export async function getSession(db: Db, games: Registry, playerId: string, sess
     view: rules.definition.view(match.state, humanSeat(match).id),
     seq: match.seq,
     status: row.status,
-    ...(isChips(rules) ? { wallet: await readBalance(db, playerId) } : {}),
+    ...(wallet === null ? {} : { wallet }),
   }
 }
 
@@ -323,7 +354,7 @@ export async function postAction(
   sessionId: string,
   input: { action: unknown; seq: number },
 ): Promise<ActionResponse> {
-  const row = await loadSession(db, playerId, sessionId)
+  const row = await loadOwned(db, playerId, sessionId)
   const match = JSON.parse(row.stateJson) as Match
   if (input.seq < match.seq) {
     const stored = await storedResponse(db, sessionId, input.seq)
@@ -341,13 +372,8 @@ export async function postAction(
   } catch (err) {
     throw toApiError(err)
   }
-  const roundsSoFar = await db
-    .select({ n: count() })
-    .from(schema.rounds)
-    .where(eq(schema.rounds.sessionId, sessionId))
-    .get()
-  const balance = isChips(rules) ? await readBalance(db, playerId) : null
-  const effects = effectsOf(rules, step, sessionId, roundsSoFar?.n ?? 0, balance)
+  const balance = chipsBalance(rules, playerId, row.balance)
+  const effects = effectsOf(rules, step, sessionId, row.roundCount, balance)
   const response: ActionResponse = {
     events: step.events,
     view: rules.definition.view(step.match.state, human.id),
