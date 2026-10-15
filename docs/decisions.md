@@ -630,3 +630,15 @@ Cross-project edits, logged here. Flip 7 gained the opening, the fixed dealer, t
 `players` gains `nickname` and `nickname_locked`. A new player has a null nickname and lock 0. The lock is 0 or 1. No route sets the nickname yet. Joins will read the row. They will not trust a name on the command.
 
 `room_directory` stores `code`, `game_id`, `host_player_id`, `created_at`, and `closed_at`. The code is the primary key. A worker test inserts one code. No route reads the table yet. `session_members` waits for the history copy.
+
+## A room is a lobby object (2026-10-15)
+
+`POST /api/rooms` with `gameId: 'flip7'` mints a code, writes `room_directory`, and creates one SQLite Durable Object with `idFromName(code)`. The host is seated at `s0`. The other chairs are open, up to the game's max. Solo seat ids stay `you` and `cpu-N`. Room chairs use `s0` onward. That split is this slice's call. Solo rigs keep their ids. A room has no rigs yet.
+
+A player with no nickname gets one here, and `nickname_locked` becomes 1. Later joins read that row.
+
+Join is the WebSocket upgrade. Sockets use the hibernation API. Presence is a socket count on the lobby. Closing a socket drops the count and leaves the chair. Host `leave` closes the room, sets `closed_at`, deletes the object row, and sends a closed frame. `deal` is rejected. The deal slice is the one that plays. `canOpen` is still true for the host, matching the spec's lobby rule, so the frame is not a second source of truth when that slice lands.
+
+Ten failed joins per player per minute return 429. The counter lives in the isolate. A restart clears it. A shared counter can move into D1 if a scanner shows the isolate map is not enough.
+
+The object writes `closed_at` itself. `record.ts` does not exist yet, so this is the one D1 write from the object. The history slice should take it over.
