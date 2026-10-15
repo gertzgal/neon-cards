@@ -208,10 +208,9 @@ describe('package entry', () => {
     expect(Object.keys(barrel.policies).sort()).toEqual(['easy', 'hard', 'medium'])
   })
 
-  it('Easy, Medium, and Hard are not in this package', () => {
-    const view = {} as never
-    expect(() => rules.policies?.easy.choose(view, [], createRng('p'))).toThrow(/not in the rules package/)
-    expect(() => rules.policies?.medium.choose(view, [], createRng('p'))).toThrow(/not in the rules package/)
-    expect(() => rules.policies?.hard.choose(view, [], createRng('p'))).toThrow(/not in the rules package/)
+  it('Easy, Medium, and Hard are policies on rules', () => {
+    expect(rules.policies?.easy.choose).toEqual(expect.any(Function))
+    expect(rules.policies?.medium.choose).toEqual(expect.any(Function))
+    expect(rules.policies?.hard.choose).toEqual(expect.any(Function))
   })
 })

@@ -11,12 +11,12 @@ The contract is [`docs/exploding-kittens-spec.md`](exploding-kittens-spec.md) (2
 | Spec, edge cases E1–E68, Nope window, information boundary | Written. One sentence on shoe ids was clarified in the rules PR. |
 | `docs/architecture.md` | Unchanged. Nope is a `pending` cursor. No contract change. |
 | Rules package `@neon-cards/game-exploding-kittens` | This PR. `src/index.ts` re-exports `rules`. No `src/view`. |
-| Easy / Medium / Hard policies and the strength floors | Not started. `rules.policies` throws. The policies PR replaces those functions and the test that asserts the throw. |
+| Easy / Medium / Hard policies and the strength floors | Done. `src/rules/policies/`. Floors passed at `HARD_P` 0.15 and Easy draw weight 2. Record is in the CPU section below. |
 | Table, juice, the two registry lines, e2e, verify feature | Not started. `apps/worker` and `apps/web` do not import this package. |
 
 ## What's next
 
-1. Policies, including the 200-seed strength floors (Hard beats Medium beats Easy). Add `src/rules/policies/{easy,medium,hard,index,count}.ts` against `EkPolicy`. Replace the throwing placeholders.
+1. Policies, including the 200-seed strength floors. Done in the CPU section below.
 2. Table, registry lines in `apps/worker/src/games.ts` and `apps/web/src/games.ts`, e2e, verify feature file. `src/index.ts` becomes `definePlugin`. The tsconfig already has DOM and `jsx: react-jsx`.
 
 ## Rules package
@@ -64,3 +64,21 @@ Not in this PR: `src/rules/policies/`, `src/view/`. Registry lines stay the tabl
 - Rules commit: `619f942427c81d37ea4a7fa9633920848da026a4`
 - `docs/architecture.md`: unchanged
 - Merge: fast-forward `main` to the PR head that CI tested. That head is the commit that adds this landing note. The main SHA is that head after the push.
+
+## CPU policies
+
+Easy, Medium, and Hard are `rules.policies`. `src/rules/index.ts` re-exports that object. `definition.ts` does not import it. `src/index.ts` still re-exports `rules`. No `src/view`, no registry line, no change to `docs/architecture.md`.
+
+`src/rules/policies/{easy,medium,hard,index,count}.ts`. Tests are `policies.test.ts` and `strength.test.ts` next to that code. The rules-package test that asserted the placeholder throw now asserts the three `choose` functions exist.
+
+Policies return a member of the legal menu. Easy is the only one that reads `cpuRng`. Medium and Hard do not. None of them read the deck. `HARD_P` is 0.15. `EASY_DRAW_WEIGHT` is 2. The floors passed at those constants, so neither constant moved.
+
+Strength harness: 200 seeds `ek-strength-0` through `ek-strength-199`, three seats from `setup`, even seeds put the stronger policy on `cpu-1`. The human passes a Nope window, draws on a turn, defuses to `drawCount`, and gives the first card.
+
+| Matchup | Wins | Human | Margin | Floors |
+| --- | --- | --- | --- | --- |
+| Hard vs Medium | Hard 127, Medium 57 | 16 | 70 | Hard at least 70, margin at least 15 |
+| Medium vs Easy | Medium 124, Easy 44 | 32 | 80 | Medium at least 70, margin at least 15 |
+| Hard vs Easy | Hard 163, Easy 24 | 13 | 139 | Hard at least 80, margin at least 25 |
+
+TDD: the new choice and strength tests failed first on `Exploding Kittens ${difficulty} policy is not in the rules package`, and the `pTop` test failed because `count.ts` was missing. They passed after the policies.
