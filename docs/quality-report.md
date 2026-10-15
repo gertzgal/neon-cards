@@ -1,5 +1,82 @@
 # Quality report
 
+Judged on `1088a3f51719e0e46f8bc7ee2e05e345da45bf91` (2026-10-15). Hands inside the viewport. Phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app). No console errors. The only playable commit after `64cd6de` is this one: [#95](https://github.com/gertzgal/neon-cards/pull/95). No new bug.
+
+## One Flip 7 card
+
+Rig `you=8`, two Medium CPUs. The row is `data-layout="fit"`. The score sits above the card.
+
+Phone. The card is x 135–255, y 545–707, 120×162. The badge is x 158–232, y 496–541, 75×44. Its center is 1px from the card's center, and the badge stays inside the card's width. 4px of felt sit between the badge and the card. Hit and Stay start at y 774. Overlap 0. The center of each button is that button.
+
+Desktop. The card is x 670–771, y 671–807, 101×136. The badge is x 675–765, y 615–667, 89×52. Its center is 1px from the card's center, and the badge stays inside the card's width. Hit and Stay start at y 822. Overlap 0.
+
+A still cursor on the 8 shows nothing. A tap shows nothing, and the line is still absent 2.3s later.
+
+## A grown Flip 7 hand
+
+`you=1,2,3,4,5,6,7`. Four numbers on the phone are 83×112, x 11–379, y 595–707. The badge is x 158–232 and the score is 10. Five numbers on the desktop stay at the opening 101×136, x 444–995, score 15. The badge is x 675–765. Hit and Stay stay clear. Overlap 0 on both, and the center of each button is that button. The rightmost desktop card sways, so its box is a few pixels taller and still ends at y 810, above the buttons at y 822.
+
+The same gap holds with modifiers. Rig `you=8,+4,3,x2,1,+10,2,4,5,6,7`. Four numbers, score 42, on the phone: the numbers match that 83px row, and +4, ×2, and +10 sit above the badge at y 485–542, 42×57. Five numbers, score 50, on the desktop: the numbers stay 101px, and the three modifiers sit at y 515–611, 71×96. Overlap with Hit and Stay is 0. Nothing leaves the screen.
+
+A tap on a number in the full hand leaves no sentence. A bust (`you=5,5`) marks `seat-you` busted and the stage `roundOver`. The score is 0. The line stays absent.
+
+## The Defuse
+
+`?rig=kitten&seed=ek-gap-open`, two Medium CPUs. Draw opens the kitten. The sentence is "Bury a drawn kitten anywhere in the pile." Play stays hidden. The hand is `data-layout="fit"`.
+
+Phone. Eight cards, 35×47, one row, x 9–373, y 660–707. The Defuse is the last card, x 338–373. Top is x 18–58, y 776–820, and the word Top is inside the button. Bottom is x 312–372, y 776–820, and the word Bottom is inside the button. All 29 slots are inside the 390px screen. A tap on Top sends one `{ "type": "defuse", "index": 0 }`. The kitten leaves, `data-busy` is false, and the pending is `turn`.
+
+Desktop. The Defuse is x 1173–1315, 142×192. Top is x 364–404, y 822–866. Bottom is x 1016–1076. The same Top tap buries it.
+
+A thirteen-card `crowd` hand, after the same draw, also keeps every card and both end slots inside both screens.
+
+### Still, then the pair
+
+Before the draw. A still cursor on Shuffle does not raise it and does not open a rule. That wait sends nothing. Shuffle and Cattermelon disable Play. The reason is "Need a matching pair." The line is `nowrap` and does not scroll. The phone box is x 243, y 601, 123×16, ending at x 366 inside 390. The period glyph ends at x 366, and 24px of felt remain. The desktop box is x 1267, y 683, 165×22, ending at x 1432 inside 1440. The period glyph ends at x 1432. The disabled button is color rgb(109, 103, 128), background rgb(20, 16, 28), border rgb(58, 51, 72), no shadow, no filter, opacity 1. The phone button is x 214, y 623, 168×84. The desktop button is x 1232, y 711, 200×96.
+
+## Blackjack
+
+Rig `4H,5S,4D,9C,2H,3C,2S`, $25. The deal is stage `playing`. The upcard is 5♠. The hole is `data-face` `hidden`. Hit, Stand, Double, and Split are enabled, and the center of each button is that button.
+
+Two hits make a four-card hand, 4♥ 4♦ 2♥ 3♣, total 13, still `playing`. The hole stays down. Phone cards are x 17–289. Desktop cards are x 445–995. Overlap with the buttons is 0. Hit and Stand stay enabled. Double and Split are disabled, and a tap on either still lands on that button.
+
+On the phone deal, the two-card fan's box crosses the top of Hit and Stand. The labels stay clear, and the center of each button is that button. The four-card hand does not cross them.
+
+## The setup card
+
+The phone bar ends at y 58. The desktop bar ends at y 70. The dim starts at y 72. A tap on the dim felt leaves the card open.
+
+Played on Blackjack, Flip 7, and Exploding Kittens. The center of the arrow, the book, history, mute, and settings is that control. Mute toggles and the card stays. The book opens the page. Escape closes it and the card stays. Settings is music, effects, and motion, with no table buttons. Escape closes it and the card stays. The arrow lands on the lobby.
+
+Nothing else from this pass is open. [#84](https://github.com/gertzgal/neon-cards/pull/84), [#88](https://github.com/gertzgal/neon-cards/pull/88), [#90](https://github.com/gertzgal/neon-cards/pull/90), [#91](https://github.com/gertzgal/neon-cards/pull/91), [#93](https://github.com/gertzgal/neon-cards/pull/93), [#94](https://github.com/gertzgal/neon-cards/pull/94), [#96](https://github.com/gertzgal/neon-cards/pull/96), [#97](https://github.com/gertzgal/neon-cards/pull/97), [#98](https://github.com/gertzgal/neon-cards/pull/98), [#99](https://github.com/gertzgal/neon-cards/pull/99), and [#100](https://github.com/gertzgal/neon-cards/pull/100) were left alone.
+
+![Phone, one Flip 7 card](quality/hands-phone-f7-one.jpg)
+![Desktop, one Flip 7 card](quality/hands-desktop-f7-one.jpg)
+![Phone, four numbers](quality/hands-phone-f7-four.jpg)
+![Desktop, five numbers](quality/hands-desktop-f7-five.jpg)
+![Phone, four numbers and modifiers](quality/hands-phone-f7-mod.jpg)
+![Desktop, five numbers and modifiers](quality/hands-desktop-f7-mod.jpg)
+![Phone, a tap on a number](quality/hands-phone-f7-tap.jpg)
+![Desktop, a tap on a number](quality/hands-desktop-f7-tap.jpg)
+![Phone, Flip 7 bust](quality/hands-phone-f7-bust.jpg)
+![Desktop, Flip 7 bust](quality/hands-desktop-f7-bust.jpg)
+![Phone, the Defuse](quality/hands-phone-ek-defuse.jpg)
+![Desktop, the Defuse](quality/hands-desktop-ek-defuse.jpg)
+![Phone, the kitten buried](quality/hands-phone-ek-buried.jpg)
+![Desktop, the kitten buried](quality/hands-desktop-ek-buried.jpg)
+![Phone, a still cursor](quality/hands-phone-ek-still.jpg)
+![Desktop, a still cursor](quality/hands-desktop-ek-still.jpg)
+![Phone, disabled Play](quality/hands-phone-ek-reason.jpg)
+![Desktop, disabled Play](quality/hands-desktop-ek-reason.jpg)
+![Phone, blackjack deal](quality/hands-phone-bj-deal.jpg)
+![Desktop, blackjack deal](quality/hands-desktop-bj-deal.jpg)
+![Phone, four blackjack cards](quality/hands-phone-bj-four.jpg)
+![Desktop, four blackjack cards](quality/hands-desktop-bj-four.jpg)
+![Phone, the setup card](quality/hands-phone-setup.jpg)
+![Desktop, the setup card](quality/hands-desktop-setup.jpg)
+
+The earlier passes below were on the SHAs named there.
+
 Judged on `3bfe4d33178e27073495bd3be63bb5e6d698902b` (2026-10-15). The Defuse and the Flip 7 hand. Phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app). No console errors. `afdfcc0` shows the Defuse when a kitten is drawn. `f481485` scales the Flip 7 hand. On `c71bfa7` the phone Defuse was past the strip. [#89](https://github.com/gertzgal/neon-cards/pull/89) (`3bfe4d3`) scrolls it into view. The shots are that build, except the off-screen one.
 
 ## The Defuse
