@@ -662,3 +662,7 @@ Host grace is 15 seconds from the moment the host's socket count hits 0. An expl
 `rematch` is host-only and only when the room phase is `over`. It mints a new `historyId` and a new server seed, then starts a fresh match. It does not call `startMatch` on the old one. Playing chairs rotate left by one and are numbered `s0` onward again, so the previous second seat goes first. House chairs stay at the end. Flip 7 has none. Misses reset. Remembered commands belong to the new match.
 
 `sit` with a `seatId` holds an open CPU chair (`away` null). A covered friend is not an open chair. The player must not already be seated or holding. During a hand the hold waits. At `between` or `over`, including the deal that starts the next round and a rematch, the hold becomes a human chair and that player leaves the eye list. A hold stores the nickname because the spec's hold has no name and the chair caption needs one. The eye count stays `eyes` on the frame. The shell's `spectator-count` is the next slice.
+
+## Rematch waits for Deal (2026-10-15)
+
+The first cut of `rematch` also called `applyOpening`. The spec leaves the new match undealt. `rematch` now stops after `startMatch`. The host uses Deal for the opening, the same command as the lobby.

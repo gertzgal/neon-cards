@@ -251,9 +251,8 @@ describe('room lobby', () => {
     dealt.socket.send(JSON.stringify({ type: 'rematch', commandId: 'again' }))
     const hostAfter = await hostNext
     const watcherAfter = await watcherNext
-    expect(hostAfter).toMatchObject({ type: 'live', you: 's3', eyes: 0 })
-    expect(watcherAfter).toMatchObject({ type: 'live', you: 's0', eyes: 0 })
-    expect(hostAfter.seq).toBeGreaterThan(0)
+    expect(hostAfter).toMatchObject({ type: 'live', you: 's3', eyes: 0, canOpen: true, seq: 0 })
+    expect(watcherAfter).toMatchObject({ type: 'live', you: 's0', eyes: 0, canOpen: false })
     dealt.socket.close()
     watcherSocket.close()
   })

@@ -577,7 +577,6 @@ export class RoomObject implements DurableObject {
       const config = rules.definition.parseConfig(stripRig(settled.config, this.env.DEV_RIG === '1'))
       const seed = crypto.randomUUID()
       const started = startMatch(rules, { config, seats: [...playing, ...house], seed })
-      const step = applyOpening(rules, started.match)
       const watching = settled.watching.filter((id) => !chairs.some((chair) => chair.kind === 'human' && chair.playerId === id))
       const live: LiveRoom = {
         ...settled,
@@ -585,14 +584,14 @@ export class RoomObject implements DurableObject {
         chairs,
         watching,
         holds: [],
-        match: storeMatch(step.match),
+        match: storeMatch(started.match),
         remembered: [],
         seqFrames: [],
-        phase: phaseOf(rules, step.match.state),
-        events: step.events,
+        phase: phaseOf(rules, started.match.state),
+        events: started.events,
         deadlines: { turn: null, quick: null, hostGrace: settled.deadlines.hostGrace },
       }
-      await this.commit(rules, live, att.playerId, commandId, 0, step.events)
+      await this.commit(rules, live, att.playerId, commandId, 0, started.events)
     } catch (err) {
       this.send(ws, { type: 'rejected', reason: rejectReason(err) })
     }
