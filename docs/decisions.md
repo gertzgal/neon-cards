@@ -609,3 +609,7 @@ The number row is one straight line. It does not wrap, scroll, fan, or rotate. O
 ## Setup bar quality pass (Quality, 2026-10-15)
 
 Played `b0c1301` on phone and desktop, before `afdfcc0` and `f481485`. The setup card leaves the top bar clickable. Back, the arrow, Escape, and browser back return to the lobby. Play lands on the table, and the first-visit guide opens over it. A still cursor does not open a rule. A Flip 7 number tap leaves no sentence. The phone line "Need a matching pair." still ends on the felt. No new bug, so this pass is the write-up only. The shots are in `docs/quality-report.md` and `docs/quality/setup-*`. [#84](https://github.com/gertzgal/neon-cards/pull/84) was left alone.
+
+## Defuse and hand quality pass (Quality, 2026-10-15)
+
+Played `afdfcc0` and `f481485` on phone and desktop. The phone Defuse was past the strip. [#89](https://github.com/gertzgal/neon-cards/pull/89) (`3bfe4d3`) scrolls it into view. The Flip 7 badge stays on screen through seven numbers, a number tap leaves no sentence, a held Freeze still shows its sentence, and a bust still ends the round. The setup bar stays clickable and Play lands on the table. The write-up and shots are in `docs/quality-report.md` and `docs/quality/defuse-*` and `docs/quality/hand-*`. [#84](https://github.com/gertzgal/neon-cards/pull/84) and [#88](https://github.com/gertzgal/neon-cards/pull/88) were left alone.

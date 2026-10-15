@@ -1,5 +1,67 @@
 # Quality report
 
+Judged on `3bfe4d33178e27073495bd3be63bb5e6d698902b` (2026-10-15). The Defuse and the Flip 7 hand. Phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app). No console errors. `afdfcc0` shows the Defuse when a kitten is drawn. `f481485` scales the Flip 7 hand. On `c71bfa7` the phone Defuse was past the strip. [#89](https://github.com/gertzgal/neon-cards/pull/89) (`3bfe4d3`) scrolls it into view. The shots are that build, except the off-screen one.
+
+## The Defuse
+
+`?rig=kitten&seed=ek-gap-open`, two Medium CPUs. Draw opens the kitten. The sentence is "Bury a drawn kitten anywhere in the pile." Top reads Top. Play stays hidden.
+
+On `c71bfa7` the phone Defuse sat at x 768–918. The strip showed Shuffle and a peek of Cattermelon. A tap could not land on the Defuse.
+
+On `3bfe4d3` the phone card is x 52–202, 150×203. The center of the card is the Defuse. A tap raises it (`translate(756px, -36px)`). The dock stays closed and Play is absent. Top is x 24–88, y 776–820. Bottom is the last slot of the scrolling row, at x 794, outside the 342px window. Planting Top sends one `{ "type": "defuse", "index": 0 }`. The kitten leaves, `data-busy` is false, and the pending is `turn`.
+
+Desktop already had the card at x 959–1139, 180×243. The scroll leaves it there. The same raise keeps Play hidden.
+
+The phone sentence is two lines, x 8–206, y 421–458. The desktop sentence is one line, x 461–772, y 495–518.
+
+### Raise, then Play
+
+Seed `ek-gap-open`, before the draw. A still cursor on Shuffle does not raise it and does not open a rule. The first tap raises it (`translate(0, -36)`), shows "Shuffle the draw pile.", and sends nothing. Shuffle and Cattermelon disable Play. The reason is "Need a matching pair." The line is `nowrap` and does not scroll. The phone box is x 243, y 601, 123×16, ending at x 366 inside 390. The period glyph ends at x 366, and 24px of felt remain. The desktop box is x 1267, y 683, 165×22, ending at x 1432 inside 1440. The period glyph ends at x 1432. The disabled button is color rgb(109, 103, 128), background rgb(20, 16, 28), border rgb(58, 51, 72), no shadow, no filter, opacity 1. The phone button is x 214, y 623, 168×84. The desktop button is x 1232, y 711, 200×96. Lowering both hides the sentence and Play. Play on Shuffle alone sends one `{ "type": "play", "title": "shuffle" }`. The hand goes 8 → 7 and the discard 0 → 1. The sentence is gone.
+
+## The Flip 7 hand
+
+Rig `you=8,+4,3,x2,1,+10,2,4,5,6,7`, two Medium CPUs. The row is `data-layout="fit"`. It does not wrap, scroll, rotate, or overlap. Hit's center is the Hit button on every draw.
+
+Four numbers, score 42. That is the hand that used to push the badge off a phone. The phone badge is x 300–386, y 635–686, inside 390. 4px of felt remain. The cards are 68px wide on one row, y 615. Hit and Stay start at y 774. Overlap 0. The desktop badge ends at x 1073. Those cards stay 144px.
+
+The phone badge still ends at x 386 with six numbers, score 60, while the round is playing. Overlap with Hit and Stay is 0. Seven numbers end the round at 87. The phone cards are 38px and the badge ends at x 380. The desktop badge ends at x 1293 and the cards stay 144px. Next is clear of the row.
+
+A tap on the opening 8 shows nothing, and the line is still absent 2.3s later. A held Freeze, after its drawn sentence has gone, shows "That player banks their score and sits this round out." `data-pending` stays `target`. A bust (`you=5,5`) marks `seat-you` busted and the stage `roundOver`. The score is 0. The pile goes 91 → 86, because the two Medium seats still take 11 and 10.
+
+## The setup card
+
+One pass, Flip 7, from the lobby. The center of the arrow, the book, mute, and settings is that control. Mute toggles and the card stays. The book opens the page. Escape closes it and the card stays. Settings is music, effects, and motion, with no table buttons. Escape closes it and the card stays. Back lands on the lobby. Play lands on the table, stage `playing`.
+
+Nothing else from this pass is open. [#84](https://github.com/gertzgal/neon-cards/pull/84) and [#88](https://github.com/gertzgal/neon-cards/pull/88) were left alone.
+
+![Phone, the Defuse off the strip](quality/defuse-phone-off.jpg)
+![Phone, the Defuse on the strip](quality/defuse-phone.jpg)
+![Phone, the Defuse raised](quality/defuse-phone-raised.jpg)
+![Desktop, the Defuse](quality/defuse-desktop.jpg)
+![Desktop, the Defuse raised](quality/defuse-desktop-raised.jpg)
+![Phone, Shuffle raised](quality/defuse-phone-ek-raised.jpg)
+![Desktop, Shuffle raised](quality/defuse-desktop-ek-raised.jpg)
+![Phone, disabled Play](quality/defuse-phone-ek-reason.jpg)
+![Desktop, disabled Play](quality/defuse-desktop-ek-reason.jpg)
+![Phone, Shuffle played](quality/defuse-phone-ek-played.jpg)
+![Desktop, Shuffle played](quality/defuse-desktop-ek-played.jpg)
+![Phone, four numbers](quality/hand-phone-f7-four.jpg)
+![Desktop, four numbers](quality/hand-desktop-f7-four.jpg)
+![Phone, seven numbers](quality/hand-phone-f7-full.jpg)
+![Desktop, seven numbers](quality/hand-desktop-f7-full.jpg)
+![Phone, a tap on the 8](quality/hand-phone-f7-tap.jpg)
+![Desktop, a tap on the 8](quality/hand-desktop-f7-tap.jpg)
+![Phone, a held Freeze](quality/hand-phone-f7-freeze.jpg)
+![Desktop, a held Freeze](quality/hand-desktop-f7-freeze.jpg)
+![Phone, Flip 7 bust](quality/hand-phone-f7-bust.jpg)
+![Desktop, Flip 7 bust](quality/hand-desktop-f7-bust.jpg)
+![Phone, the setup card](quality/hand-phone-setup.jpg)
+![Desktop, the setup card](quality/hand-desktop-setup.jpg)
+![Phone, Play lands on the table](quality/hand-phone-setup-played.jpg)
+![Desktop, Play lands on the table](quality/hand-desktop-setup-played.jpg)
+
+The earlier passes below were on the SHAs named there.
+
 Judged on `b0c130126df1b7f7d21f0cf9634629f31e184c2b` (2026-10-15). The setup card. Phone 390×844 and desktop 1440×900, through the verify stack (`wrangler dev` on :8790, fresh local D1, built app). No console errors. `a060934` is the failing spec. `b0c1301` is the fix. `afdfcc0` and `f481485` landed on main after these shots. The pictures do not include them.
 
 ## The setup card
