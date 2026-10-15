@@ -124,7 +124,7 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
   const viewRef = useRef(view)
   const rootRef = useRef<HTMLDivElement>(null)
   const metrics = useTableMetrics()
-  const inspectBox = metrics.phone ? { w: 132, h: 178 } : { w: 160, h: 216 }
+  const inspectBox = metrics.phone ? { w: 118, h: 160 } : { w: 148, h: 200 }
   const inspect = useCardInspect(rootRef, (el) => f7Inspect(display, el, inspectBox), readOnTap)
   useLayoutEffect(() => {
     viewRef.current = view
