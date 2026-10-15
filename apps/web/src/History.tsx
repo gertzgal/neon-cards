@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { formatMoney, toneColor, type RoundSummary } from '@neon-cards/ui'
+import { formatMoney, palette, toneColor, type RoundSummary } from '@neon-cards/ui'
 import { api, type Round } from './api'
 import { findGame, games } from './games'
 import { Link } from './router'
@@ -80,7 +80,11 @@ function RoundRow({ round, named }: { round: Round; named: boolean }) {
       <span className="round-what">
         {named && <span className="round-game">{meta?.title ?? round.gameId}</span>}
         {recap && (
-          <span className={`round-outcome ${tone}`} style={recap.tone && { color: toneColor[recap.tone] }} data-testid="history-outcome">
+          <span
+            className={`round-outcome ${tone}`}
+            style={recap.tone && { color: recap.tone === 'bust' ? palette.bust : toneColor[recap.tone] }}
+            data-testid="history-outcome"
+          >
             {recap.outcome}
           </span>
         )}

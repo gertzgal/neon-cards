@@ -288,8 +288,8 @@ export interface RoundSummary<View = unknown> {
 export interface RoundRecap<Face = unknown> {
   /** A word or two, e.g. "BLACKJACK", or "WIN · BUST" for a split. */
   outcome: string
-  /** Overrides the row's tone, which otherwise follows the net. */
-  tone?: Tone
+  /** Overrides the row's tone, which otherwise follows the net. `bust` is the explode loss. */
+  tone?: Tone | 'bust'
   /** The human's hands at the end of the round, drawn small with the plugin's face renderer. */
   hands?: CardView<Face>[][]
 }

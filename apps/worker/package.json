@@ -12,6 +12,7 @@
   "dependencies": {
     "@neon-cards/engine": "workspace:*",
     "@neon-cards/game-blackjack": "workspace:*",
+    "@neon-cards/game-exploding-kittens": "workspace:*",
     "@neon-cards/game-flip7": "workspace:*",
     "drizzle-orm": "^0.45.4",
     "hono": "^4.13.13",

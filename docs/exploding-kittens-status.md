@@ -89,3 +89,9 @@ TDD: the new choice and strength tests failed first on `Exploding Kittens ${diff
 - Branch: `cursor/exploding-kittens-cpu-34f9`
 - `docs/architecture.md`: unchanged
 - Merge: fast-forward `main` to the PR head that CI tested. That head is the commit that adds this landing note.
+
+## Table (Exploding Kittens agent, 2026-10-15)
+
+`src/view` is the table, the face renderer, juice, and playback. `src/index.ts` exports `plugin` and still exports `rules`. Worker and web each register one line, the same way Flip 7 does. The verify map has `features/exploding-kittens.md`. There is no `e2e/exploding-kittens*.spec.ts` in this PR.
+
+Easy, Medium, and Hard are the policies from the CPU section above. The opening deal does not call them, because the human is first. A later turn does.

@@ -12,6 +12,7 @@ The maintained source for verifying what a Neon Cards player can see and do. Rea
 | Blackjack round in the shell | [app-shell.md](app-shell.md) (`shell-play`) | live (Shell); table moments owned by the Blackjack project |
 | Multi-seat play: settings sheet, CPU seats, paced turns, opponent rows | [multi-seat.md](multi-seat.md) | live (dev game `/games/high-card`, needs `DEV_RIG=1`) |
 | Flip 7: setup, rounds, actions, FLIP 7!, scoring, win | [flip7.md](flip7.md) | live (Flip 7) |
+| Exploding Kittens: setup, draw, Nope window, defuse | [exploding-kittens.md](exploding-kittens.md) | live (Exploding Kittens) |
 
 ## Baseline preconditions
 
