@@ -536,10 +536,12 @@ Middle: the draw pile (`draw`, `data-count`) and the discard (top face). Bottom:
 | Pass | `action-pass` | `{ type: 'pass' }` |
 | A card | `action-card-<title>` | raises or lowers that card. It does not send. |
 | Play | `play-card` | the one menu action the raised cards match. Disabled, with `play-reason`, when they match none. |
-| Defuse slot | `insert-<index>` | `{ type: 'defuse', index }` |
+| Defuse slot | `insert-<index>` | `{ type: 'defuse', index }`. `insert-0` reads Top. `insert-<drawCount>` reads Bottom. |
 | A gift | `give-<cardId>` | raises that card. `play-card` sends `{ type: 'give', cardId }`. |
 
 A combo is the raised cards filtered against `view.actions`. A seat tap or a discard tap only fills in the target, the name, or the take. `play-card` sends the matching action. The table does not decide the rules. A Nope window uses the same raise-then-Play flow on the Nope card.
+
+A defuse pending keeps the Defuse rule sentence above the hand for the whole prompt. The Defuse card is `action-card-defuse`: a tap raises or lowers it and does not send. `play-card` stays hidden, because the menu is one action per index and Play must not pick one.
 
 Root `ek-table` with `data-state` `playing` | `over` and `data-busy`. Opponent seats keep `seat-<id>`.
 

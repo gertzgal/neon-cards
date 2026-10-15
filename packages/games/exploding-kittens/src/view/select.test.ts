@@ -96,4 +96,16 @@ describe('playChoice', () => {
     expect(playChoice(hand, [give, { type: 'give', cardId: 'a' }], ['b'], 'give', []).action).toBe(give)
     expect(playChoice(hand, [give], ['a', 'b'], 'give', []).reason).toBe('Give one card.')
   })
+
+  it('does not invent a defuse index from a raised Defuse', () => {
+    const hand = [card('d', 'defuse'), card('s', 'skip')]
+    const slots: EkAction[] = [
+      { type: 'defuse', index: 0 },
+      { type: 'defuse', index: 1 },
+    ]
+    const raised = playChoice(hand, slots, ['d'], 'defuse', [])
+    expect(raised.action).toBeNull()
+    expect(raised.reason).toBeNull()
+    expect(playChoice(hand, slots, ['s'], 'defuse', []).reason).toBe('Play a Defuse.')
+  })
 })

@@ -63,7 +63,8 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
     if (startedId.current === events.id) return
     startedId.current = events.id
     const id = events.id
-    void play(events.events).then(() => {
+    // A rejected beat used to skip this, leave data-busy set, and hide the insert slots.
+    void play(events.events).finally(() => {
       setDisplay(displayFromView(viewRef.current))
       setSelected([])
       setTarget(null)
@@ -77,7 +78,7 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
   const interactive = settled && !busy
   const pending = settled ? view.pending : null
   const mine = pending && pending.seat === humanSeat ? pending : null
-  const raising = mine?.kind === 'turn' || mine?.kind === 'nope' || mine?.kind === 'give' ? mine.kind : null
+  const raising = mine?.kind === 'turn' || mine?.kind === 'nope' || mine?.kind === 'give' || mine?.kind === 'defuse' ? mine.kind : null
   const choice = useMemo(
     () => (raising ? playChoice(view.hand, view.actions, selected, raising, view.discard, { target, name, takeId }) : null),
     [raising, view.hand, view.actions, view.discard, selected, target, name, takeId],
@@ -211,7 +212,8 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
   }
 
   const focus = hand.find((card) => card.id === selected[selected.length - 1])
-  const focusRule = focus?.face ? scenes[focus.face.title].rule : null
+  // The defuse menu is one action per index, so Play cannot send it. The sentence stays up for the whole prompt.
+  const focusRule = mine?.kind === 'defuse' ? scenes.defuse.rule : focus?.face ? scenes[focus.face.title].rule : null
   const names = choice?.reason === 'Name a card.' ? choice.names : []
   const kitten = mine?.kind === 'defuse' ? mine.kitten : display.revealed
   const topDiscard = display.discard.slice(-4)
@@ -234,7 +236,9 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
             data-end={index === 0 ? 'top' : index === view.drawCount ? 'bottom' : undefined}
             aria-label={index === 0 ? 'Top' : index === view.drawCount ? 'Bottom' : `Plant ${index}`}
             onClick={() => send({ type: 'defuse', index })}
-          />
+          >
+            {index === 0 ? 'Top' : index === view.drawCount ? 'Bottom' : null}
+          </button>
         ))}
       </div>
     ) : mine?.kind === 'nope' ? (
@@ -396,8 +400,8 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
                   </div>
                 </PlayerSpot>
               </div>
-              <div className="nc-play-dock" data-testid="play-dock" data-open={selected.length > 0 ? 'true' : 'false'}>
-                {selected.length > 0 && (
+              <div className="nc-play-dock" data-testid="play-dock" data-open={selected.length > 0 && mine?.kind !== 'defuse' ? 'true' : 'false'}>
+                {selected.length > 0 && mine?.kind !== 'defuse' && (
                   <>
                     {choice?.reason && (
                       <p className="nc-play-reason" data-testid="play-reason">

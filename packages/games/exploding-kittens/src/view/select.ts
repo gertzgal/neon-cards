@@ -25,14 +25,22 @@ export function playChoice(
   hand: readonly EkCard[],
   actions: readonly EkAction[],
   selected: readonly string[],
-  kind: 'turn' | 'nope' | 'give',
+  kind: 'turn' | 'nope' | 'give' | 'defuse',
   discard: readonly EkCard[],
   picked: { target?: SeatId | null; name?: Title | null; takeId?: string | null } = {},
 ): PlayChoice {
   if (selected.length === 0) return EMPTY
   if (kind === 'nope') return nopeChoice(hand, actions, selected)
   if (kind === 'give') return giveChoice(actions, selected)
+  if (kind === 'defuse') return defuseChoice(hand, selected)
   return turnChoice(hand, actions, selected, discard, picked)
+}
+
+/** A defuse menu is one action per index. Raising the card must not pick one. */
+function defuseChoice(hand: readonly EkCard[], selected: readonly string[]): PlayChoice {
+  const card = selected.length === 1 ? hand.find((item) => item.id === selected[0]) : undefined
+  if (card?.face.title === 'defuse') return { action: null, reason: null, targets: [], names: [] }
+  return { action: null, reason: 'Play a Defuse.', targets: [], names: [] }
 }
 
 /** Five titles in TITLE_ORDER, or null when the selection is not five different titles. */

@@ -180,6 +180,36 @@ test('Escape lowers a raised Nope, then passes the window', async ({ page }) => 
   await settled(page)
 })
 
+test('a kitten draw with a defuse in hand can be buried and the game continues', async ({ page }) => {
+  await open(page, { rig: 'kitten', seed: 'ek-e2e-plant-0', picks: ['pregame-opponents-1', 'pregame-difficulty-medium'] })
+  await page.getByTestId('action-draw').click()
+  await expect(page.getByTestId('defuse-kitten')).toBeVisible({ timeout: 20_000 })
+  await settled(page)
+  await expect(table(page)).toHaveAttribute('data-pending', 'defuse')
+  await expect(page.getByTestId('card-rule')).toHaveText('Bury a drawn kitten anywhere in the pile.')
+  await expect(page.getByTestId('action-card-defuse')).toBeVisible()
+  await tap(page, 'action-card-defuse')
+  await expect(page.getByTestId('action-card-defuse')).toHaveAttribute('data-selected', 'true')
+  await expect(page.getByTestId('insert-0')).toHaveAccessibleName('Top')
+  await expect(page.getByTestId('insert-4')).toBeVisible()
+
+  const planted = watchAction(page)
+  await page.getByTestId('insert-4').click()
+  const result = await readAction(await planted)
+  expect(postedAction(result.posted)).toMatchObject({ type: 'defuse', index: 4 })
+  await expect(page.getByTestId('planted')).toHaveAttribute('data-index', '4', { timeout: 20_000 })
+  await settled(page)
+  await expect(table(page)).not.toHaveAttribute('data-pending', 'defuse')
+  await expect(table(page)).toHaveAttribute('data-busy', 'false')
+
+  const pass = page.getByTestId('action-pass')
+  if (await pass.count()) await pass.click()
+  else await page.getByTestId('action-draw').click()
+  await settled(page)
+  await expect(table(page)).toHaveAttribute('data-busy', 'false')
+  await expect(table(page)).not.toHaveAttribute('data-pending', 'defuse')
+})
+
 test('you choose where a defuse puts the kitten', async ({ page }, testInfo) => {
   await open(page, { rig: 'kitten', seed: 'ek-e2e-plant-0', picks: ['pregame-opponents-1', 'pregame-difficulty-medium'] })
   await page.getByTestId('action-draw').click()
