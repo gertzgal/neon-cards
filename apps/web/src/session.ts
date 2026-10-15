@@ -36,18 +36,26 @@ function devConfig(): Record<string, string> {
 
 const nextBatchId = (prev: SessionState) => (prev.status === 'playing' ? prev.events.id + 1 : 1)
 
+function canResume(gameId: string): boolean {
+  if (Object.keys(devConfig()).length > 0) return false
+  try {
+    return localStorage.getItem(storeKey(gameId)) !== null
+  } catch {
+    return false
+  }
+}
+
 /**
  * Owns one game's server session: resume after reload, start with config from
  * the pre-game sheet, and send each human action with the `seq` the server last returned.
- * Games without settings skip the sheet and start as soon as they open.
+ * No stored session means the sheet, including a game with no settings.
+ * New game on a game with no settings still starts at once, so a live bet is forfeited on that click.
  */
 export function useGameSession(plugin: GamePlugin, onWallet: (balance: number) => void) {
   const gameId = plugin.rules.definition.id
   const autoStart = !plugin.rules.meta.settings?.length
   const chips = plugin.rules.meta.economy === 'chips'
-  const [state, setState] = useState<SessionState>(() =>
-    (localStorage.getItem(storeKey(gameId)) && !Object.keys(devConfig()).length) || autoStart ? { status: 'loading' } : { status: 'setup' },
-  )
+  const [state, setState] = useState<SessionState>(() => (canResume(gameId) ? { status: 'loading' } : { status: 'setup' }))
   const booted = useRef(false)
 
   const create = useCallback(
@@ -110,8 +118,7 @@ export function useGameSession(plugin: GamePlugin, onWallet: (balance: number) =
     booted.current = true
     const stored = Object.keys(devConfig()).length ? null : localStorage.getItem(storeKey(gameId))
     if (stored) resume(stored).catch(reset)
-    else if (autoStart) void create({})
-  }, [gameId, autoStart, create, resume, reset])
+  }, [gameId, resume, reset])
 
   const act = useCallback(
     async (action: unknown) => {

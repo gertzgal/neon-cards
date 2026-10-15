@@ -5,27 +5,35 @@ export function Sheet({
   testId,
   title,
   onClose,
+  cover = 'modal',
   children,
 }: {
   testId: string
   title: string
   onClose?: () => void
+  /** `modal` dims the whole screen. `table` leaves the top bar bright and clickable. */
+  cover?: 'modal' | 'table'
   children: ReactNode
 }) {
   useEffect(() => {
     if (!onClose) return
-    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && onClose()
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.repeat) return
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      onClose()
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
   }, [onClose])
 
   // Portaled so a table's transformed ancestors (screen shake) can't capture position: fixed.
   return createPortal(
-    <div className="sheet-backdrop" onClick={onClose}>
+    <div className="sheet-backdrop" data-cover={cover} onClick={cover === 'modal' ? onClose : undefined}>
       <section
         className="sheet"
         role="dialog"
-        aria-modal="true"
+        aria-modal={cover === 'modal'}
         aria-label={title}
         data-testid={testId}
         onClick={(event) => event.stopPropagation()}

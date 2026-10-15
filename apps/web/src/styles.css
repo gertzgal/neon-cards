@@ -217,6 +217,11 @@ a.nc-icon-btn {
   background: rgba(5, 4, 9, 0.6);
 }
 
+/* The pregame card dims the felt only. 72px clears the phone bar (58px) and the desktop bar (70px). */
+.sheet-backdrop[data-cover='table'] {
+  top: 72px;
+}
+
 @media (min-width: 700px) {
   .sheet-backdrop {
     place-items: center;

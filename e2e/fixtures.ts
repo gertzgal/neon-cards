@@ -9,7 +9,7 @@ const guideIds = ['blackjack', 'flip7', 'exploding-kittens', 'high-card']
 
 export const test = base.extend<{ guideSeen: boolean; passPregame: boolean }>({
   guideSeen: [true, { option: true }],
-  passPregame: [false, { option: true }],
+  passPregame: [true, { option: true }],
   // Replaces the built-in baseURL. The empty pattern is Playwright's fixture bag.
   // eslint-disable-next-line no-empty-pattern
   baseURL: async ({}, use, info) => {

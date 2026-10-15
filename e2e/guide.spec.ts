@@ -1,13 +1,13 @@
 import { expect, test } from './fixtures'
 
 const games = [
-  { id: 'blackjack', path: '/games/blackjack', title: 'BLACKJACK', pregame: false, row: 'ace' },
+  { id: 'blackjack', path: '/games/blackjack', title: 'BLACKJACK', pregame: true, row: 'ace' },
   { id: 'flip7', path: '/games/flip7', title: 'FLIP 7', pregame: true, row: 'freeze' },
   { id: 'exploding-kittens', path: '/games/exploding-kittens', title: 'EXPLODING KITTENS', pregame: true, row: 'kitten' },
 ] as const
 
 test.describe('how to play', () => {
-  test.use({ guideSeen: false })
+  test.use({ guideSeen: false, passPregame: false })
 
   test('the lobby has no book', async ({ page }) => {
     await page.goto('/')

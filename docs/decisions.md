@@ -584,3 +584,10 @@ The how-to page teaches every Flip 7 face, so `actionSentence` stays a string fo
 ## Guide quality pass (Quality, 2026-10-15)
 
 Played the how-to page on `f0d64cf`, phone and desktop. The page opens once, the book reopens it, and X, GOT IT, and Escape close it. A tap on a Flip 7 number left its sentence on the felt. [#81](https://github.com/gertzgal/neon-cards/pull/81) (`f8912e2`) keeps that sentence on the guide page. The write-up and shots are in `docs/quality-report.md` and `docs/quality/guide-*`.
+## The setup card leaves the top bar alone (Platform, 2026-10-15)
+
+Production on 2026-10-15 painted `.sheet-backdrop` over the whole viewport (`z-index: 100`, `inset: 0`, `rgba(5, 4, 9, 0.6)`). `elementFromPoint` on `nav-back` at `/games/flip7` and `/games/exploding-kittens` hit that backdrop, so the arrow, history, mute, and settings were dim and dead. The card passed no `onClose`, so Escape did nothing. A direct open had no earlier in-app entry, so browser back left the site. A tap on the dim felt already did nothing, and that stays.
+
+The pregame card now covers the felt only (`data-cover="table"`, top 72px, under the 58px phone bar and the 70px desktop bar). Settings stays a full-screen modal and still owns Escape while it is open. The guide still owns Escape while it is open. The card grows a plain Back under Play (`pregame-back`). Back, the arrow, Escape, and browser back (the same history step as the phone gesture) return to the lobby. Opening the card pushes one history marker and drops it when Play starts, so a live table still backs up once to the lobby.
+
+Every game with no stored session shows that card, including Blackjack, which still has no settings. The card there is the description, Play, and Back. A stored session still resumes. New game on a game with no settings still starts the next session on that click, so a forfeited bet is recorded then and not when the player later presses Play. The book sits on this bar too, and it does not auto-open. The first-visit page still opens when the table mounts. `docs/architecture.md` is unchanged.

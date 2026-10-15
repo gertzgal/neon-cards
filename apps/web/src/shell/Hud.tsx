@@ -30,15 +30,23 @@ function BarIcons({ table }: { table?: TableControls }) {
   )
 }
 
-function TableIcons({ table, guide }: { table: TableControls; guide: GameGuide }) {
-  const guideUi = useTableGuide(table.gameId)
+function GuideButton({ guide, gameId, autoOpen }: { guide: GameGuide; gameId: string; autoOpen: boolean }) {
+  const guideUi = useTableGuide(gameId, autoOpen)
   return (
     <>
       <IconButton label="How to play" testId="hud-guide" onClick={guideUi.openGuide}>
         <BookIcon />
       </IconButton>
-      <BarIcons table={table} />
       {guideUi.open && <GuidePage guide={guide} onClose={guideUi.closeGuide} />}
+    </>
+  )
+}
+
+function TableIcons({ table, guide }: { table: TableControls; guide: GameGuide }) {
+  return (
+    <>
+      <GuideButton guide={guide} gameId={table.gameId} autoOpen />
+      <BarIcons table={table} />
     </>
   )
 }
@@ -49,14 +57,41 @@ export function HudIcons(props: HudIconsProps) {
   return <BarIcons />
 }
 
-export function Hud({ back, history, showWallet = true }: { back?: Route; history?: Route; showWallet?: boolean }) {
+export function Hud({
+  back,
+  onBack,
+  history,
+  showWallet = true,
+  guide,
+  gameId,
+}: {
+  back?: Route
+  onBack?: () => void
+  history?: Route
+  showWallet?: boolean
+  guide?: GameGuide
+  gameId?: string
+}) {
   const { wallet } = useWallet()
   return (
     <KitHud
       bankroll={showWallet && wallet.status === 'ok' ? wallet.balance : null}
       left={
         back && (
-          <Link to={back} className="nc-pill nc-icons" data-testid="nav-back" aria-label="Back">
+          <Link
+            to={back}
+            className="nc-pill nc-icons"
+            data-testid="nav-back"
+            aria-label="Back"
+            onClick={
+              onBack
+                ? (event) => {
+                    event.preventDefault()
+                    onBack()
+                  }
+                : undefined
+            }
+          >
             <span className="nc-icon-btn">
               <BackIcon />
             </span>
@@ -65,6 +100,7 @@ export function Hud({ back, history, showWallet = true }: { back?: Route; histor
       }
       right={
         <>
+          {guide && gameId && <GuideButton guide={guide} gameId={gameId} autoOpen={false} />}
           {history && (
             <Link to={history} className="nc-icon-btn" data-testid="nav-history" aria-label="History">
               <HistoryIcon />

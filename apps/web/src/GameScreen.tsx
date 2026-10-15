@@ -1,29 +1,60 @@
-import { useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import { loadGameSettings, saveGameSettings, type GameSettings } from './game-settings'
 import type { GamePlugin } from '@neon-cards/ui'
+import { navigate } from './router'
 import { useGameSession } from './session'
 import { Hud, HudIcons } from './shell/Hud'
 import { Segmented } from './shell/Segmented'
 import { Sheet } from './shell/Sheet'
 import { useWallet } from './shell/wallet'
 
+function useSetupExit(active: boolean) {
+  useLayoutEffect(() => {
+    if (!active) return
+    const state = window.history.state as { ncSetup?: boolean } | null
+    if (!state?.ncSetup) window.history.pushState({ ncSetup: true }, '', window.location.href)
+    const onPop = () => navigate({ name: 'home' }, { replace: true })
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.repeat) return
+      window.history.back()
+    }
+    window.addEventListener('popstate', onPop)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('popstate', onPop)
+      window.removeEventListener('keydown', onKey)
+      const current = window.history.state as { ncSetup?: boolean } | null
+      if (current?.ncSetup) window.history.back()
+    }
+  }, [active])
+}
+
 export function GameScreen({ plugin }: { plugin: GamePlugin }) {
   const { definition, meta } = plugin.rules
   const { wallet, setBalance } = useWallet()
   const { state, start, act, reset } = useGameSession(plugin, setBalance)
   const chips = meta.economy === 'chips'
+  const setup = state.status === 'setup'
+  useSetupExit(setup)
 
   return (
     <div className="screen game" data-testid="game-screen" data-game={definition.id} data-state={state.status}>
       {state.status !== 'playing' && (
-        <Hud back={{ name: 'home' }} history={{ name: 'history', gameId: definition.id }} showWallet={chips} />
+        <Hud
+          back={{ name: 'home' }}
+          {...(setup ? { onBack: () => window.history.back() } : {})}
+          history={{ name: 'history', gameId: definition.id }}
+          showWallet={chips}
+          guide={plugin.guide}
+          gameId={definition.id}
+        />
       )}
       {state.status === 'loading' && (
         <p className="center-msg" data-testid="game-loading">
           Shuffling…
         </p>
       )}
-      {state.status === 'setup' && <PreGameSheet plugin={plugin} onPlay={start} />}
+      {setup && <PreGameSheet plugin={plugin} onPlay={start} onBack={() => window.history.back()} />}
       {state.status === 'error' && (
         <div className="center-msg" data-testid="game-error">
           <p>Couldn't reach the table.</p>
@@ -49,13 +80,21 @@ export function GameScreen({ plugin }: { plugin: GamePlugin }) {
   )
 }
 
-function PreGameSheet({ plugin, onPlay }: { plugin: GamePlugin; onPlay(config: GameSettings): void }) {
+function PreGameSheet({
+  plugin,
+  onPlay,
+  onBack,
+}: {
+  plugin: GamePlugin
+  onPlay(config: GameSettings): void
+  onBack(): void
+}) {
   const { definition, meta } = plugin.rules
   const specs = meta.settings ?? []
   const [settings, setSettings] = useState(() => loadGameSettings(definition.id, specs, definition.defaultConfig))
 
   return (
-    <Sheet testId="pregame" title={meta.title}>
+    <Sheet testId="pregame" title={meta.title} cover="table">
       <p className="sheet-desc">{meta.description}</p>
       {specs.map((spec) => (
         <Segmented
@@ -77,6 +116,9 @@ function PreGameSheet({ plugin, onPlay }: { plugin: GamePlugin; onPlay(config: G
         }}
       >
         Play
+      </button>
+      <button type="button" className="btn wide" data-testid="pregame-back" onClick={onBack}>
+        Back
       </button>
     </Sheet>
   )
