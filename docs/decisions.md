@@ -541,3 +541,4 @@ Gal confirmed this and it replaces press-to-read. A tap raises that card in plac
 ## Escape passes a Nope window (Quality, 2026-10-15)
 
 Raising a card renamed the picked seat to `target`. The key handler already named the DOM node `target`, so that binding won. Escape always looked true, cleared the raise, and returned. A second Escape never reached Pass. P still passed. Escape with a card raised still only lowers it. Escape with nothing raised passes again.
+The disabled reason was drawing past the right edge, so "Need a matching pair." read as "Need a matching pai" on both viewports. The line stays one row, right-aligned with Play, and the dock no longer grows with it. A disabled Play is a flat grey button, so it does not look like the live one. Pair rules are unchanged.

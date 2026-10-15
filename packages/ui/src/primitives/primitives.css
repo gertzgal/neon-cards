@@ -333,6 +333,8 @@
 .nc-play-dock {
   flex: none;
   width: 168px;
+  min-width: 168px;
+  max-width: 168px;
   min-height: 84px;
   display: flex;
   flex-direction: column;
@@ -340,13 +342,18 @@
   align-items: stretch;
   gap: 6px;
   pointer-events: none;
+  overflow: visible;
 }
 
 .nc-play-reason {
+  align-self: flex-end;
+  width: max-content;
+  max-width: calc(100vw - 32px);
   margin: 0;
   text-align: right;
-  font-size: 14px;
-  line-height: 1.15;
+  white-space: nowrap;
+  font-size: 16px;
+  line-height: 1;
   color: var(--nc-gold);
 }
 
@@ -354,6 +361,16 @@
   pointer-events: auto;
   height: 84px;
   font-size: 32px;
+}
+
+.nc-play-dock .nc-btn:disabled {
+  opacity: 1;
+  color: #6d6780;
+  background: #14101c;
+  border-color: #3a3348;
+  box-shadow: none;
+  text-shadow: none;
+  filter: none;
 }
 
 .nc-slot {
@@ -958,6 +975,8 @@
   }
   .nc-play-dock {
     width: 200px;
+    min-width: 200px;
+    max-width: 200px;
     min-height: 96px;
   }
   .nc-play-dock .nc-btn {
@@ -965,7 +984,7 @@
     font-size: 36px;
   }
   .nc-play-reason {
-    font-size: 16px;
+    font-size: 22px;
   }
   .nc-rule-line {
     font-size: 20px;
