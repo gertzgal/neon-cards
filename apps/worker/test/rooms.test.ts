@@ -1,3 +1,4 @@
+import { runDurableObjectAlarm, runInDurableObject } from 'cloudflare:test'
 import { env } from 'cloudflare:workers'
 import { describe, expect, it } from 'vitest'
 import { client, json, testApp } from './client'
@@ -17,6 +18,7 @@ interface RoomFrame {
   canAct?: boolean
   snap?: boolean
   seq?: number
+  deadline?: number | null
   reason?: string
   view?: { me?: string; pending?: { kind?: string; seat?: string } | null }
 }
@@ -42,6 +44,37 @@ async function connect(cookie: string, code: string): Promise<WebSocket> {
   if (!ws) throw new Error('upgrade did not return a socket')
   ws.accept()
   return ws
+}
+
+async function dealtHost(): Promise<{ cookie: string; code: string; socket: WebSocket; seq: number }> {
+  const host = client()
+  const created = await host.post('/api/rooms', { gameId: 'flip7' })
+  const body = await json<Created>(created)
+  const socket = await connect(`nc_player=${host.playerId()}`, body.code)
+  await nextFrame(socket)
+  const set = nextFrame(socket)
+  socket.send(JSON.stringify({ type: 'settings', commandId: 'set1', config: { rig: 'bust', difficulty: 'easy' } }))
+  await set
+  const dealt = nextFrame(socket)
+  socket.send(JSON.stringify({ type: 'deal', commandId: 'd1' }))
+  const frame = await dealt
+  return { cookie: `nc_player=${host.playerId()}`, code: body.code, socket, seq: frame.seq ?? 0 }
+}
+
+function stubFor(code: string) {
+  return env.ROOMS.get(env.ROOMS.idFromName(code))
+}
+
+async function rewriteDeadlines(code: string, deadlines: { turn: boolean; grace: boolean }): Promise<void> {
+  await runInDurableObject(stubFor(code), (_instance: unknown, state) => {
+    const rows = state.storage.sql.exec<{ body: string }>('SELECT body FROM room WHERE id = 1').toArray()
+    const body = rows[0]?.body
+    if (!body) throw new Error('missing room')
+    const room = JSON.parse(body) as { deadlines: { turn: { seatId: string; dueAt: number } | null; hostGrace: { dueAt: number } | null } }
+    if (deadlines.turn && room.deadlines.turn) room.deadlines.turn.dueAt = 1
+    if (deadlines.grace) room.deadlines.hostGrace = { dueAt: 1 }
+    state.storage.sql.exec('INSERT OR REPLACE INTO room (id, body) VALUES (1, ?)', JSON.stringify(room))
+  })
 }
 
 describe('room lobby', () => {
@@ -84,6 +117,7 @@ describe('room lobby', () => {
     expect(JSON.stringify(guestLive)).not.toContain('"rng"')
     const dealtSeq = hostLive.seq ?? 0
     expect(dealtSeq).toBeGreaterThan(0)
+    expect(hostLive.deadline).toBeGreaterThan(Date.now())
     expect(guestLive.seq).toBe(dealtSeq)
 
     const replay = nextFrame(hostSocket)
@@ -144,6 +178,44 @@ describe('room lobby', () => {
 
     rejoined.close()
     hostSocket.close()
+  })
+
+  it('a due host grace closes the room and does not play the due turn', async () => {
+    const dealt = await dealtHost()
+    const seq = dealt.seq
+    await rewriteDeadlines(dealt.code, { turn: true, grace: true })
+    const closed = nextFrame(dealt.socket)
+    expect(await runDurableObjectAlarm(stubFor(dealt.code))).toBe(true)
+    expect(await closed).toMatchObject({ type: 'closed' })
+    const again = await testApp.fetch(
+      new Request(`http://neon.test/api/rooms/${dealt.code}`, { headers: { Upgrade: 'websocket', cookie: dealt.cookie } }),
+      env,
+    )
+    expect(again.status).toBe(404)
+    const stored = await runInDurableObject(stubFor(dealt.code), (_instance: unknown, state) => {
+      return state.storage.sql.exec('SELECT body FROM room WHERE id = 1').toArray().length
+    })
+    expect(stored).toBe(0)
+    expect(seq).toBeGreaterThan(0)
+    dealt.socket.close()
+  })
+
+  it('the first missed turn plays for the human and leaves them seated', async () => {
+    const dealt = await dealtHost()
+    await rewriteDeadlines(dealt.code, { turn: true, grace: false })
+    const played = nextFrame(dealt.socket)
+    expect(await runDurableObjectAlarm(stubFor(dealt.code))).toBe(true)
+    const frame = await played
+    expect(frame.type).toBe('live')
+    expect(frame.seq).toBeGreaterThan(dealt.seq)
+    expect(frame.you).toBe('s0')
+    const chair = await runInDurableObject(stubFor(dealt.code), (_instance: unknown, state) => {
+      const rows = state.storage.sql.exec<{ body: string }>('SELECT body FROM room WHERE id = 1').toArray()
+      const room = JSON.parse(rows[0]?.body ?? '{}') as { chairs: { seatId: string; kind: string; misses?: number }[] }
+      return room.chairs.find((item) => item.seatId === 's0')
+    })
+    expect(chair).toMatchObject({ kind: 'human', misses: 1 })
+    dealt.socket.close()
   })
 
   it('answers 404 for a bad code and 400 for a game with no rooms', async () => {

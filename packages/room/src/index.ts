@@ -1,3 +1,4 @@
+export { earliest, emptyDeadlines, HOST_GRACE_MS, QUICK_MS, TURN_MS, wakePlan, type Deadlines } from './clock'
 export { CODE_ALPHABET, mintCode, parseCode } from './code'
 export { noteFailedJoin } from './joins'
 export {
