@@ -26,6 +26,7 @@ import { ekFace, faceCorner, kittenMark } from './face'
 import { DrawIcon, PassIcon, crown } from './icons'
 import { createJuice } from './juice'
 import { useEkPlayback } from './playback'
+import { scrollToCard } from './defuse-scroll'
 import { playChoice, toggleRaised } from './select'
 
 function backs(id: SeatId, count: number, drawn: string | undefined): CardView<EkFace>[] {
@@ -79,6 +80,20 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
   const pending = settled ? view.pending : null
   const mine = pending && pending.seat === humanSeat ? pending : null
   const raising = mine?.kind === 'turn' || mine?.kind === 'nope' || mine?.kind === 'give' || mine?.kind === 'defuse' ? mine.kind : null
+  // The phone strip starts on the left. The Defuse is the last card, so a kitten draw left it off screen.
+  useLayoutEffect(() => {
+    if (mine?.kind !== 'defuse') return
+    const root = rootRef.current
+    if (!root) return
+    const scroller = root.querySelector('[data-testid="you-hand"]')
+    const card = root.querySelector('[data-testid="action-card-defuse"]')
+    if (!(scroller instanceof HTMLElement) || !(card instanceof HTMLElement)) return
+    const view = scroller.getBoundingClientRect()
+    const cardBox = card.getBoundingClientRect()
+    const cardX = scroller.scrollLeft + (cardBox.left - view.left)
+    const next = scrollToCard(cardX, cardBox.width, scroller.clientWidth, scroller.scrollLeft)
+    if (Math.abs(next - scroller.scrollLeft) > 0.5) scroller.scrollLeft = next
+  }, [mine?.kind])
   const choice = useMemo(
     () => (raising ? playChoice(view.hand, view.actions, selected, raising, view.discard, { target, name, takeId }) : null),
     [raising, view.hand, view.actions, view.discard, selected, target, name, takeId],

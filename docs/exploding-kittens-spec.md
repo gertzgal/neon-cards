@@ -541,7 +541,7 @@ Middle: the draw pile (`draw`, `data-count`) and the discard (top face). Bottom:
 
 A combo is the raised cards filtered against `view.actions`. A seat tap or a discard tap only fills in the target, the name, or the take. `play-card` sends the matching action. The table does not decide the rules. A Nope window uses the same raise-then-Play flow on the Nope card.
 
-A defuse pending keeps the Defuse rule sentence above the hand for the whole prompt. The Defuse card is `action-card-defuse`: a tap raises or lowers it and does not send. `play-card` stays hidden, because the menu is one action per index and Play must not pick one.
+A defuse pending keeps the Defuse rule sentence above the hand for the whole prompt. The Defuse card is `action-card-defuse`: a tap raises or lowers it and does not send. The hand strip scrolls that card into view, so a phone does not leave it past the right edge. `play-card` stays hidden, because the menu is one action per index and Play must not pick one.
 
 Root `ek-table` with `data-state` `playing` | `over` and `data-busy`. Opponent seats keep `seat-<id>`.
 

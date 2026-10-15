@@ -602,6 +602,10 @@ The rules are unchanged. A defuse is still `{ type: 'defuse', index }` for every
 On a phone, four or more number cards ran off the right edge and the score badge was cut off. The opening card was also too big. The straight row that overlaps and then scrolls stays Exploding Kittens' hand. Flip 7 replaces that.
 
 The number row is one straight line. It does not wrap, scroll, fan, or rotate. Opening cards draw at 80% of the shared hand size. As cards are added they scale down, with a small gap, so the row and the score badge stay inside the viewport on phone (390×844) and desktop (1440×900). The room is the player row minus its padding, the gap, and the badge's measured width. Modifiers sit in their own straight row above and scale the same way when they would overflow. The largest realistic line is seven number cards plus modifiers. Ranks stay the neon numerals, sized from the card. The bottom-zone sentence in `docs/architecture.md` now says this.
+
+## A phone left the Defuse off the strip (Quality, 2026-10-15)
+
+`afdfcc0` raises the Defuse and keeps its sentence up, and that card is on screen at 1440×900. At 390×844 the hand is still the scrolling strip, scrolled to the first card. The Defuse is last. Its box was x 768–918, so a tap could not land on it. The bury sentence and Top were on the felt. The rules are unchanged. When the prompt is a defuse, the strip scrolls until that card fits, and it does not move a card that is already inside. `docs/architecture.md` is unchanged.
 ## Setup bar quality pass (Quality, 2026-10-15)
 
 Played `b0c1301` on phone and desktop, before `afdfcc0` and `f481485`. The setup card leaves the top bar clickable. Back, the arrow, Escape, and browser back return to the lobby. Play lands on the table, and the first-visit guide opens over it. A still cursor does not open a rule. A Flip 7 number tap leaves no sentence. The phone line "Need a matching pair." still ends on the felt. No new bug, so this pass is the write-up only. The shots are in `docs/quality-report.md` and `docs/quality/setup-*`. [#84](https://github.com/gertzgal/neon-cards/pull/84) was left alone.
