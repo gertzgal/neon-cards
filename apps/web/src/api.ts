@@ -85,4 +85,6 @@ export const api = {
     }),
   history: (gameId: string | null) =>
     call<{ rounds: Round[] }>(gameId ? `/history?gameId=${encodeURIComponent(gameId)}` : '/history'),
+  createRoom: (gameId: string) =>
+    call<{ code: string }>('/rooms', { method: 'POST', body: JSON.stringify({ gameId }) }),
 }

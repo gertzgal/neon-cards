@@ -666,3 +666,11 @@ Host grace is 15 seconds from the moment the host's socket count hits 0. An expl
 ## Rematch waits for Deal (2026-10-15)
 
 The first cut of `rematch` also called `applyOpening`. The spec leaves the new match undealt. `rematch` now stops after `startMatch`. The host uses Deal for the opening, the same command as the lobby.
+
+## The shell plays a room (2026-10-15)
+
+Play with friends posts `flip7` and opens `/r/:code`. The code on the screen is the same 4 characters. Join is that link, or the code typed once on the home screen. The nickname is the one the server locked. The shell does not ask again.
+
+Deal, I'm back, Leave, Rematch, and Take seat are shell controls. `spectator-count` is `eyes`, and it sits outside the table. The table is passed `canOpen` false so a ready Flip 7 does not deal itself. `?rig=` is sent as lobby settings and only sticks when `DEV_RIG` is `1`.
+
+The live frame gains `backSeat`. The spec's display seat already drops `difficulty` for a covered friend, and that is not enough for the covered player to know the chair is theirs. `backSeat` is that seat id, or null.

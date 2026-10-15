@@ -68,6 +68,8 @@ export interface LiveFrame {
   events: unknown
   snap: boolean
   deadline: number | null
+  /** Seat this player is covering, when a CPU is playing for them. */
+  backSeat: string | null
 }
 
 export interface ClosedFrame {
