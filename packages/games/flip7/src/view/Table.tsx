@@ -33,11 +33,6 @@ import { faceInk, faceText, flip7Face, inspectRule } from './face'
 import { crown, HitIcon, NextIcon, StayIcon } from './icons'
 import { createJuice } from './juice'
 
-/** A short tap reads. A tap on a seat you are choosing is the target, so it does not open the panel. */
-function readOnTap(card: HTMLElement): boolean {
-  return !card.closest('[data-pick="true"]')
-}
-
 function f7Inspect(display: Display, el: HTMLElement, box: { w: number; h: number }): InspectCopy | null {
   const raw = el.getAttribute('data-testid') ?? ''
   if (!raw.startsWith('card-')) return null
@@ -125,7 +120,7 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
   const rootRef = useRef<HTMLDivElement>(null)
   const metrics = useTableMetrics()
   const inspectBox = metrics.phone ? { w: 118, h: 160 } : { w: 148, h: 200 }
-  const inspect = useCardInspect(rootRef, (el) => f7Inspect(display, el, inspectBox), readOnTap)
+  const inspect = useCardInspect(rootRef, (el) => f7Inspect(display, el, inspectBox))
   useLayoutEffect(() => {
     viewRef.current = view
   })
@@ -366,7 +361,7 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
         }
         controls={controls}
       />
-      <CardInspect copy={inspect.copy} onClose={inspect.close} />
+      <CardInspect copy={inspect.copy} cardId={inspect.cardId} playable={inspect.playable} onPlay={inspect.confirm} onClose={inspect.close} />
     </div>
   )
 }

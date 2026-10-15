@@ -10,6 +10,7 @@ export { EdgeSwirl, type EdgeSwirlProps } from './backdrop/edge-swirl'
 
 export { PlayingCard, CornerRanks, cardAccent, cardFrameStyle } from './primitives/playing-card'
 export { CardInspect, InspectFace, useCardInspect, type InspectCopy } from './primitives/inspect'
+export { showPlayCallout } from './primitives/callout'
 export { Hand, handLayout, type SlotPlacement } from './primitives/hand'
 export { ScoreBadge, StatusBadge, type StatusBadgeProps } from './primitives/badge'
 export { DealerTray } from './primitives/dealer-tray'

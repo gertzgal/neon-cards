@@ -528,14 +528,14 @@ Also assert literal choices on fixed views: Easy draws a known top kitten when `
 
 The table is `TableLayout`, `OpponentRows`, `Hand`, `PlayingCard`, `ActionBar`, `NeonButton`. No dealer tray, no chips, no wallet. `hudIcons` sits on the right of the top bar. `OpponentRows` gets counts of face-down backs, a turn glow, and the owed badge as a digit. Dead seats show an empty row.
 
-Middle: the draw pile (`draw`, `data-count`) and the discard (top face). Bottom: the human hand. Buttons are icons with aria-labels. The only words painted as juice are `NOPE` and `BOOM`.
+Middle: the draw pile (`draw`, `data-count`) and the discard (top face). Bottom: the human hand. Buttons are icons with aria-labels. `NOPE` and `BOOM` stay the big juice words. A played card also pops a short line on the juice layer, for you and for a CPU.
 
 | Control | test id | Sends |
 | --- | --- | --- |
 | Draw | `action-draw` | `{ type: 'draw' }` |
 | Nope | `action-nope` | `{ type: 'nope' }` |
 | Pass | `action-pass` | `{ type: 'pass' }` |
-| A card | `action-card-<title>` | the solo play, or the selected combo |
+| A card | `action-card-<title>` | the solo play, or the selected combo. Hover or the first tap opens the rule and does not send. A second tap, or Play in the popup, sends. |
 | Defuse slot | `insert-<index>` | `{ type: 'defuse', index }` |
 | A gift | `give-<cardId>` | `{ type: 'give', cardId }` |
 
@@ -565,6 +565,7 @@ Juice, kit primitives only:
 | `Attacked` `{ from, to, owed }` | `flash('violet')` on `to`, `numberPop` of that `owed` (2, 3, 4, 6, …), `badgePulse`. |
 | `Won` | `sfx('blackjack')`, `flash('gold')`, `shake('big')`, a crown on the winner. Gold if the winner is `you`. |
 | `Drew` | `deal` from the pile. The human's own face appears when the view snaps, because the event is face-down. |
+| `Played` | The cards deal from the seat. A short callout names the play (Skip, Attack, Shuffle, Peek, Favor, Pair, Ask, Take) on that seat, including a CPU. |
 | `Shuffled` / `Reshuffled` | `shake('small')` on the pile. |
 
 `recap`: `{ outcome: 'WIN', tone: 'gold' }` when `view.winner === human`, otherwise `{ outcome: 'LOSE', tone: 'bust' }`.

@@ -234,6 +234,10 @@
   pointer-events: none;
 }
 
+.f7-me .nc-card {
+  pointer-events: auto;
+}
+
 .f7-extras {
   min-height: 8px;
 }

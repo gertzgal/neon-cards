@@ -31,13 +31,6 @@ import { createJuice } from './juice'
 import { useEkPlayback } from './playback'
 import { actionForName, actionForSeat, fiveAction, fiveTitles, onCardTap, targetSeats } from './select'
 
-/** A short tap reads unless it is the picture of a card you can play right now. */
-function readOnTap(card: HTMLElement, target: EventTarget | null): boolean {
-  const button = card.closest('button.ek-card-btn, button.ek-discard-card')
-  if (!(button instanceof HTMLButtonElement) || button.dataset.play !== 'true') return true
-  return target instanceof Element && Boolean(target.closest('.ek-face-title'))
-}
-
 function ekInspect(display: Display, el: HTMLElement, box: { w: number; h: number }): InspectCopy | null {
   const raw = el.getAttribute('data-testid') ?? ''
   if (!raw.startsWith('card-')) return null
@@ -76,7 +69,7 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
   const rootRef = useRef<HTMLDivElement>(null)
   const metrics = useTableMetrics()
   const inspectBox = metrics.phone ? { w: 118, h: 160 } : { w: 148, h: 200 }
-  const inspect = useCardInspect(rootRef, (el) => ekInspect(display, el, inspectBox), readOnTap)
+  const inspect = useCardInspect(rootRef, (el) => ekInspect(display, el, inspectBox))
   useLayoutEffect(() => {
     viewRef.current = view
   })
@@ -429,7 +422,7 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
         }
         controls={controls}
       />
-      <CardInspect copy={inspect.copy} onClose={inspect.close} />
+      <CardInspect copy={inspect.copy} cardId={inspect.cardId} playable={inspect.playable} onPlay={inspect.confirm} onClose={inspect.close} />
     </div>
   )
 }

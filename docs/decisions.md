@@ -515,6 +515,13 @@ On a phone the eight-card fan shrinks the card, so titles wrap onto their words 
 ## Card-face quality pass (Quality agent, 2026-10-15)
 
 Played `d3d0e35` on phone and desktop. Blackjack deal, hole, and hit keep the mock's ranks and pips inside the card. Flip 7's 8 fills the hand card and +10 fills the compact extra. Exploding Kittens on seed `ek-gap-open` keeps the phone fan from x 16 to 374, above the draw button, with the owed digit in the top bar. Desktop is the same fan as `bdbc4b6` (x 258 to 1182). No face was clipped and no new bug turned up, so this pass is the write-up only. Shots are in `docs/quality/faces-*`.
+
 ## Press to read (2026-10-15)
 
 This draft was not merged. A tap on a card's name, or a long-press anywhere on the card, opens one inspect panel with that card's rule. A later tap on the panel dismisses it. Exploding Kittens keeps the shared scene, colors, and title. The rule line is not drawn on the face. Flip 7 keeps the shared numeral, action name, and modifier mark. Freeze, Flip Three, Second Chance, and the modifiers show their rule in that same panel. A short tap on the picture still plays an Exploding Kittens card, and a short tap still picks a Flip 7 target. There is no played-card animation.
+
+## Gal picked press to read (2026-10-15)
+
+Gal picked press to read. Hover, or the first tap, on a hand card opens the rule popup and does not play the card. A second tap on that same card, or Play in the popup, plays it. A tap on a different card moves the popup. The first contact never plays. Exploding Kittens keeps the shared scene, colors, and title. Flip 7 keeps the shared numeral, action name, and modifier mark. A Flip 7 number already on the line is not played by tapping it. Hit still draws.
+
+When any seat plays a card, including a CPU, a short line pops on the juice layer with a ring. Exploding Kittens says Skip, Attack, Shuffle, Peek, Favor, Pair, Ask, or Take. Flip 7 says the number, Plus 10, Times two, Freeze, Three flips, or Second chance. The popup is how you read. The line is what just landed. NOPE and BOOM stay the big pops. The Flip 7 line sits outside the table, so the table text stays FLIP and BUST.

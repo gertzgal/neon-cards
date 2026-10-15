@@ -22,146 +22,213 @@ export function InspectFace({ accent, box, children }: { accent: string; box: Si
   )
 }
 
-const HOLD_MS = 420
-const MOVE_PX = 12
+function faceUp(el: HTMLElement): boolean {
+  return !el.classList.contains('nc-card-back') && el.getAttribute('data-testid') !== 'card-inspect-face'
+}
 
+/** The face under the pointer, including the button chrome around a tilted card. */
 function faceCard(root: HTMLElement, target: EventTarget | null): HTMLElement | null {
   if (!(target instanceof Element)) return null
-  const el = target.closest('.nc-card')
-  if (!(el instanceof HTMLElement) || !root.contains(el)) return null
-  if (el.classList.contains('nc-card-back')) return null
-  if (el.getAttribute('data-testid') === 'card-inspect-face') return null
-  return el
+  const direct = target.closest('.nc-card')
+  if (direct instanceof HTMLElement && root.contains(direct) && faceUp(direct)) return direct
+  const button = target.closest('button')
+  if (!(button instanceof HTMLElement) || !root.contains(button)) return null
+  const inner = button.querySelector('.nc-card')
+  if (!(inner instanceof HTMLElement) || !faceUp(inner)) return null
+  return inner
+}
+
+export function cardKey(el: HTMLElement): string | null {
+  const id = el.getAttribute('data-testid')
+  if (!id || !id.startsWith('card-') || id === 'card-inspect-face') return null
+  return id
+}
+
+export function inHand(el: HTMLElement): boolean {
+  return Boolean(el.closest('[data-testid="you-hand"]'))
+}
+
+/** A hand card you can play right now. The button carries `data-play`. */
+export function canPlay(el: HTMLElement): boolean {
+  const button = el.closest('button')
+  return button instanceof HTMLButtonElement && button.dataset['play'] === 'true'
+}
+
+function picking(el: HTMLElement): boolean {
+  return el.closest('[data-pick="true"]') !== null
 }
 
 /**
- * Tap or long-press a face-up card to read it. `readOnTap` says whether this short tap
- * is a question. A tap that plays or picks a target returns false and is left alone.
- * A long-press always reads, and the click that follows it does not also play.
+ * Hover and the first tap only read. A later tap plays, and only when this card was already open
+ * and the hover that opened it has already been spent.
+ */
+export function readOrPlay(openId: string | null, hoverFresh: boolean, cardId: string, playable: boolean): 'read' | 'play' {
+  if (openId === cardId && playable && !hoverFresh) return 'play'
+  return 'read'
+}
+
+/**
+ * Hover or the first tap on a hand card opens its rule. That contact does not play it.
+ * A second tap on the same card plays it. A tap on a different card moves the popup.
+ * A tap that is choosing a seat is left alone.
  */
 export function useCardInspect(
   rootRef: RefObject<HTMLElement | null>,
   describe: (card: HTMLElement) => InspectCopy | null,
-  readOnTap: (card: HTMLElement, target: EventTarget | null) => boolean,
-): { copy: InspectCopy | null; close: () => void } {
+): { copy: InspectCopy | null; cardId: string | null; playable: boolean; confirm: () => void; close: () => void } {
   const [copy, setCopy] = useState<InspectCopy | null>(null)
+  const [cardId, setCardId] = useState<string | null>(null)
+  const [playable, setPlayable] = useState(false)
   const describeRef = useRef(describe)
-  const readRef = useRef(readOnTap)
+  const openIdRef = useRef<string | null>(null)
+  const openElRef = useRef<HTMLElement | null>(null)
   useEffect(() => {
     describeRef.current = describe
-    readRef.current = readOnTap
-  }, [describe, readOnTap])
-  const close = useCallback(() => setCopy(null), [])
+  }, [describe])
+
+  const close = useCallback(() => {
+    openIdRef.current = null
+    openElRef.current = null
+    setCopy(null)
+    setCardId(null)
+    setPlayable(false)
+  }, [])
+
+  const confirm = useCallback(() => {
+    const el = openElRef.current
+    const button = el?.closest('button')
+    if (!(button instanceof HTMLButtonElement) || button.dataset['play'] !== 'true') return
+    close()
+    button.click()
+  }, [close])
 
   useEffect(() => {
     const root = rootRef.current
     if (!root) return
-    let timer = 0
-    let card: HTMLElement | null = null
-    let sx = 0
-    let sy = 0
+    let hoverFresh = false
     let suppress = false
-    let held = false
 
-    const show = (el: HTMLElement) => {
+    const show = (el: HTMLElement, fromHover: boolean) => {
       const next = describeRef.current(el)
-      if (!next) return
-      suppress = true
+      const id = cardKey(el)
+      if (!next || !id) return
+      openIdRef.current = id
+      openElRef.current = el
+      hoverFresh = fromHover
+      setPlayable(canPlay(el))
+      setCardId(id)
       setCopy(next)
     }
+
+    const onOver = (event: PointerEvent) => {
+      if (event.pointerType !== 'mouse') return
+      const card = faceCard(root, event.target)
+      if (!card || !inHand(card) || picking(card)) return
+      const id = cardKey(card)
+      if (!id || id === openIdRef.current) return
+      show(card, true)
+    }
+
     const onDown = (event: PointerEvent) => {
       if (event.button !== 0) return
-      window.clearTimeout(timer)
-      held = false
-      card = faceCard(root, event.target)
-      if (!card) return
-      sx = event.clientX
-      sy = event.clientY
-      const heldCard = card
-      timer = window.setTimeout(() => {
-        held = true
-        show(heldCard)
-      }, HOLD_MS)
+      const card = faceCard(root, event.target)
+      if (!card || picking(card)) return
+      const id = cardKey(card)
+      if (!id) return
+      const hand = inHand(card)
+      const playableCard = canPlay(card)
+      if (!hand && playableCard) return
+      if (!hand) {
+        show(card, false)
+        suppress = true
+        return
+      }
+      if (readOrPlay(openIdRef.current, hoverFresh, id, playableCard) === 'play') {
+        hoverFresh = false
+        suppress = false
+        return
+      }
+      show(card, false)
+      suppress = true
     }
-    const onUp = (event: PointerEvent) => {
-      window.clearTimeout(timer)
-      const el = card
-      card = null
-      if (!el || held) return
-      if (Math.hypot(event.clientX - sx, event.clientY - sy) > MOVE_PX) return
-      if (!readRef.current(el, event.target)) return
-      show(el)
-    }
-    const onCancel = () => {
-      window.clearTimeout(timer)
-      card = null
-    }
+
     const onClick = (event: MouseEvent) => {
-      if (!suppress) return
-      suppress = false
-      event.preventDefault()
-      event.stopPropagation()
+      if (suppress) {
+        suppress = false
+        event.preventDefault()
+        event.stopPropagation()
+        return
+      }
+      const card = faceCard(root, event.target)
+      if (card && cardKey(card) === openIdRef.current) {
+        close()
+        return
+      }
+      if (!card && openIdRef.current) close()
     }
+
     const onMenu = (event: MouseEvent) => {
       if (faceCard(root, event.target)) event.preventDefault()
     }
+
+    root.addEventListener('pointerover', onOver)
     root.addEventListener('pointerdown', onDown)
-    window.addEventListener('pointerup', onUp)
-    window.addEventListener('pointercancel', onCancel)
     root.addEventListener('click', onClick, true)
     root.addEventListener('contextmenu', onMenu)
     return () => {
-      window.clearTimeout(timer)
+      root.removeEventListener('pointerover', onOver)
       root.removeEventListener('pointerdown', onDown)
-      window.removeEventListener('pointerup', onUp)
-      window.removeEventListener('pointercancel', onCancel)
       root.removeEventListener('click', onClick, true)
       root.removeEventListener('contextmenu', onMenu)
     }
-  }, [rootRef])
+  }, [rootRef, close])
 
-  return { copy, close }
+  return { copy, cardId, playable, confirm, close }
 }
 
-/** One panel for every game. The tap that opened it does not also close it. The next tap, or Escape, does. */
-export function CardInspect({ copy, onClose }: { copy: InspectCopy | null; onClose: () => void }) {
-  const ready = useRef(false)
+/** One panel for every game. The hand stays tappable underneath it. */
+export function CardInspect({
+  copy,
+  cardId,
+  playable,
+  onPlay,
+  onClose,
+}: {
+  copy: InspectCopy | null
+  cardId: string | null
+  playable: boolean
+  onPlay: () => void
+  onClose: () => void
+}) {
   useEffect(() => {
-    if (!copy) {
-      ready.current = false
-      return
-    }
-    ready.current = false
+    if (!copy) return
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose()
     }
-    const onDown = () => {
-      ready.current = true
-    }
     window.addEventListener('keydown', onKey)
-    window.addEventListener('pointerdown', onDown, true)
-    return () => {
-      window.removeEventListener('keydown', onKey)
-      window.removeEventListener('pointerdown', onDown, true)
-    }
+    return () => window.removeEventListener('keydown', onKey)
   }, [copy, onClose])
   if (!copy || typeof document === 'undefined') return null
   const root = document.querySelector('.nc-root') ?? document.body
   return createPortal(
-    <div
-      className="nc-inspect-scrim"
-      data-testid="card-inspect"
-      role="dialog"
-      aria-modal="true"
-      aria-label={copy.title}
-      onClick={() => {
-        if (ready.current) onClose()
-      }}
-    >
+    <div className="nc-inspect-scrim" data-testid="card-inspect" data-card={cardId ?? ''} role="dialog" aria-modal="false" aria-label={copy.title}>
       <div className="nc-inspect">
         {copy.preview}
         <p className="nc-inspect-title">{copy.title}</p>
         <p className="nc-inspect-rule">{copy.rule}</p>
+        {playable && (
+          <button
+            type="button"
+            className="nc-inspect-play"
+            data-testid="card-inspect-play"
+            onClick={(event) => {
+              event.stopPropagation()
+              onPlay()
+            }}
+          >
+            Play
+          </button>
+        )}
       </div>
     </div>,
     root,

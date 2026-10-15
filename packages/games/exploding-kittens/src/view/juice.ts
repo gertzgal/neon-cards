@@ -1,6 +1,7 @@
 import type { SeatId } from '@neon-cards/engine'
-import type { JuiceKit, JuiceMap } from '@neon-cards/ui'
+import { showPlayCallout, type JuiceKit, type JuiceMap } from '@neon-cards/ui'
 import type { EkEvent } from '../rules'
+import { lineForPlayed } from './callout'
 
 export const seatTarget = (human: SeatId, seat: SeatId) => (seat === human ? 'player-spot' : `seat-${seat}`)
 
@@ -11,6 +12,7 @@ export function createJuice(human: SeatId): JuiceMap {
     [K in EkEvent['type']]?: (event: Extract<EkEvent, { type: K }>, kit: JuiceKit) => void | Promise<void>
   } = {
     async Played(event, kit) {
+      showPlayCallout(lineForPlayed(event.effect), at(event.seat), event.seat)
       for (const card of event.cards) await kit.deal(`card-${card.id}`, { from: at(event.seat) })
     },
     async Noped(event, kit) {
