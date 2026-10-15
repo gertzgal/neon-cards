@@ -3,7 +3,7 @@ import type { Flip7Face } from '@neon-cards/engine'
 import { ekFace } from '@neon-cards/game-exploding-kittens'
 import type { Title } from '@neon-cards/game-exploding-kittens/rules'
 import { flip7Face } from '@neon-cards/game-flip7'
-import { NeonRoot, PlayingCard } from '@neon-cards/ui'
+import { NeonRoot, PlayingCard, handLayout, tableMetrics, type Size } from '@neon-cards/ui'
 import './styles.css'
 
 const EK: Title[] = [
@@ -41,13 +41,41 @@ function flipFace(card: string): Flip7Face {
   return { kind: 'number', value }
 }
 
+/**
+ * The box a card actually gets in the hand. Exploding Kittens opens at eight cards.
+ * Flip 7 numbers share a four-card fan before the hand grows. Modifiers and actions
+ * sit in the compact extra row, which is the small card those labels have to survive.
+ */
+function handBox(kind: 'ek' | 'number' | 'extra'): Size {
+  const metrics = tableMetrics(window.innerWidth, window.innerHeight)
+  if (kind === 'extra') return metrics.card.compact
+  const limit = metrics.phone ? metrics.width - (kind === 'ek' ? 64 : 120) : Math.min(metrics.width * 0.7, 860)
+  const count = kind === 'ek' ? 8 : 4
+  return handLayout(count, metrics.card.hand, 'fan', limit, 'hand').card
+}
+
 function Face() {
   if (deck === 'ek') {
     const title = EK.find((item) => item === id) ?? 'nope'
-    return <PlayingCard card={{ id: `ek-${title}`, deck: 'exploding-kittens', face: { title } }} renderer={ekFace} size={size} />
+    return (
+      <PlayingCard
+        card={{ id: `ek-${title}`, deck: 'exploding-kittens', face: { title } }}
+        renderer={ekFace}
+        size={size}
+        {...(size === 'hand' ? { box: handBox('ek') } : {})}
+      />
+    )
   }
   const face = flipFace(id)
-  return <PlayingCard card={{ id: `flip7-${id}`, deck: 'flip7', face }} renderer={flip7Face} size={size} />
+  const extra = face.kind === 'modifier'
+  return (
+    <PlayingCard
+      card={{ id: `flip7-${id}`, deck: 'flip7', face }}
+      renderer={flip7Face}
+      size={extra ? 'compact' : size}
+      {...(size === 'hand' ? { box: handBox(extra ? 'extra' : 'number') } : {})}
+    />
+  )
 }
 
 const root = document.getElementById('root')

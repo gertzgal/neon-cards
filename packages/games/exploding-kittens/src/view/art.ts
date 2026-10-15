@@ -1,5 +1,4 @@
 import type { Tone } from '@neon-cards/ui'
-import { FACE_LABEL } from '../rules/deck'
 import type { Title } from '../rules/types'
 
 /** Strips spaces so each row can be read in groups of four. */
@@ -41,7 +40,7 @@ export const scenes: Record<Title, EkScene> = {
     accent: '#ff6a1a',
     field: '#140c08',
     short: 'KITTEN',
-    rule: 'Show it. Defuse or explode.',
+    rule: 'Defuse or explode.',
     inks: { K: fur, D: dark, H: '#ff6a1a', W: '#fff1c2' },
     art: grid(`
       H..H H..H H..H H..H
@@ -67,7 +66,7 @@ export const scenes: Record<Title, EkScene> = {
     accent: '#7fd7ff',
     field: '#07141c',
     short: 'DEFUSE',
-    rule: 'Bury the kitten in the pile.',
+    rule: 'Bury the kitten.',
     inks: { K: '#d7f4ff', D: '#1a2830', H: '#ff4d6a', A: '#e8fbff', W: '#fff' },
     art: grid(`
       .... .... ..HH H..W
@@ -93,7 +92,7 @@ export const scenes: Record<Title, EkScene> = {
     accent: '#ff2438',
     field: '#12060a',
     short: 'NOPE',
-    rule: 'Stop a play, not a kitten.',
+    rule: 'Stop that play.',
     inks: { K: '#ff4d57', D: '#1a0608', H: '#fff' },
     art: grid(`
       .... KK.. ..KK ....
@@ -119,7 +118,7 @@ export const scenes: Record<Title, EkScene> = {
     accent: '#ff5a32',
     field: '#1a080c',
     short: 'ATTACK',
-    rule: 'End your turn. Next takes 2.',
+    rule: 'Next draws two.',
     inks: { K: '#ffd0c4', D: dark, H: '#fff4ee' },
     art: grid(`
       .... KK.. ..H. H..H
@@ -145,7 +144,7 @@ export const scenes: Record<Title, EkScene> = {
     accent: '#ffe14a',
     field: '#161208',
     short: 'SKIP',
-    rule: 'End your turn. Draw nothing.',
+    rule: 'End your turn.',
     inks: { K: '#fff3b0', D: '#1a1408', H: '#ff8a2a' },
     art: grid(`
       .... .... .... K...
@@ -171,7 +170,7 @@ export const scenes: Record<Title, EkScene> = {
     accent: '#ff2e88',
     field: '#1a0812',
     short: 'FAVOR',
-    rule: 'Take one card from a player.',
+    rule: 'Take one card.',
     inks: { K: '#ffd0e4', D: dark, H: '#ff2e88' },
     art: grid(`
       .... .KK. .KK. ....
@@ -197,7 +196,7 @@ export const scenes: Record<Title, EkScene> = {
     accent: '#c084ff',
     field: '#120818',
     short: 'SHUFFLE',
-    rule: 'Shuffle the draw pile.',
+    rule: 'Shuffle the pile.',
     inks: { K: '#f0e4ff', H: '#c084ff', A: '#2ef2ff' },
     art: grid(`
       .... .... KKKK K...
@@ -223,7 +222,7 @@ export const scenes: Record<Title, EkScene> = {
     accent: '#2ef2ff',
     field: '#061418',
     short: 'FUTURE',
-    rule: 'Peek at the next three.',
+    rule: 'Peek at three.',
     inks: { K: '#bffcff', D: '#061418', W: '#fff', A: '#7a5cff' },
     art: grid(`
       .... ..KK KKK. ....
@@ -249,7 +248,7 @@ export const scenes: Record<Title, EkScene> = {
     accent: '#ff8a2a',
     field: '#1a1008',
     short: 'TACO',
-    rule: 'A pair steals. Three names one.',
+    rule: 'A pair steals.',
     inks: { K: fur, D: dark, H: '#ffb020', A: '#7dff4a', R: '#ff4d6a' },
     art: grid(`
       .... HHHH HHHH ....
@@ -275,7 +274,7 @@ export const scenes: Record<Title, EkScene> = {
     accent: '#e0a15a',
     field: '#16100a',
     short: 'POTATO',
-    rule: 'A pair steals. Three names one.',
+    rule: 'A pair steals.',
     inks: { K: '#e8b56a', D: dark, H: '#f4e2c0', A: '#ff7ab4' },
     art: grid(`
       ...H .H.H H.H. H...
@@ -301,7 +300,7 @@ export const scenes: Record<Title, EkScene> = {
     accent: '#3dff7a',
     field: '#08140c',
     short: 'MELON',
-    rule: 'A pair steals. Three names one.',
+    rule: 'A pair steals.',
     inks: { A: '#3dff7a', H: '#ff4d88', K: '#ffd0e0', D: dark, W: '#e8ffe8' },
     art: grid(`
       .... .AAA AAAA ....
@@ -327,7 +326,7 @@ export const scenes: Record<Title, EkScene> = {
     accent: '#d7a15a',
     field: '#14100c',
     short: 'BEARD',
-    rule: 'A pair steals. Three names one.',
+    rule: 'A pair steals.',
     inks: { K: '#ffe0c0', D: dark, H: '#c4844a', A: '#ff7ab4' },
     art: grid(`
       .... .KK. .KK. ....
@@ -353,7 +352,7 @@ export const scenes: Record<Title, EkScene> = {
     accent: '#ff7ab4',
     field: '#100818',
     short: 'RAINBOW',
-    rule: 'A pair steals. Three names one.',
+    rule: 'A pair steals.',
     inks: { K: fur, D: dark, H: '#ff4d4d', A: '#ffe14a', W: '#3dff7a', B: '#2ef2ff', C: '#c084ff' },
     art: grid(`
       .... .KK. .KK. ....
@@ -374,8 +373,4 @@ export const scenes: Record<Title, EkScene> = {
       .... .... .... ....
     `),
   },
-}
-
-export function sceneTitle(title: Title): string {
-  return FACE_LABEL[title]
 }

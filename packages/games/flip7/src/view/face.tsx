@@ -77,10 +77,10 @@ export const flip7Face: CardFaceRenderer<Flip7Face> = {
     if (face.kind === 'action') {
       const art = ACTION[face.action]
       const longest = Math.max(...art.words.map((word) => wordBitmap(word)[0]?.length ?? 1))
-      const wordScale = fitScale(widthPx, longest, 0.9)
-      // A phone-sized opponent card is too short for a second line of pixel type.
-      const showWords = widthPx >= 72
-      const iconScale = fitScale(widthPx, art.icon[0]?.length ?? 1, showWords ? (size === 'compact' ? 0.58 : 0.46) : 0.84)
+      const wordScale = fitScale(widthPx, longest, 0.98)
+      // Scale 1 is a speck. Opponent pips stay an icon. A hand card gets the word.
+      const showWords = wordScale >= 2
+      const iconScale = fitScale(widthPx, art.icon[0]?.length ?? 1, showWords ? (size === 'compact' ? 0.42 : 0.34) : 0.84)
       return shell(
         ink,
         'f7-face f7-face-action',
@@ -93,7 +93,10 @@ export const flip7Face: CardFaceRenderer<Flip7Face> = {
     }
     const text = faceText(face)
     const numeral = face.kind === 'number'
-    const fontSize = widthPx * (text.length > 2 ? 0.4 : text.length > 1 ? 0.52 : numeral ? 0.78 : 0.58)
+    // A modifier is the card. The mark fills a phone extra, not a caption under a glyph.
+    const fontSize = numeral
+      ? widthPx * (text.length > 1 ? 0.52 : 0.78)
+      : widthPx * (text.length > 2 ? 0.74 : 0.86)
     return shell(
       ink,
       numeral ? 'f7-face f7-face-num' : 'f7-face f7-face-mod',

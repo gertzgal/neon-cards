@@ -509,3 +509,5 @@ Judged on `cede64d`, phone and desktop, after the table (`12d08a4`), the e2e (`8
 ## Shared card faces (2026-10-15)
 
 Exploding Kittens faces follow the physical stack: a title across the top, a large original pixel scene, one rule line, and a rim in that card's color. Flip 7 numbers are a full-card numeral in that number's color. Freeze, Flip Three, Second Chance, and the modifiers fill the card in their own color. Action names are pixel letters, so the Flip 7 table still has only the words FLIP and BUST. `CardFaceRenderer.accent` sets the rim when a face needs a hue outside the five tones. Rules are unchanged.
+
+On a phone the eight-card fan shrinks the card, so titles wrap onto their words and the rule is set large enough to read there. Modifier marks (+2, +4, +6, +8, +10, ×2) fill that smaller card the same way a numeral does.

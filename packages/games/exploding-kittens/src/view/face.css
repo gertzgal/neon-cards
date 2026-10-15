@@ -12,12 +12,16 @@
 
 .ek-face-title {
   flex: none;
-  padding: 7% 6% 4%;
+  padding: 4% 4% 1%;
   border-bottom: 2px solid color-mix(in srgb, var(--ek-ink) 65%, transparent);
   text-align: center;
-  line-height: 0.85;
-  letter-spacing: 0.04em;
+  line-height: 0.82;
+  letter-spacing: 0;
   text-shadow: 0 0 6px var(--ek-ink);
+}
+
+.ek-face-title span {
+  display: block;
 }
 
 .ek-face-art {
@@ -29,11 +33,12 @@
 
 .ek-face-rule {
   flex: none;
-  padding: 4% 7% 7%;
+  padding: 2% 5% 5%;
   border-top: 2px solid color-mix(in srgb, var(--ek-ink) 45%, transparent);
   color: #f4f0ff;
   text-align: center;
-  line-height: 0.92;
+  line-height: 0.88;
+  letter-spacing: 0;
   text-wrap: balance;
 }
 

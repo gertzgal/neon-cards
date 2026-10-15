@@ -2,7 +2,8 @@ import type { CSSProperties } from 'react'
 import { FACE_LABEL } from '../rules/deck'
 import type { EkFace, Title } from '../rules'
 import { InkSprite, fitScale, type Bitmap, type CardFaceRenderer, type Tone } from '@neon-cards/ui'
-import { sceneTitle, scenes } from './art'
+import { scenes } from './art'
+import { TITLE_LINES, ruleFont, titleFont } from './type-size'
 import './face.css'
 
 /** Small mark for the plant row. The card art is the multi-ink scene. */
@@ -36,10 +37,6 @@ export function faceCorner(title: Title): string {
   return corner[title]
 }
 
-function titleSize(widthPx: number, text: string): number {
-  return Math.max(8, Math.min(22, Math.floor((widthPx * 0.9) / (text.length * 0.56))))
-}
-
 export const ekFace: CardFaceRenderer<EkFace> = {
   deck: 'exploding-kittens',
   tone: faceTone,
@@ -48,22 +45,24 @@ export const ekFace: CardFaceRenderer<EkFace> = {
   render(face, { widthPx, size }) {
     const scene = scenes[face.title]
     const compact = size === 'compact'
-    const title = compact ? scene.short : sceneTitle(face.title)
+    const lines = compact ? [scene.short] : TITLE_LINES[face.title]
     const width = scene.art[0]?.length ?? 1
-    const scale = fitScale(widthPx, width, compact ? 0.78 : 0.7)
+    const scale = fitScale(widthPx, width, compact ? 0.72 : lines.length > 2 ? 0.5 : lines.length > 1 ? 0.58 : 0.66)
     const style = {
       '--ek-ink': scene.accent,
       '--ek-field': scene.field,
     } as CSSProperties
     return (
       <div className={compact ? 'ek-face ek-face-compact' : 'ek-face'} style={style}>
-        <div className="ek-face-title" style={{ fontSize: titleSize(widthPx, title) }}>
-          {title}
+        <div className="ek-face-title" style={{ fontSize: titleFont(widthPx, lines) }}>
+          {lines.map((line) => (
+            <span key={line}>{line}</span>
+          ))}
         </div>
         <div className="ek-face-art">
           <InkSprite bitmap={scene.art} inks={scene.inks} scale={scale} />
         </div>
-        <div className="ek-face-rule" style={{ fontSize: Math.max(8, Math.round(widthPx * 0.078)) }}>
+        <div className="ek-face-rule" style={{ fontSize: ruleFont(widthPx, scene.rule) }}>
           {scene.rule}
         </div>
       </div>
