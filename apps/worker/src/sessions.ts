@@ -186,7 +186,7 @@ export async function createSession(
   const sessionId = crypto.randomUUID()
   let step: Step
   try {
-    step = startMatch(rules, config, seed)
+    step = startMatch(rules, { config: config, seats: rules.definition.seatsFor(config), seed: seed })
   } catch (err) {
     throw toApiError(err)
   }

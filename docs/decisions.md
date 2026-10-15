@@ -601,3 +601,9 @@ The spec is `docs/multiplayer/spec.md`. Signatures only live in `docs/multiplaye
 The platform builds the seat list. Games stop assuming one human plus N CPUs. `seatsFor` is proposed for deletion in a later pull request, not deleted here. A round starts through `opening()` on `GameDefinition`, so a CPU cascade cannot deal. Flip 7 is the worked example and is not modified here.
 
 Polling and peer-to-peer stay rejected. D1 stays the system of record. The 100,000 row-write illustration stays Gal's planning number. The first real-game pull request is what measures it. Free-plan Durable Object CPU (10 ms versus 30 seconds) and the storage-size sentences on the Cloudflare pages stay open questions in the spec.
+
+## Engine takes a seat list (2026-10-15)
+
+`startMatch` and `replay` now take `{ config, seats, seed }`. `createSession` still builds that list with `seatsFor` and passes it in. Shipped games behave the same. Game tests pass the same list so they compile. That bridge dies when `seatsFor` is deleted.
+
+`GameDefinition.opening` is optional in this slice. A required method would force every game to change before the roster slice. `applyOpening` throws when it is missing or returns null. `ActionRecord.kind` is optional because D1 rows written before this field have no kind. New records set it. Replay uses the recorded kind, and falls back to the seat's kind when the field is absent. `applyOpening`, `autoAct`, `continueMatch`, and `replayTail` return a `Step`, the same shape as `act`, so the caller still gets events. The type sketch's `StoredMatch` stays the room's box. These are calls this slice makes. `docs/architecture.md` is unchanged.

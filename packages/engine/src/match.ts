@@ -1,6 +1,6 @@
 import { NotYourTurnError } from './errors'
 import { cpuRng, createRng, restoreRng } from './rng'
-import type { ActionRecord, GamePhase, GameRules, Match, Seat, SeatId, Step } from './types'
+import type { ActionRecord, Difficulty, GamePhase, GameRules, Match, Seat, SeatId, Step } from './types'
 
 /** A CPU loop longer than this is a rules bug (a cycle no human ever breaks). */
 export const MAX_CPU_ACTIONS = 1000
@@ -44,13 +44,19 @@ function checkSeats<C, S, A, V, F>(rules: GameRules<C, S, A, V, F>, seats: Seat[
   }
 }
 
-function applyOne<C, S, A, V, F>(rules: GameRules<C, S, A, V, F>, step: Step<C, S, A>, seat: SeatId, action: A): Step<C, S, A> {
+function applyOne<C, S, A, V, F>(
+  rules: GameRules<C, S, A, V, F>,
+  step: Step<C, S, A>,
+  seat: SeatId,
+  action: A,
+  kind?: 'human' | 'cpu',
+): Step<C, S, A> {
   const def = rules.definition
   const { match } = step
   const rng = restoreRng(match.rng)
   const before = def.phase(match.state)
   const out = def.apply(match.state, seat, action, rng)
-  const record: ActionRecord<A> = { seq: match.seq, seat, action }
+  const record: ActionRecord<A> = { seq: match.seq, seat, action, kind: kind ?? (seatOf(match, seat).kind === 'cpu' ? 'cpu' : 'human') }
   return {
     match: { ...match, state: out.state, rng: rng.state(), seq: match.seq + 1 },
     events: [...step.events, ...out.events],
@@ -80,19 +86,86 @@ function runCpuTurns<C, S, A, V, F>(rules: GameRules<C, S, A, V, F>, step: Step<
   }
 }
 
-function begin<C, S, A, V, F>(rules: GameRules<C, S, A, V, F>, config: C, seed: string): Step<C, S, A> {
+export interface MatchInput<C> {
+  config: C
+  seats: Seat[]
+  seed: string
+}
+
+function begin<C, S, A, V, F>(rules: GameRules<C, S, A, V, F>, input: MatchInput<C>): Step<C, S, A> {
   const def = rules.definition
-  const seats = def.seatsFor(config)
-  checkSeats(rules, seats)
-  const rng = createRng(seed)
-  const state = def.setup(config, seats, rng)
-  const match: Match<C, S> = { gameId: def.id, version: def.version, seed, config, seats, state, rng: rng.state(), seq: 0 }
+  checkSeats(rules, input.seats)
+  const rng = createRng(input.seed)
+  const state = def.setup(input.config, input.seats, rng)
+  const match: Match<C, S> = {
+    gameId: def.id,
+    version: def.version,
+    seed: input.seed,
+    config: input.config,
+    seats: input.seats,
+    state,
+    rng: rng.state(),
+    seq: 0,
+  }
   return { match, events: [], log: [], rounds: [] }
 }
 
-/** `config` is already parsed. Runs setup, then any CPU turns that come before the human's. */
-export function startMatch<C, S, A, V, F>(rules: GameRules<C, S, A, V, F>, config: C, seed: string): Step<C, S, A> {
-  return runCpuTurns(rules, begin(rules, config, seed))
+function playedKind<C, S>(match: Match<C, S>, seat: SeatId, kind: 'human' | 'cpu' | undefined): 'human' | 'cpu' {
+  if (kind) return kind
+  return seatOf(match, seat).kind === 'cpu' ? 'cpu' : 'human'
+}
+
+function applyLogged<C, S, A, V, F>(rules: GameRules<C, S, A, V, F>, step: Step<C, S, A>, record: ActionRecord<A>): Step<C, S, A> {
+  const def = rules.definition
+  const toAct = def.toAct(step.match.state)
+  if (toAct !== record.seat) {
+    throw new NotYourTurnError(`"${record.seat}" acted but "${toAct}" was to act`)
+  }
+  const kind = playedKind(step.match, toAct, record.kind)
+  const withTurn = kind === 'cpu' ? { ...step, events: [...step.events, { type: 'turn' as const, seat: toAct }] } : step
+  return applyOne(rules, withTurn, record.seat, record.action, kind)
+}
+
+/** `config` is already parsed. `seats` is the roster. Runs setup, then CPU turns that come before a human. */
+export function startMatch<C, S, A, V, F>(rules: GameRules<C, S, A, V, F>, input: MatchInput<C>): Step<C, S, A> {
+  return runCpuTurns(rules, begin(rules, input))
+}
+
+/** Applies `opening()` as seats[0], logged human, then the CPU cascade. Throws when opening is null. */
+export function applyOpening<C, S, A, V, F>(rules: GameRules<C, S, A, V, F>, match: Match<C, S>): Step<C, S, A> {
+  const action = rules.definition.opening?.(match.state) ?? null
+  if (action === null) throw new Error('opening is null')
+  const first = match.seats[0]
+  if (!first) throw new Error('no seats')
+  return continueMatchStep(rules, applyOne(rules, { match, events: [], log: [], rounds: [] }, first.id, action, 'human'))
+}
+
+/** One policy action for whoever is to act, even when that seat is still human, then the CPU cascade. */
+export function autoAct<C, S, A, V, F>(rules: GameRules<C, S, A, V, F>, match: Match<C, S>, difficulty: Difficulty): Step<C, S, A> {
+  const def = rules.definition
+  const id = def.toAct(match.state)
+  if (id === null) throw new Error('nobody is to act')
+  const seat = seatOf(match, id)
+  const policy = rules.policies?.[difficulty]
+  if (!policy) throw new Error(`no ${difficulty} policy`)
+  const legal = def.legalActions(match.state, id)
+  if (legal.length === 0) throw new Error(`seat "${id}" is to act but has no legal actions`)
+  const action = policy.choose(cloneJson(def.view(match.state, id)), cloneJson(legal), cpuRng(match.seed, match.seq))
+  if (!legal.some((l) => jsonEqual(l, action))) {
+    throw new Error(`policy for "${id}" chose ${JSON.stringify(action)}, which is not in legalActions`)
+  }
+  const kind = seat.kind === 'cpu' ? 'cpu' : 'human'
+  const base: Step<C, S, A> = { match, events: kind === 'cpu' ? [{ type: 'turn', seat: id }] : [], log: [], rounds: [] }
+  return runCpuTurns(rules, applyOne(rules, base, id, action, kind))
+}
+
+function continueMatchStep<C, S, A, V, F>(rules: GameRules<C, S, A, V, F>, step: Step<C, S, A>): Step<C, S, A> {
+  return runCpuTurns(rules, step)
+}
+
+/** CPU turns until a human or nobody. Does not call `opening`. */
+export function continueMatch<C, S, A, V, F>(rules: GameRules<C, S, A, V, F>, match: Match<C, S>): Step<C, S, A> {
+  return continueMatchStep(rules, { match, events: [], log: [], rounds: [] })
 }
 
 /** Applies a human action, then runs CPU turns until no CPU seat is to act. Never mutates `match`. */
@@ -114,19 +187,41 @@ export function act<C, S, A, V, F>(rules: GameRules<C, S, A, V, F>, match: Match
  */
 export function replay<C, S, A, V, F>(
   rules: GameRules<C, S, A, V, F>,
-  input: { seed: string; config: C; log: readonly ActionRecord<A>[]; version?: number },
+  input: MatchInput<C> & { log: readonly ActionRecord<A>[]; version?: number },
 ): Step<C, S, A> {
   const def = rules.definition
   if (input.version !== undefined && input.version !== def.version) {
     throw new Error(`log is ${def.id} v${input.version}, rules are ${def.id} v${def.version}`)
   }
-  let step = begin(rules, input.config, input.seed)
+  let step = begin(rules, input)
   for (const [i, record] of input.log.entries()) {
     if (record.seq !== i) throw new Error(`log entry ${i} has seq ${record.seq}`)
-    const toAct = def.toAct(step.match.state)
-    if (toAct !== record.seat) throw new NotYourTurnError(`log entry ${i}: "${record.seat}" acted but "${toAct}" was to act`)
-    if (seatOf(step.match, toAct).kind === 'cpu') step = { ...step, events: [...step.events, { type: 'turn', seat: toAct }] }
-    step = applyOne(rules, step, record.seat, record.action)
+    try {
+      step = applyLogged(rules, step, record)
+    } catch (err) {
+      if (err instanceof NotYourTurnError) {
+        throw new NotYourTurnError(`log entry ${i}: ${err.message}`)
+      }
+      throw err
+    }
+  }
+  return step
+}
+
+/** Applies a log onto an existing match. Does not call setup or a policy. */
+export function replayTail<C, S, A, V, F>(
+  rules: GameRules<C, S, A, V, F>,
+  match: Match<C, S>,
+  log: readonly ActionRecord<A>[],
+): Step<C, S, A> {
+  const def = rules.definition
+  if (match.gameId !== def.id || match.version !== def.version) {
+    throw new Error(`match is ${match.gameId} v${match.version}, rules are ${def.id} v${def.version}`)
+  }
+  let step: Step<C, S, A> = { match, events: [], log: [], rounds: [] }
+  for (const [i, record] of log.entries()) {
+    if (record.seq !== step.match.seq) throw new Error(`log entry ${i} has seq ${record.seq}`)
+    step = applyLogged(rules, step, record)
   }
   return step
 }

@@ -129,7 +129,7 @@ describe('E65 setup counts', () => {
 describe('E66 opening', () => {
   it('E66 the human is to act after setup and startMatch emits nothing', () => {
     const config = ek.parseConfig({ opponents: 2, difficulty: 'medium' })
-    const started = startMatch(rules, config, 'e66')
+    const started = startMatch(rules, { config: config, seats: rules.definition.seatsFor(config), seed: 'e66' })
     expect(started.events).toEqual([])
     expect(ek.toAct(started.match.state)).toBe(HUMAN)
     expect(started.match.state.seats[HUMAN]?.hand).toHaveLength(8)

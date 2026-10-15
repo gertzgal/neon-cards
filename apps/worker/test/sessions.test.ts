@@ -194,7 +194,7 @@ describe('POST /api/sessions/:id/actions', () => {
       action: JSON.parse(r.action_json) as unknown,
     }))
     expect(log.length).toBe(seq)
-    const replayed = replay(highCard as never, { seed: 'worker-seed', config: match.config, log })
+    const replayed = replay(highCard as never, { seed: 'worker-seed', config: match.config, seats: match.seats, log })
     expect(replayed.match).toEqual(match)
 
     const resumed = await json<Created>(p.get(`/api/sessions/${s.sessionId}`))

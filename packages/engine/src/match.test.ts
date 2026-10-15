@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { IllegalActionError, NotYourTurnError } from './errors'
-import { MAX_CPU_ACTIONS, act, replay, startMatch } from './match'
+import { MAX_CPU_ACTIONS, act, applyOpening, autoAct, continueMatch, replay, replayTail, startMatch } from './match'
 import { cpuRng } from './rng'
 import { highCard, type HighCardConfig, type HighCardState } from './testing'
-import type { GameDefinition, GameEvent, GamePhase, GameRules, Match, Policy, Seat, Step } from './types'
+import type { GameDefinition, GameEvent, GamePhase, GameRules, Match, Policy, Step } from './types'
 
 const config = (c: Partial<HighCardConfig> = {}): HighCardConfig => ({ opponents: 1, difficulty: 'easy', position: 'first', ...c })
 const hidden = (id: string) => ({ id, deck: 'standard52', face: null })
@@ -20,7 +20,7 @@ function deepFreeze<T>(value: T): T {
 
 /** Plays a whole match (the human mixes keep and swap) and returns every step. */
 function playOut(rules: typeof highCard, c: HighCardConfig, seed: string) {
-  const steps: Step<HighCardConfig, HighCardState, unknown>[] = [startMatch(rules, c, seed)]
+  const steps: Step<HighCardConfig, HighCardState, unknown>[] = [startMatch(rules, { config: c, seats: rules.definition.seatsFor(c), seed: seed })]
   let match = steps[0]?.match as Match<HighCardConfig, HighCardState>
   while (rules.definition.toAct(match.state) === 'you') {
     const action = match.state.phase === 'settling' ? { type: 'next' as const } : { type: match.seq % 2 ? ('swap' as const) : ('keep' as const) }
@@ -33,7 +33,7 @@ function playOut(rules: typeof highCard, c: HighCardConfig, seed: string) {
 
 describe('startMatch', () => {
   it('builds the match from config and stops at the human when the human acts first', () => {
-    const step = startMatch(highCard, config({ opponents: 2 }), 'neon')
+    const step = startMatch(highCard, { config: config({ opponents: 2 }), seats: highCard.definition.seatsFor(config({ opponents: 2 })), seed: 'neon' })
     expect(step.events).toEqual([])
     expect(step.log).toEqual([])
     expect(step.rounds).toEqual([])
@@ -47,11 +47,11 @@ describe('startMatch', () => {
   })
 
   it('resolves CPU turns that come before the human, each wrapped in a turn event', () => {
-    const step = startMatch(highCard, config({ opponents: 3, difficulty: 'medium', position: 'last' }), 'neon')
+    const step = startMatch(highCard, { config: config({ opponents: 3, difficulty: 'medium', position: 'last' }), seats: highCard.definition.seatsFor(config({ opponents: 3, difficulty: 'medium', position: 'last' })), seed: 'neon' })
     expect(step.log).toEqual([
-      { seq: 0, seat: 'cpu-1', action: { type: 'swap' } },
-      { seq: 1, seat: 'cpu-2', action: { type: 'swap' } },
-      { seq: 2, seat: 'cpu-3', action: { type: 'keep' } },
+      { seq: 0, seat: 'cpu-1', action: { type: 'swap' }, kind: 'cpu' },
+      { seq: 1, seat: 'cpu-2', action: { type: 'swap' }, kind: 'cpu' },
+      { seq: 2, seat: 'cpu-3', action: { type: 'keep' }, kind: 'cpu' },
     ])
     expect(step.events).toEqual([
       { type: 'turn', seat: 'cpu-1' },
@@ -67,21 +67,21 @@ describe('startMatch', () => {
 
   it('rejects seat lists the rules or policies cannot support', () => {
     const noPolicies: GameRules<HighCardConfig, HighCardState> = { ...highCard, policies: undefined } as never
-    expect(() => startMatch(noPolicies, config(), 'neon')).toThrow('no easy policy for cpu seat "cpu-1"')
+    expect(() => startMatch(noPolicies, { config: config(), seats: noPolicies.definition.seatsFor(config()), seed: 'neon' })).toThrow('no easy policy for cpu seat "cpu-1"')
     const tooMany = { ...highCard, definition: { ...highCard.definition, seats: { min: 2, max: 2 } } }
-    expect(() => startMatch(tooMany, config({ opponents: 2 }), 'neon')).toThrow('high-card needs 2..2 seats, seatsFor returned 3')
-    const dupes = { ...highCard, definition: { ...highCard.definition, seatsFor: (): Seat[] => [{ id: 'a', kind: 'human', name: 'A' }, { id: 'a', kind: 'human', name: 'B' }] } }
-    expect(() => startMatch(dupes, config(), 'neon')).toThrow('seat ids must be unique')
-    const noDifficulty = { ...highCard, definition: { ...highCard.definition, seatsFor: (): Seat[] => [{ id: 'you', kind: 'human', name: 'You' }, { id: 'c', kind: 'cpu', name: 'C' }] } }
-    expect(() => startMatch(noDifficulty, config(), 'neon')).toThrow('cpu seat "c" has no difficulty')
+    expect(() => startMatch(tooMany, { config: config({ opponents: 2 }), seats: tooMany.definition.seatsFor(config({ opponents: 2 })), seed: 'neon' })).toThrow('high-card needs 2..2 seats, seatsFor returned 3')
+    const dupes = { ...highCard, definition: { ...highCard.definition, seatsFor: (() => [{ id: 'a', kind: 'human', name: 'A' }, { id: 'a', kind: 'human', name: 'B' }]) as typeof highCard.definition.seatsFor } }
+    expect(() => startMatch(dupes, { config: config(), seats: dupes.definition.seatsFor(config()), seed: 'neon' })).toThrow('seat ids must be unique')
+    const noDifficulty = { ...highCard, definition: { ...highCard.definition, seatsFor: (() => [{ id: 'you', kind: 'human', name: 'You' }, { id: 'c', kind: 'cpu', name: 'C' }]) as typeof highCard.definition.seatsFor } }
+    expect(() => startMatch(noDifficulty, { config: config(), seats: noDifficulty.definition.seatsFor(config()), seed: 'neon' })).toThrow('cpu seat "c" has no difficulty')
   })
 })
 
 describe('act', () => {
   it('applies the human action, runs CPU turns, and settles the round', () => {
-    const start = startMatch(highCard, config({ opponents: 3, difficulty: 'medium', position: 'last' }), 'neon')
+    const start = startMatch(highCard, { config: config({ opponents: 3, difficulty: 'medium', position: 'last' }), seats: highCard.definition.seatsFor(config({ opponents: 3, difficulty: 'medium', position: 'last' })), seed: 'neon' })
     const step = act(highCard, start.match, 'you', { type: 'keep' })
-    expect(step.log).toEqual([{ seq: 3, seat: 'you', action: { type: 'keep' } }])
+    expect(step.log).toEqual([{ seq: 3, seat: 'you', action: { type: 'keep' }, kind: 'human' }])
     expect(step.events).toEqual([
       { type: 'keep', seat: 'you' },
       { type: 'reveal', seat: 'cpu-1', card: card('standard52-4', '3', 'H') },
@@ -103,7 +103,7 @@ describe('act', () => {
   })
 
   it('runs CPU turns after the human in the same step', () => {
-    const start = startMatch(highCard, config({ opponents: 2 }), 'neon')
+    const start = startMatch(highCard, { config: config({ opponents: 2 }), seats: highCard.definition.seatsFor(config({ opponents: 2 })), seed: 'neon' })
     const step = act(highCard, start.match, 'you', { type: 'swap' })
     expect(step.log.map((r) => `${r.seq}:${r.seat}:${(r.action as { type: string }).type}`)).toEqual([
       '0:you:swap',
@@ -131,17 +131,17 @@ describe('act', () => {
   })
 
   it('throws NotYourTurnError out of turn and lets apply() reject illegal actions', () => {
-    const start = startMatch(highCard, config({ opponents: 1 }), 'neon')
+    const start = startMatch(highCard, { config: config({ opponents: 1 }), seats: highCard.definition.seatsFor(config({ opponents: 1 })), seed: 'neon' })
     const afterRound = act(highCard, start.match, 'you', { type: 'keep' }).match
     expect(() => act(highCard, afterRound, 'you', { type: 'keep' })).toThrow(IllegalActionError)
-    const human = startMatch(highCard, config({ position: 'last' }), 'neon')
+    const human = startMatch(highCard, { config: config({ position: 'last' }), seats: highCard.definition.seatsFor(config({ position: 'last' })), seed: 'neon' })
     const cpuFirst = { ...human.match, state: { ...human.match.state, turn: 0 } }
     expect(() => act(highCard, cpuFirst, 'you', { type: 'keep' })).toThrow(NotYourTurnError)
     expect(() => act(highCard, cpuFirst, 'you', { type: 'keep' })).toThrow('"you" is not to act ("cpu-1" is)')
   })
 
   it('refuses to act for a CPU seat, an unknown seat, or a match from other rules', () => {
-    const { match } = startMatch(highCard, config({ position: 'last' }), 'neon')
+    const { match } = startMatch(highCard, { config: config({ position: 'last' }), seats: highCard.definition.seatsFor(config({ position: 'last' })), seed: 'neon' })
     expect(() => act(highCard, match, 'cpu-1', { type: 'keep' })).toThrow('"cpu-1" is not a human seat')
     expect(() => act(highCard, match, 'ghost', { type: 'keep' })).toThrow('"ghost" is not a human seat')
     expect(() => act(highCard, { ...match, version: 0 }, 'you', { type: 'keep' })).toThrow(
@@ -150,14 +150,14 @@ describe('act', () => {
   })
 
   it('never mutates the match it is given', () => {
-    const { match } = startMatch(highCard, config({ opponents: 3 }), 'neon')
+    const { match } = startMatch(highCard, { config: config({ opponents: 3 }), seats: highCard.definition.seatsFor(config({ opponents: 3 })), seed: 'neon' })
     const before = JSON.stringify(match)
     expect(() => act(highCard, deepFreeze(match), 'you', { type: 'swap' })).not.toThrow()
     expect(JSON.stringify(match)).toBe(before)
   })
 
   it('continues identically from a JSON round trip of the match, as the server stores it', () => {
-    const { match } = startMatch(highCard, config({ opponents: 2, difficulty: 'easy' }), 'seed-7')
+    const { match } = startMatch(highCard, { config: config({ opponents: 2, difficulty: 'easy' }), seats: highCard.definition.seatsFor(config({ opponents: 2, difficulty: 'easy' })), seed: 'seed-7' })
     const stored = JSON.parse(JSON.stringify(match)) as Match<HighCardConfig, HighCardState>
     expect(act(highCard, stored, 'you', { type: 'keep' })).toEqual(act(highCard, match, 'you', { type: 'keep' }))
   })
@@ -190,7 +190,7 @@ describe('replay', () => {
     for (const c of [config({ opponents: 3, difficulty: 'easy', position: 'last' }), config({ opponents: 2, difficulty: 'hard' })]) {
       const { steps, match } = playOut(highCard, c, 'neon')
       const log = steps.flatMap((s) => s.log)
-      const replayed = replay(highCard, { seed: 'neon', config: c, log })
+      const replayed = replay(highCard, { seed: 'neon', config: c, seats: highCard.definition.seatsFor(c), log })
       expect(replayed.match).toEqual(match)
       expect(replayed.log).toEqual(log)
       expect(replayed.events).toEqual(steps.flatMap((s) => s.events))
@@ -207,17 +207,18 @@ describe('replay', () => {
       },
     }
     const noPolicies = { ...highCard, policies: { easy: exploding, medium: exploding, hard: exploding } }
-    expect(replay(noPolicies, { seed: 'neon', config: c, log: steps.flatMap((s) => s.log) }).match).toEqual(match)
+    expect(replay(noPolicies, { seed: 'neon', config: c, seats: highCard.definition.seatsFor(c), log: steps.flatMap((s) => s.log) }).match).toEqual(match)
   })
 
   it('rejects a log that skips a seq, has the wrong seat acting, or came from other rules', () => {
     const c = config({ opponents: 1 })
-    expect(() => replay(highCard, { seed: 'neon', config: c, log: [], version: 2 })).toThrow('log is high-card v2, rules are high-card v1')
-    expect(replay(highCard, { seed: 'neon', config: c, log: [], version: 1 }).match.seq).toBe(0)
-    expect(() => replay(highCard, { seed: 'neon', config: c, log: [{ seq: 1, seat: 'you', action: { type: 'keep' } }] })).toThrow(
+    const seats = highCard.definition.seatsFor(c)
+    expect(() => replay(highCard, { seed: 'neon', config: c, seats, log: [], version: 2 })).toThrow('log is high-card v2, rules are high-card v1')
+    expect(replay(highCard, { seed: 'neon', config: c, seats, log: [], version: 1 }).match.seq).toBe(0)
+    expect(() => replay(highCard, { seed: 'neon', config: c, seats, log: [{ seq: 1, seat: 'you', action: { type: 'keep' } }] })).toThrow(
       'log entry 0 has seq 1',
     )
-    expect(() => replay(highCard, { seed: 'neon', config: c, log: [{ seq: 0, seat: 'cpu-1', action: { type: 'keep' } }] })).toThrow(
+    expect(() => replay(highCard, { seed: 'neon', config: c, seats, log: [{ seq: 0, seat: 'cpu-1', action: { type: 'keep' } }] })).toThrow(
       'log entry 0: "cpu-1" acted but "you" was to act',
     )
   })
@@ -233,7 +234,7 @@ describe('CPU seats', () => {
       },
     }
     const rules = { ...highCard, policies: { easy: spy, medium: spy, hard: spy } } as typeof highCard
-    const { match } = startMatch(rules, config({ opponents: 1, position: 'last' }), 'neon')
+    const { match } = startMatch(rules, { config: config({ opponents: 1, position: 'last' }), seats: rules.definition.seatsFor(config({ opponents: 1, position: 'last' })), seed: 'neon' })
     const view = seen[0] as { view: { hands: Record<string, { face: unknown }> }; legal: unknown; roll: number }
     expect(view.legal).toEqual([{ type: 'keep' }, { type: 'swap' }])
     expect(view.view.hands['cpu-1']?.face).not.toBe(null)
@@ -251,8 +252,11 @@ describe('CPU seats', () => {
     }
     const lazy: Policy<unknown, { type: string }> = { choose: (_view, legal) => legal[0] as { type: string } }
     const c = config({ opponents: 3, position: 'last' })
-    const a = startMatch({ ...highCard, policies: { easy: greedy, medium: greedy, hard: greedy } } as typeof highCard, c, 'neon')
-    const b = startMatch({ ...highCard, policies: { easy: lazy, medium: lazy, hard: lazy } } as typeof highCard, c, 'neon')
+    const greedyRules = { ...highCard, policies: { easy: greedy, medium: greedy, hard: greedy } } as typeof highCard
+    const lazyRules = { ...highCard, policies: { easy: lazy, medium: lazy, hard: lazy } } as typeof highCard
+    const seats = highCard.definition.seatsFor(c)
+    const a = startMatch(greedyRules, { config: c, seats, seed: 'neon' })
+    const b = startMatch(lazyRules, { config: c, seats, seed: 'neon' })
     expect(a).toEqual(b)
   })
 
@@ -265,15 +269,15 @@ describe('CPU seats', () => {
       },
     }
     const rules = { ...highCard, policies: { easy: vandal, medium: vandal, hard: vandal } } as unknown as typeof highCard
-    const step = startMatch(rules, config({ opponents: 1, position: 'last' }), 'neon')
+    const step = startMatch(rules, { config: config({ opponents: 1, position: 'last' }), seats: rules.definition.seatsFor(config({ opponents: 1, position: 'last' })), seed: 'neon' })
     expect(Object.keys(step.match.state.hands)).toEqual(['cpu-1', 'you'])
-    expect(step.log).toEqual([{ seq: 0, seat: 'cpu-1', action: { type: 'keep' } }])
+    expect(step.log).toEqual([{ seq: 0, seat: 'cpu-1', action: { type: 'keep' }, kind: 'cpu' }])
   })
 
   it('throw when a policy picks an action outside legalActions', () => {
     const cheat: Policy<unknown, { type: string }> = { choose: () => ({ type: 'next' }) }
     const rules = { ...highCard, policies: { easy: cheat, medium: cheat, hard: cheat } } as typeof highCard
-    expect(() => startMatch(rules, config({ position: 'last' }), 'neon')).toThrow(
+    expect(() => startMatch(rules, { config: config({ position: 'last' }), seats: rules.definition.seatsFor(config({ position: 'last' })), seed: 'neon' })).toThrow(
       'policy for "cpu-1" chose {"type":"next"}, which is not in legalActions',
     )
   })
@@ -319,20 +323,20 @@ function loopGame(overrides: Partial<GameDefinition<null, LoopState, 'go', null,
 describe('the CPU loop edges', () => {
   it('settles a round that ends straight in over', () => {
     const rules = loopGame({}, 2, 'over')
-    const step = act(rules, startMatch(rules, null, 's').match, 'you', 'go')
+    const step = act(rules, startMatch(rules, { config: null, seats: rules.definition.seatsFor(null), seed: 's' }).match, 'you', 'go')
     expect(step.rounds).toEqual([[{ seat: 'you', delta: 2 }]])
     expect(types(step.events)).toEqual(['go', 'turn:bot', 'go'])
   })
 
   it('settles every action that lands in settling, even from settling', () => {
     const rules = loopGame({ setup: () => ({ phase: 'settling', toAct: 'you', moves: 0, limit: 1, settlesTo: 'settling' }) })
-    const step = act(rules, startMatch(rules, null, 's').match, 'you', 'go')
+    const step = act(rules, startMatch(rules, { config: null, seats: rules.definition.seatsFor(null), seed: 's' }).match, 'you', 'go')
     expect(step.rounds).toEqual([[{ seat: 'you', delta: 1 }]])
   })
 
   it('does not settle when over follows settling', () => {
     const rules = loopGame({ setup: () => ({ phase: 'settling', toAct: 'you', moves: 0, limit: 1, settlesTo: 'over' }) })
-    expect(act(rules, startMatch(rules, null, 's').match, 'you', 'go').rounds).toEqual([])
+    expect(act(rules, startMatch(rules, { config: null, seats: rules.definition.seatsFor(null), seed: 's' }).match, 'you', 'go').rounds).toEqual([])
   })
 
   it('keeps running CPU turns after a CPU ends a round, reporting every round', () => {
@@ -345,26 +349,110 @@ describe('the CPU loop edges', () => {
     const rules = loopGame({
       apply: (s) => ({ state: { ...s, moves: s.moves + 1, ...script[s.moves + 1] }, events: [{ type: 'go', moves: s.moves + 1 }] }),
     })
-    const step = act(rules, startMatch(rules, null, 's').match, 'you', 'go')
+    const step = act(rules, startMatch(rules, { config: null, seats: rules.definition.seatsFor(null), seed: 's' }).match, 'you', 'go')
     expect(types(step.events)).toEqual(['go', 'turn:bot', 'go', 'turn:bot', 'go', 'turn:bot', 'go'])
     expect(step.rounds).toEqual([[{ seat: 'you', delta: 2 }], [{ seat: 'you', delta: 3 }]])
     expect(step.log.map((r) => `${r.seq}:${r.seat}`)).toEqual(['0:you', '1:bot', '2:bot', '3:bot'])
-    expect(replay(rules, { seed: 's', config: null, log: step.log }).rounds).toEqual(step.rounds)
+    expect(replay(rules, { seed: 's', config: null, seats: rules.definition.seatsFor(null), log: step.log }).rounds).toEqual(step.rounds)
   })
 
   it('stops a runaway CPU loop', () => {
     const rules = loopGame({}, Number.POSITIVE_INFINITY)
-    expect(() => act(rules, startMatch(rules, null, 's').match, 'you', 'go')).toThrow(
+    expect(() => act(rules, startMatch(rules, { config: null, seats: rules.definition.seatsFor(null), seed: 's' }).match, 'you', 'go')).toThrow(
       `CPU loop ran ${MAX_CPU_ACTIONS} actions without reaching a human`,
     )
   })
 
   it('rejects a toAct that names a house or unknown seat, or a CPU with nothing to do', () => {
     const house = loopGame({ seatsFor: () => [{ id: 'you', kind: 'human', name: 'You' }, { id: 'bot', kind: 'house', name: 'Dealer' }] })
-    expect(() => act(house, startMatch(house, null, 's').match, 'you', 'go')).toThrow('toAct returned house seat "bot"')
+    expect(() => act(house, startMatch(house, { config: null, seats: house.definition.seatsFor(null), seed: 's' }).match, 'you', 'go')).toThrow('toAct returned house seat "bot"')
     const ghost = loopGame({ apply: (s) => ({ state: { ...s, toAct: 'ghost' }, events: [] }) })
-    expect(() => act(ghost, startMatch(ghost, null, 's').match, 'you', 'go')).toThrow('toAct returned unknown seat "ghost"')
+    expect(() => act(ghost, startMatch(ghost, { config: null, seats: ghost.definition.seatsFor(null), seed: 's' }).match, 'you', 'go')).toThrow('toAct returned unknown seat "ghost"')
     const stuck = loopGame({ legalActions: (s, seat) => (seat === 'you' && s.toAct === 'you' ? ['go'] : []) })
-    expect(() => act(stuck, startMatch(stuck, null, 's').match, 'you', 'go')).toThrow('cpu seat "bot" is to act but has no legal actions')
+    expect(() => act(stuck, startMatch(stuck, { config: null, seats: stuck.definition.seatsFor(null), seed: 's' }).match, 'you', 'go')).toThrow('cpu seat "bot" is to act but has no legal actions')
+  })
+})
+
+describe('opening, takeover, and tail replay', () => {
+  const seats = [
+    { id: 'you', kind: 'human' as const, name: 'You' },
+    { id: 'bot', kind: 'cpu' as const, name: 'Bot', difficulty: 'easy' as const },
+  ]
+
+  it('uses the seat list it is given', () => {
+    const swapped = [...seats].reverse()
+    const step = startMatch(loopGame(), { config: null, seats: swapped, seed: 's' })
+    expect(step.match.seats.map((s) => s.id)).toEqual(['bot', 'you'])
+  })
+
+  it('applyOpening plays opening as the first seat, logged human, then CPUs, and refuses a null opening', () => {
+    const rules = loopGame({
+      setup: () => ({ phase: 'playing', toAct: null, moves: 0, limit: 2, settlesTo: 'playing' }),
+      opening: () => 'go',
+      apply: (s) => ({
+        state: { ...s, moves: s.moves + 1, toAct: s.moves === 0 ? 'bot' : null, phase: 'playing' as const },
+        events: [{ type: 'go', moves: s.moves + 1 }],
+      }),
+    })
+    const started = startMatch(rules, { config: null, seats, seed: 's' })
+    expect(started.match.seq).toBe(0)
+    const opened = applyOpening(rules, started.match)
+    expect(opened.log.map((r) => `${r.seat}:${r.kind}`)).toEqual(['you:human', 'bot:cpu'])
+    expect(types(opened.events)).toEqual(['go', 'turn:bot', 'go'])
+    expect(() => applyOpening(loopGame(), started.match)).toThrow('opening is null')
+  })
+
+  it('continueMatch does not deal when nobody is to act', () => {
+    const rules = loopGame({
+      setup: () => ({ phase: 'playing', toAct: null, moves: 0, limit: 1, settlesTo: 'playing' }),
+      opening: () => 'go',
+    })
+    const started = startMatch(rules, { config: null, seats, seed: 's' })
+    const next = continueMatch(rules, started.match)
+    expect(next.match.seq).toBe(0)
+    expect(next.log).toEqual([])
+  })
+
+  it('autoAct uses the given difficulty while the seat is still human', () => {
+    const calls: string[] = []
+    const easy: Policy<null, 'go'> = {
+      choose: () => {
+        calls.push('easy')
+        return 'go'
+      },
+    }
+    const hard: Policy<null, 'go'> = {
+      choose: () => {
+        calls.push('hard')
+        return 'go'
+      },
+    }
+    const rules = loopGame({ legalActions: () => ['go'] })
+    rules.policies = { easy, medium: easy, hard }
+    const started = startMatch(rules, { config: null, seats, seed: 's' })
+    const step = autoAct(rules, started.match, 'hard')
+    expect(calls[0]).toBe('hard')
+    expect(step.log[0]).toEqual({ seq: 0, seat: 'you', action: 'go', kind: 'human' })
+    expect(step.log[1]?.kind).toBe('cpu')
+    expect(calls[1]).toBe('easy')
+  })
+
+  it('replayTail applies a log without setup or a policy, and a human kind skips the turn event', () => {
+    const started = startMatch(loopGame(), { config: null, seats, seed: 's' })
+    const rules = loopGame()
+    const boom = () => {
+      throw new Error('should not run')
+    }
+    rules.policies = { easy: { choose: boom }, medium: { choose: boom }, hard: { choose: boom } }
+    rules.definition = { ...rules.definition, setup: boom }
+    const match: Match<null, LoopState> = {
+      ...started.match,
+      state: { ...started.match.state, toAct: 'bot' },
+    }
+    const step = replayTail(rules, match, [{ seq: 0, seat: 'bot', action: 'go', kind: 'human' }])
+    expect(step.log[0]?.kind).toBe('human')
+    expect(step.events.some((event) => event.type === 'turn')).toBe(false)
+    const cpu = replayTail(rules, match, [{ seq: 0, seat: 'bot', action: 'go', kind: 'cpu' }])
+    expect(types(cpu.events)[0]).toBe('turn:bot')
   })
 })

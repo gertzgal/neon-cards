@@ -30,7 +30,7 @@ function cardsInPlay(s: Flip7State): F7Card[] {
 /** Plays a whole game: the human picks with a seeded counter, CPUs use the random policy. */
 function playGame(seed: string, opponents: 1 | 2 | 3) {
   const config = rules.definition.parseConfig({ opponents })
-  let step: F7Step = startMatch(randomRules, config, seed)
+  let step: F7Step = startMatch(randomRules, { config: config, seats: randomRules.definition.seatsFor(config), seed: seed })
   const steps: F7Step[] = [step]
   for (let n = 0; rules.definition.toAct(step.match.state) !== null; n++) {
     if (n > 5000) throw new Error('game did not end')
@@ -70,7 +70,7 @@ describe('flip 7 through the engine match runtime', () => {
     const { config, steps, last } = playGame('replay-7', 3)
     const log: ActionRecord<Flip7Action>[] = steps.flatMap((s) => s.log)
     expect(log.some((r) => r.seat !== HUMAN)).toBe(true)
-    const again = replay(randomRules, { seed: 'replay-7', config, log, version: rules.definition.version })
+    const again = replay(randomRules, { seed: 'replay-7', config, seats: randomRules.definition.seatsFor(config), log, version: rules.definition.version })
     expect(again.match).toEqual(last.match)
     expect(again.events).toEqual(steps.flatMap((s) => s.events))
     expect(again.rounds).toEqual(steps.flatMap((s) => s.rounds))
@@ -79,7 +79,7 @@ describe('flip 7 through the engine match runtime', () => {
   it('pins a seeded opening: a CPU deals you its Flip Three and you must hand out the Freeze it set aside', () => {
     const first: Policy<Flip7View, Flip7Action> = { choose: (_view, legal) => legal[0] as Flip7Action }
     const firstRules = { ...rules, policies: { easy: first, medium: first, hard: first } }
-    const step = act(firstRules, startMatch(firstRules, rules.definition.parseConfig({}), 'pin').match, HUMAN, { type: 'nextRound' })
+    const step = act(firstRules, startMatch(firstRules, { config: rules.definition.parseConfig({}), seats: firstRules.definition.seatsFor(rules.definition.parseConfig({})), seed: 'pin' }).match, HUMAN, { type: 'nextRound' })
     expect(step.events.map((e) => {
       const c = (e as { card?: F7Card }).card
       return [e.type, e.seat ?? '', c ? faceKey(c.face) : '']

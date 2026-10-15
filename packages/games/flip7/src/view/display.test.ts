@@ -9,7 +9,7 @@ const randomRules = { ...rules, policies: { easy: random, medium: random, hard: 
 /** Plays a game, folding every batch of events into the display and checking it lands on the view's display. */
 function check(seed: string, opponents: 1 | 2 | 3, rig?: string) {
   const config = rules.definition.parseConfig(rig ? { opponents, rig } : { opponents })
-  let step = startMatch(randomRules, config, seed)
+  let step = startMatch(randomRules, { config: config, seats: randomRules.definition.seatsFor(config), seed: seed })
   const viewOf = () => rules.definition.view(step.match.state, HUMAN)
   let display = displayFromView(viewOf())
   for (let n = 0; rules.definition.toAct(step.match.state) !== null && n < 400; n++) {
@@ -23,7 +23,7 @@ function check(seed: string, opponents: 1 | 2 | 3, rig?: string) {
 describe('cardOnTable', () => {
   it('finds a held action, a card on a seat, and a card set aside', () => {
     const config = rules.definition.parseConfig({ opponents: 1, difficulty: 'easy', rig: 'freeze' })
-    const started = startMatch(rules, config, 'held-tap')
+    const started = startMatch(rules, { config: config, seats: rules.definition.seatsFor(config), seed: 'held-tap' })
     const step = act(rules, started.match, HUMAN, { type: 'nextRound' })
     const display = displayFromView(rules.definition.view(step.match.state, HUMAN))
     const held = display.held

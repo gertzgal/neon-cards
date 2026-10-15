@@ -25,7 +25,7 @@ describe('flip 7 CPU policies in real games', () => {
       for (const opponents of [1, 2, 3] as const) {
         for (const seed of ['a', 'b', 'c']) {
           const config = rules.definition.parseConfig({ opponents, difficulty })
-          let step: F7Step = startMatch(countedRules, config, `${difficulty}-${opponents}-${seed}`)
+          let step: F7Step = startMatch(countedRules, { config: config, seats: countedRules.definition.seatsFor(config), seed: `${difficulty}-${opponents}-${seed}` })
           for (let n = 0; rules.definition.toAct(step.match.state) !== null; n++) {
             if (n > 3000) throw new Error('game did not end')
             const s = step.match.state

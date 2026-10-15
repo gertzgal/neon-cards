@@ -31,7 +31,7 @@ function humanScript(view: EkView, legal: EkAction[]): EkAction {
 
 function play(seed: string, cpu1: Difficulty, cpu2: Difficulty): SeatId {
   const config = explodingKittens.parseConfig({ opponents: 2, difficulty: 'medium' })
-  let step = startMatch(rules, config, seed)
+  let step = startMatch(rules, { config: config, seats: rules.definition.seatsFor(config), seed: seed })
   step = {
     ...step,
     match: {
