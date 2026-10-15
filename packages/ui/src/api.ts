@@ -296,6 +296,67 @@ export interface RoundRecap<Face = unknown> {
   hands?: CardView<Face>[][]
 }
 
+/** One painted run. `gold` is the prototype's bold word. */
+export interface GuideRun {
+  readonly text: string
+  readonly gold?: true
+}
+
+export type GuideText = readonly GuideRun[]
+
+export interface GuideParagraph {
+  readonly kind: 'paragraph'
+  readonly text: GuideText
+}
+
+export interface GuideList {
+  readonly kind: 'list'
+  readonly items: readonly GuideText[]
+}
+
+export type GuideBlock = GuideParagraph | GuideList
+
+/** Numbered block of copy. The shell supplies the index badge. */
+export interface GuideProseSection {
+  readonly kind: 'prose'
+  readonly id: string
+  readonly title: string
+  readonly blocks: readonly GuideBlock[]
+}
+
+/**
+ * One static felt card plus the sentence beside it.
+ * `paint` closes over the face and the felt renderer. The shell never receives either.
+ * `id` is an opaque testid suffix. The shell does not branch on it.
+ */
+export interface GuideCardRow {
+  readonly id: string
+  readonly name: string
+  readonly sentence: string
+  readonly paint: (widthPx: number) => ReactNode
+}
+
+/** Two columns from 900px. Phone stays one column. Any cards section, not a title match. */
+export interface GuideCardsSection {
+  readonly kind: 'cards'
+  readonly id: string
+  readonly title: string
+  readonly rows: readonly GuideCardRow[]
+}
+
+export type GuideSection = GuideProseSection | GuideCardsSection
+
+/** Everything the page needs. Order is the order on screen. */
+export interface GameGuide {
+  readonly title: string
+  readonly sections: readonly GuideSection[]
+}
+
+declare const guideCloseBrand: unique symbol
+
+/** A dismiss. Only `useTableGuide` mints one, so a raw lambda cannot close the page. */
+export type GuideClose = (() => void) & { readonly [guideCloseBrand]: true }
+
 /** The browser plugin a game package exports. The shell reads title, settings and economy from `rules.meta`. */
 export interface GamePlugin<View = unknown, Action = unknown, Face = unknown> {
   rules: GameRules<unknown, unknown, Action, View, Face>
@@ -304,6 +365,51 @@ export interface GamePlugin<View = unknown, Action = unknown, Face = unknown> {
   juice: JuiceMap
   /** Optional. Without it a history row shows only the net and the time. */
   recap?(summary: RoundSummary<View>): RoundRecap<Face> | null
+  /** How to play. The shell renders this and nothing else from the game. */
+  guide: GameGuide
+}
+
+function blank(value: string): boolean {
+  return value.trim() === ''
+}
+
+function rejectEmptyRuns(sectionId: string, runs: GuideText): void {
+  if (runs.length === 0) throw new Error(`guide section ${sectionId} has an empty run`)
+  for (const run of runs) {
+    if (blank(run.text)) throw new Error(`guide section ${sectionId} has an empty run`)
+  }
+}
+
+/** Reject a document that cannot be a page. Return the same object. Do not copy strings. */
+export function defineGuide(guide: GameGuide): GameGuide {
+  if (blank(guide.title)) throw new Error('guide title is empty')
+  if (guide.sections.length === 0) throw new Error('guide has no sections')
+  const sectionIds = new Set<string>()
+  const rowIds = new Set<string>()
+  for (const section of guide.sections) {
+    if (blank(section.id)) throw new Error('guide section id is empty')
+    if (sectionIds.has(section.id)) throw new Error(`guide section id repeats: ${section.id}`)
+    sectionIds.add(section.id)
+    if (section.kind === 'prose') {
+      if (section.blocks.length === 0) throw new Error(`guide section ${section.id} has no blocks`)
+      for (const block of section.blocks) {
+        if (block.kind === 'paragraph') rejectEmptyRuns(section.id, block.text)
+        else {
+          if (block.items.length === 0) throw new Error(`guide section ${section.id} has an empty list`)
+          for (const item of block.items) rejectEmptyRuns(section.id, item)
+        }
+      }
+    } else {
+      if (section.rows.length === 0) throw new Error(`guide section ${section.id} has no rows`)
+      for (const row of section.rows) {
+        if (blank(row.id)) throw new Error('guide row id is empty')
+        if (rowIds.has(row.id)) throw new Error(`guide row id repeats: ${row.id}`)
+        rowIds.add(row.id)
+        if (blank(row.name) || blank(row.sentence)) throw new Error(`guide row ${row.id} needs a name and a sentence`)
+      }
+    }
+  }
+  return guide
 }
 
 /** Erases a plugin's View/Action/Face so plugins of different games fit one registry array. */

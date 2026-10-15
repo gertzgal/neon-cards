@@ -147,12 +147,13 @@ interface GamePlugin {
   faceRenderer: CardFaceRenderer                 // how this deck's faces draw in the shared card frame
   juice: JuiceMap                                // maps this game's GameEvent types to shared juice primitives
   recap?(summary: { settlements: Settlement[]; view?: View }): RoundRecap | null   // optional: a history row's outcome
+  guide: GameGuide                               // how to play; the shell paints this page and does not branch on the game
 }
 
 // What a history row shows besides the net and time. `hands` draw as small glyphs with faceRenderer.label/tone.
 interface RoundRecap { outcome: string; tone?: Tone; hands?: CardView[][] }   // outcome: "BLACKJACK", "WIN · BUST"
 ```
-The browser-side plugin types (`GamePlugin`, `TableProps`, `EventBatch`, `CardFaceRenderer`, `JuiceMap`, `RoundRecap`) are exported by `@neon-cards/ui`, with `definePlugin()` to erase a plugin's generics for the registry. The shell renders `Table` with:
+The browser-side plugin types (`GamePlugin`, `TableProps`, `EventBatch`, `CardFaceRenderer`, `JuiceMap`, `RoundRecap`, `GameGuide`) are exported by `@neon-cards/ui`, with `definePlugin()` to erase a plugin's generics for the registry and `defineGuide()` to reject a document that cannot be a page (it returns the same object). The shell paints one How to play page from `plugin.guide` and never branches on game id, face kind, or section list. A game may omit a section by leaving it out of its own document. Whether this browser has closed the page is `neon-cards:guide-seen:<gameId>` in localStorage, not the settings JSON and not D1. The shell renders `Table` with:
 ```ts
 interface EventBatch { id: number; events: GameEvent[] }   // one server response's events; id increases per response
 interface TableProps<View, Action> {

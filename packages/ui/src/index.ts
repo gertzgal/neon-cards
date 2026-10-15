@@ -9,6 +9,7 @@ export { NeonRoot, CrtOverlay, type NeonRootProps } from './backdrop/neon-root'
 export { EdgeSwirl, type EdgeSwirlProps } from './backdrop/edge-swirl'
 
 export { PlayingCard, CornerRanks, cardAccent, cardFrameStyle } from './primitives/playing-card'
+export { guideFeltCard } from './primitives/guide-card'
 export { showPlayCallout } from './primitives/callout'
 export { Hand, handLayout, straightRow, type SlotPlacement } from './primitives/hand'
 export { ScoreBadge, StatusBadge, type StatusBadgeProps } from './primitives/badge'

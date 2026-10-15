@@ -1,6 +1,7 @@
 import { definePlugin } from '@neon-cards/ui'
 import { rules } from './rules'
 import { ekFace } from './view/face'
+import { guide } from './view/guide'
 import { ekRecap } from './view/recap'
 import { ExplodingKittensTable } from './view/Table'
 
@@ -14,4 +15,5 @@ export const plugin = definePlugin({
   faceRenderer: ekFace,
   juice: {},
   recap: ekRecap,
+  guide,
 })

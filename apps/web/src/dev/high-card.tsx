@@ -3,6 +3,7 @@ import type { CardView, GameEvent, SeatId, StandardFace } from '@neon-cards/engi
 import { HUMAN, highCard, type HighCardAction, type HighCardView } from '@neon-cards/engine/testing'
 import {
   ActionBar,
+  defineGuide,
   definePlugin,
   Hand,
   Hud,
@@ -185,10 +186,23 @@ function HighCardTable({ seats, humanSeat, view, events, act, busy, hudIcons }: 
   )
 }
 
+const guide = defineGuide({
+  title: 'HIGH CARD',
+  sections: [
+    {
+      kind: 'prose',
+      id: 'goal',
+      title: 'GOAL',
+      blocks: [{ kind: 'paragraph', text: [{ text: highCard.meta.description }] }],
+    },
+  ],
+})
+
 /** Routable at /games/high-card but never listed in the lobby or history filters. */
 export const highCardPlugin = definePlugin({
   rules: highCard,
   Table: HighCardTable,
   faceRenderer: standardFaceRenderer,
   juice,
+  guide,
 })

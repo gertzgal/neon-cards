@@ -151,17 +151,18 @@ const parseConfig = (input: unknown) => parseSettings(settings, defaultConfig, i
 
 ## 7. The React entrypoint (`src/index.ts`)
 
-Export a `GamePlugin`: the same `rules`, plus a `Table`, a `faceRenderer`, and a `juice` map. All three types come from `@neon-cards/ui`.
+Export a `GamePlugin`: the same `rules`, plus a `Table`, a `faceRenderer`, a `juice` map, and a `guide`. The types come from `@neon-cards/ui`. `guide` is a `GameGuide` built with `defineGuide`. The shell paints that document. It does not import your sentences or your faces.
 
 ```ts
 import { definePlugin } from '@neon-cards/ui'
 import { rules } from './rules'
 import { Flip7Table } from './view/Table'
 import { flip7Face } from './view/face'
+import { guide } from './view/guide'
 import { juice } from './view/juice'
 
 export { rules }
-export const plugin = definePlugin({ rules, Table: Flip7Table, faceRenderer: flip7Face, juice })
+export const plugin = definePlugin({ rules, Table: Flip7Table, faceRenderer: flip7Face, juice, guide })
 ```
 
 **The Table** receives `TableProps<Flip7View, Flip7Action>`:

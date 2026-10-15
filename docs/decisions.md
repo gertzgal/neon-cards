@@ -562,3 +562,14 @@ On a phone the disabled reason "Need a matching pair." was right-aligned with Pl
 ## Phone reason write-up (Quality, 2026-10-15)
 
 The raise write-up said the phone sentence ended inside 390. The shot did not. The period was in the edge. The write-up now uses the shot from `3707ffa`, where the period's ink ends at x 355.
+## How to play (2026-10-15)
+
+`GamePlugin.guide` is required. The shell paints one page from that `GameGuide` and does not branch on game id or face kind. `defineGuide` rejects an empty page and returns the same object. High card is one prose section whose text is `highCard.meta.description`.
+
+The page is seen in this browser under `neon-cards:guide-seen:<gameId>`, value `"1"`. `parseSettings` does not read it. It is not a D1 column. `useTableGuide` is the only seen API. `hasSeenGuide` and `markGuideSeen` are not exported. `closeGuide` writes the key, then closes. `openGuide` does not clear it.
+
+Flip 7's `actionSentence` returns `string` for every face. The felt hint and the guide both call it. A new face kind fails the build because the default arms assign to `never`. The three action sentences stay the strings already on main.
+
+The guide's Escape listener is installed when the guide module evaluates, on `window` capture, ahead of every table effect. It stops keys only while a page is bound. A still-held Escape is swallowed until keyup, so the repeat cannot hurry a blackjack deal or clear an Exploding Kittens raise. Ordinary keys pass when the page is closed.
+
+`guideFeltCard` in `@neon-cards/ui` builds the kit card for Flip 7 and Exploding Kittens. The aspect constant stays inside that function. Blackjack does not call it. Blackjack's guide uses `BlackjackFaceArt` and `cardFrameVars`. `@neon-cards/game-blackjack` depends on `@neon-cards/ui` so `defineGuide` is the only constructor. The worker still imports `@neon-cards/game-blackjack/rules` only. There is no rule dock on the blackjack table.

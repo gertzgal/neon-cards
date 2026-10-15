@@ -1,5 +1,5 @@
 import { createElement } from 'react'
-import { BlackjackTable, createSfx, rules as blackjackRules } from '@neon-cards/game-blackjack'
+import { BlackjackTable, createSfx, guide as blackjackGuide, rules as blackjackRules } from '@neon-cards/game-blackjack'
 import { plugin as explodingKittens } from '@neon-cards/game-exploding-kittens'
 import { plugin as flip7 } from '@neon-cards/game-flip7'
 import { definePlugin, standardFaceRenderer, type GamePlugin } from '@neon-cards/ui'
@@ -18,6 +18,7 @@ export const games: GamePlugin[] = [
     faceRenderer: standardFaceRenderer,
     juice: {},
     recap: blackjackRecap,
+    guide: blackjackGuide,
   }),
   flip7,
   explodingKittens,
