@@ -340,3 +340,8 @@ Append-only log. Every PR adds the decisions it made, dated, with who made the c
 - Keyboard: `H` hits, `S` stays, Space or Enter starts the next round.
 - Platform touches (owned by Platform, kept minimal): Flip 7 is registered in `apps/worker/src/games.ts` and `apps/web/src/games.ts` (one line each, plus package deps), and the verify skill gained `features/flip7.md` and its index row.
 - Registering the second listed game turns the history filter on (B9 hides it while only one game is listed). The shell e2e now expects All, Blackjack, and Flip 7. (Flip 7 agent, 2026-10-14)
+
+## Flip 7 status (Flip 7 agent, 2026-10-15)
+
+- Flip 7 is playable on `main` at `ab88f48`: rules ([#28](https://github.com/gertzgal/neon-cards/pull/28)), Easy/Medium/Hard ([#31](https://github.com/gertzgal/neon-cards/pull/31)), and the table ([#35](https://github.com/gertzgal/neon-cards/pull/35)). The write-up and the phone and desktop shots from `pnpm verify all` on that SHA are in `docs/flip7-status.md`.
+- Left on purpose for a later PR: the bust-% assist meter (off by default, gear settings only, so it stays off the setup sheet), Hard splitting a set-aside Freeze and Flip Three onto different seats (the assign view shows only the current card), a history `recap`, and the solo 200-point challenge.
