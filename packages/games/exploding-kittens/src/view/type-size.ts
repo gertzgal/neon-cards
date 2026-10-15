@@ -20,36 +20,6 @@ export const TITLE_LINES: Record<Title, readonly string[]> = {
   rainbowRalphing: ['RAINBOW', 'RALPHING', 'CAT'],
 }
 
-function fits(inner: number, text: string, font: number): boolean {
-  return text.length * CHAR * font <= inner
-}
-
-/** Largest font that wraps `text` onto at most two lines inside the card. */
-export function ruleFont(widthPx: number, rule: string): number {
-  const inner = widthPx * 0.9
-  const maxPx = Math.max(8, Math.floor((widthPx / 0.74) * 0.15))
-  const words = rule.split(' ')
-  for (let font = maxPx; font >= 8; font--) {
-    let lines = 1
-    let line = ''
-    let ok = true
-    for (const word of words) {
-      if (!fits(inner, word, font)) {
-        ok = false
-        break
-      }
-      const next = line ? `${line} ${word}` : word
-      if (fits(inner, next, font)) line = next
-      else {
-        lines += 1
-        line = word
-      }
-    }
-    if (ok && lines <= 2) return font
-  }
-  return 8
-}
-
 /** Largest font that keeps every title line on one row, inside a top band. */
 export function titleFont(widthPx: number, lines: readonly string[]): number {
   const height = widthPx / 0.74

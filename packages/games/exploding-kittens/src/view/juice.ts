@@ -12,7 +12,7 @@ export function createJuice(human: SeatId): JuiceMap {
     [K in EkEvent['type']]?: (event: Extract<EkEvent, { type: K }>, kit: JuiceKit) => void | Promise<void>
   } = {
     async Played(event, kit) {
-      showPlayCallout(lineForPlayed(event.effect), at(event.seat), event.seat)
+      showPlayCallout(lineForPlayed(event.effect), 'draw', event.seat)
       for (const card of event.cards) await kit.deal(`card-${card.id}`, { from: at(event.seat) })
     },
     async Noped(event, kit) {

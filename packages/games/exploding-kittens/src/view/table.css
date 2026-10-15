@@ -110,14 +110,45 @@
 
 .ek-me {
   pointer-events: none;
+  width: 100%;
 }
 
-.ek-hand {
-  position: relative;
+.ek-bottom-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0 8px;
   pointer-events: none;
 }
 
-.ek-hand .ek-card-btn {
+.ek-hand-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ek-hand-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-top: 40px;
+  pointer-events: auto;
+  scrollbar-width: none;
+}
+
+.ek-hand-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.ek-hand-row {
+  position: relative;
+}
+
+.ek-hand-row .ek-card-btn {
   position: absolute;
   left: 0;
   top: 0;

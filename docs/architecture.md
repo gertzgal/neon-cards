@@ -205,7 +205,7 @@ The test-only multi-seat game ("high card", 1 human + 1 to 3 CPUs, a trivial pol
 One table composition scales from phone to desktop and from heads-up to a full table. Top to bottom:
 - **Top zone:** either the `DealerTray` (house games like Blackjack) or `OpponentRows`, which lays out 1 to 3 opponent seats. Each opponent seat shows its name, a difficulty pip (Easy/Medium/Hard), a compact hand (cards scaled down, overlapping), its total or score badge, and a turn highlight. Phone stacks opponents as slim rows; desktop puts them side by side.
 - **Middle zone:** pot or deck/discard, and the round's status badge.
-- **Bottom zone:** the human's hand with its total badge, on the felt arc, with the action buttons.
+- **Bottom zone:** the human's hand with its total badge, and the action buttons. Blackjack keeps the felt arc. Exploding Kittens and Flip 7 lay the human hand in one straight row (a slight overlap, then a horizontal scroll, when the row is wider than the phone). Opponent hands stay compact and overlapping.
 - The active seat (`toAct`) gets the same pulse glow whether it's a CPU or the human, so CPU turns read clearly while they play out.
 - Opponent seats use `data-testid="seat-<seatId>"` so Playwright can assert on each one.
 

@@ -52,14 +52,16 @@ export function faceTone(face: Flip7Face): Tone {
   return ACTION[face.action].tone
 }
 
-/** The sentence the inspect panel shows. It is not drawn on the card. */
-export function inspectRule(face: Flip7Face): string {
-  if (face.kind === 'number') return 'A second copy busts. Seven different numbers scores Flip 7.'
-  if (face.kind === 'modifier') return face.op === 'add' ? `Add ${face.value} to the round.` : 'Double your number cards.'
-  if (face.action === 'freeze') return 'They bank their score and sit out.'
-  if (face.action === 'flipThree') return 'They flip the next three cards.'
-  return 'Your next duplicate is discarded, not a bust.'
+/** One sentence for an action card. Numbers and modifiers have none. */
+export function actionSentence(face: Flip7Face): string | null {
+  if (face.kind !== 'action') return null
+  if (face.action === 'freeze') return 'That player banks their score and sits this round out.'
+  if (face.action === 'flipThree') return 'That player flips the next three cards.'
+  return 'Your next duplicate is discarded instead of busting you.'
 }
+
+/** How long a drawn action's sentence stays up. A tap does not use this. */
+export const ACTION_HINT_MS = 2200
 
 export function faceInk(face: Flip7Face): string {
   if (face.kind === 'number') return NUMBER_INK[face.value] ?? NUMBER_INK[0]

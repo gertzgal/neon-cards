@@ -4,10 +4,8 @@ import { flushSync } from 'react-dom'
 import { faceDown, type CardView, type Flip7Face, type GameEvent, type SeatId } from '@neon-cards/engine'
 import {
   ActionBar,
-  CardInspect,
   Hand,
   Hud,
-  InspectFace,
   NeonButton,
   OpponentRows,
   PixelSprite,
@@ -17,11 +15,9 @@ import {
   TableLayout,
   bitmaps,
   toneColor,
-  useCardInspect,
   useCountUp,
   usePlayback,
   useTableMetrics,
-  type InspectCopy,
   type OpponentSeatModel,
   type Point,
   type SeatState,
@@ -29,32 +25,18 @@ import {
 } from '@neon-cards/ui'
 import { hasAnyCard, roundValue, type F7Card, type Flip7Action, type Flip7View, type RoundScore } from '../rules'
 import { applyEvent, displayFromView, type Display, type DisplaySeat } from './display'
-import { faceInk, faceText, flip7Face, inspectRule } from './face'
+import { ACTION_HINT_MS, actionSentence, flip7Face } from './face'
 import { crown, HitIcon, NextIcon, StayIcon } from './icons'
 import { createJuice } from './juice'
 
-function f7Inspect(display: Display, el: HTMLElement, box: { w: number; h: number }): InspectCopy | null {
-  const raw = el.getAttribute('data-testid') ?? ''
-  if (!raw.startsWith('card-')) return null
-  const id = raw.slice('card-'.length)
-  const cards: F7Card[] = [...display.tray]
-  if (display.held) cards.push(display.held.card)
+function seatCards(display: Display): F7Card[] {
+  const cards: F7Card[] = []
   for (const seat of Object.values(display.seats)) {
     cards.push(...seat.numbers, ...seat.modifiers)
     if (seat.secondChance) cards.push(seat.secondChance)
     if (seat.freeze) cards.push(seat.freeze)
   }
-  const card = cards.find((item) => item.id === id && item.face)
-  if (!card?.face) return null
-  return {
-    title: faceText(card.face),
-    rule: inspectRule(card.face),
-    preview: (
-      <InspectFace accent={faceInk(card.face)} box={box}>
-        {flip7Face.render(card.face, { size: 'hand', widthPx: box.w })}
-      </InspectFace>
-    ),
-  }
+  return cards
 }
 
 const lineOf = (s: DisplaySeat) => ({ numbers: s.numbers, modifiers: s.modifiers, secondChance: s.secondChance, freeze: s.freeze })
@@ -116,17 +98,29 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
   const [juice] = useState(() =>
     createJuice({ human: humanSeat, before, settleBust: (seat) => flushSync(() => setRevealing((r) => r.filter((s) => s !== seat))) }),
   )
+  const [hint, setHint] = useState<{ text: string; until: number | null } | null>(null)
   const viewRef = useRef(view)
   const rootRef = useRef<HTMLDivElement>(null)
   const metrics = useTableMetrics()
-  const inspectBox = metrics.phone ? { w: 52, h: 70 } : { w: 64, h: 86 }
-  const inspect = useCardInspect(rootRef, (el) => f7Inspect(display, el, inspectBox))
   useLayoutEffect(() => {
     viewRef.current = view
   })
+  useEffect(() => {
+    if (!hint?.until) return
+    const wait = Math.max(0, hint.until - Date.now())
+    const timer = window.setTimeout(() => {
+      setHint((current) => (current?.until === hint.until ? null : current))
+    }, wait)
+    return () => window.clearTimeout(timer)
+  }, [hint])
 
   const apply = useCallback(
     (event: GameEvent) => {
+      if (event.type === 'CardDealt') {
+        const dealt = event as { card?: F7Card }
+        const sentence = dealt.card ? actionSentence(dealt.card.face) : null
+        if (sentence) setHint({ text: sentence, until: Date.now() + ACTION_HINT_MS })
+      }
       const card = (event as { card?: F7Card }).card
       if (card) {
         const el = document.querySelector(`[data-testid="card-${CSS.escape(card.id)}"]`)
@@ -253,6 +247,17 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
     if (id) pick(id)
   }
 
+  const onCardClick = (e: MouseEvent) => {
+    const cardEl = (e.target as Element).closest('.nc-card')
+    if (!(cardEl instanceof HTMLElement)) return
+    const raw = cardEl.getAttribute('data-testid') ?? ''
+    if (!raw.startsWith('card-')) return
+    const card = seatCards(display).find((item) => item.id === raw.slice('card-'.length))
+    if (!card) return
+    const sentence = actionSentence(card.face)
+    setHint(sentence ? { text: sentence, until: null } : null)
+  }
+
   const myScore = scoreOf(humanSeat)
   const held = display.held
   const flipThree = display.flipThree
@@ -293,6 +298,7 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
       data-pending={mine?.kind ?? ''}
       data-picking={String(picking.length > 0)}
       data-tiebreak={String(display.tiebreak)}
+      onClick={onCardClick}
     >
       <TableLayout
         hud={<Hud bankroll={null} left={<TotalPill total={me?.total ?? 0} target={view.targetScore} />} right={hudIcons} />}
@@ -343,6 +349,11 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
                 <Hand cards={extrasOf(me)} renderer={flip7Face} size="compact" layout="row" testId="you-extras" />
               </div>
               <Slots filled={me.status === 'busted' ? 0 : unique} gold={me.flip7} />
+              {hint && (
+                <p className="nc-rule-line" data-testid="card-rule">
+                  {hint.text}
+                </p>
+              )}
               <PlayerSpot
                 state={myState}
                 badge={
@@ -354,14 +365,21 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
                   />
                 }
               >
-                <Hand cards={cardsOf(humanSeat, me)} renderer={flip7Face} size="hand" testId="you-hand" state={myState} />
+                <Hand
+                  cards={cardsOf(humanSeat, me)}
+                  renderer={flip7Face}
+                  size="hand"
+                  layout="strip"
+                  maxWidth={Math.max(160, metrics.width - (metrics.phone ? 24 : 80))}
+                  testId="you-hand"
+                  state={myState}
+                />
               </PlayerSpot>
             </div>
           )
         }
         controls={controls}
       />
-      <CardInspect copy={inspect.copy} cardId={inspect.cardId} playable={inspect.playable} onPlay={inspect.confirm} onClose={inspect.close} />
     </div>
   )
 }

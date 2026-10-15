@@ -25,94 +25,6 @@
     repeating-linear-gradient(to bottom, transparent 0 2px, rgba(0, 0, 0, 0.18) 2px 3px);
 }
 
-/* Press-to-read. The scrim does not eat taps, so the hand underneath can take the second one. */
-.nc-inspect-scrim {
-  position: absolute;
-  inset: 0;
-  z-index: 35;
-  pointer-events: none;
-}
-
-.nc-inspect {
-  position: absolute;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-  width: min(156px, calc(100% - 16px));
-  padding: 8px;
-  background: rgba(8, 6, 14, 0.94);
-  border: 3px solid #241f36;
-  box-shadow:
-    0 0 24px rgba(0, 0, 0, 0.65),
-    0 0 18px rgba(46, 242, 255, 0.16);
-  pointer-events: auto;
-}
-
-.nc-inspect[data-placed='false'] {
-  visibility: hidden;
-}
-
-.nc-inspect .nc-card {
-  flex: none;
-}
-
-.nc-inspect-copy {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  min-width: 0;
-  flex: 1;
-}
-
-.nc-inspect-play {
-  min-width: 64px;
-  min-height: 28px;
-  margin-top: 2px;
-  padding: 2px 10px 1px;
-  border: 3px solid var(--nc-pink);
-  background: rgba(255, 46, 136, 0.2);
-  color: var(--nc-ink);
-  font: 18px/1 var(--nc-font);
-  box-shadow: 0 0 12px rgba(255, 46, 136, 0.45);
-  pointer-events: auto;
-}
-
-.nc-inspect-title,
-.nc-inspect-rule {
-  margin: 0;
-  text-align: left;
-}
-
-.nc-inspect-title {
-  font-size: 18px;
-  line-height: 0.9;
-  color: var(--nc-ink);
-}
-
-.nc-inspect-rule {
-  font-size: 15px;
-  line-height: 1.05;
-  color: var(--nc-pink-soft);
-}
-
-@media (min-width: 700px) {
-  .nc-inspect {
-    width: min(300px, calc(100% - 24px));
-    gap: 12px;
-    padding: 10px 12px;
-  }
-
-  .nc-inspect-title {
-    font-size: 22px;
-  }
-
-  .nc-inspect-rule {
-    font-size: 16px;
-  }
-}
-
 /* ---------- layout ---------- */
 
 .nc-table {
@@ -386,6 +298,62 @@
   position: relative;
   flex: none;
   transition: width 0.2s;
+}
+
+.nc-hand-strip {
+  height: auto;
+}
+
+.nc-hand-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-top: 40px;
+  scrollbar-width: none;
+}
+
+.nc-hand-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.nc-hand-row {
+  position: relative;
+}
+
+.nc-rule-line {
+  margin: 0 0 6px;
+  min-height: 1.15em;
+  padding: 0 8px;
+  text-align: center;
+  font-size: 16px;
+  line-height: 1.15;
+  color: var(--nc-pink-soft);
+  pointer-events: none;
+}
+
+.nc-play-dock {
+  flex: none;
+  width: 168px;
+  min-height: 84px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: stretch;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.nc-play-reason {
+  margin: 0;
+  text-align: right;
+  font-size: 14px;
+  line-height: 1.15;
+  color: var(--nc-gold);
+}
+
+.nc-play-dock .nc-btn {
+  pointer-events: auto;
+  height: 84px;
+  font-size: 32px;
 }
 
 .nc-slot {
@@ -987,6 +955,20 @@
   .nc-btn {
     height: 52px;
     font-size: 30px;
+  }
+  .nc-play-dock {
+    width: 200px;
+    min-height: 96px;
+  }
+  .nc-play-dock .nc-btn {
+    height: 96px;
+    font-size: 36px;
+  }
+  .nc-play-reason {
+    font-size: 16px;
+  }
+  .nc-rule-line {
+    font-size: 20px;
   }
   .nc-pot-amount {
     font-size: 34px;

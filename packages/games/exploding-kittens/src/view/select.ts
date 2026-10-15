@@ -2,60 +2,37 @@ import type { SeatId } from '@neon-cards/engine'
 import { TITLE_ORDER, type EkAction, type Title } from '../rules'
 import type { EkCard } from '../rules/types'
 
-export interface TapResult {
-  send: EkAction | null
-  selected: string[]
+export interface PlayChoice {
+  action: EkAction | null
+  reason: string | null
+  targets: SeatId[]
+  names: Title[]
 }
 
-/** Card tap. A unique solo play sends at once. A second tap confirms a play you could also combo. */
-export function onCardTap(hand: readonly EkCard[], actions: readonly EkAction[], selected: readonly string[], cardId: string): TapResult {
-  const card = hand.find((item) => item.id === cardId)
-  if (!card) return { send: null, selected: [...selected] }
-  const play = actions.find((action) => action.type === 'play' && action.title === card.face.title)
-  if (play && selected.length === 1 && selected[0] === cardId) return { send: play, selected: [] }
+const EMPTY: PlayChoice = { action: null, reason: null, targets: [], names: [] }
 
-  const next = selected.includes(cardId) ? selected.filter((id) => id !== cardId) : [...selected, cardId]
-  const copies = hand.filter((item) => item.face.title === card.face.title).length
-  if (play && copies === 1 && next.length === 1 && next[0] === cardId) return { send: play, selected: [] }
-
-  const aimed = matching(hand, actions, next).filter((action) => action.type === 'favor' || action.type === 'pair')
-  if (aimed.length === 1 && aimed[0]) return { send: aimed[0], selected: [] }
-  return { send: null, selected: next }
+/** A tap raises the card. A second tap on the same card lowers it. Neither tap plays. */
+export function toggleRaised(selected: readonly string[], cardId: string): string[] {
+  if (selected.includes(cardId)) return selected.filter((id) => id !== cardId)
+  return [...selected, cardId]
 }
 
-export function targetSeats(hand: readonly EkCard[], actions: readonly EkAction[], selected: readonly string[]): SeatId[] {
-  const ids: SeatId[] = []
-  for (const action of matching(hand, actions, selected)) {
-    if ((action.type === 'favor' || action.type === 'pair' || action.type === 'three') && !ids.includes(action.target)) ids.push(action.target)
-  }
-  return ids
-}
-
-/** A three waits for a name. A single favor or pair at this seat sends that menu object. */
-export function actionForSeat(
+/**
+ * The Play button sends the one menu action this selection consumes.
+ * Anything else stays disabled, with the reason the rules already imply.
+ */
+export function playChoice(
   hand: readonly EkCard[],
   actions: readonly EkAction[],
   selected: readonly string[],
-  seatId: SeatId,
-): { send: EkAction | null; ask: boolean } {
-  const matched = matching(hand, actions, selected).filter(
-    (action) => (action.type === 'favor' || action.type === 'pair' || action.type === 'three') && action.target === seatId,
-  )
-  if (matched.some((action) => action.type === 'three')) return { send: null, ask: true }
-  if (matched.length === 1 && matched[0]) return { send: matched[0], ask: false }
-  return { send: null, ask: false }
-}
-
-export function actionForName(
-  hand: readonly EkCard[],
-  actions: readonly EkAction[],
-  selected: readonly string[],
-  seatId: SeatId,
-  name: Title,
-): EkAction | null {
-  return (
-    matching(hand, actions, selected).find((action) => action.type === 'three' && action.target === seatId && action.name === name) ?? null
-  )
+  kind: 'turn' | 'nope' | 'give',
+  discard: readonly EkCard[],
+  picked: { target?: SeatId | null; name?: Title | null; takeId?: string | null } = {},
+): PlayChoice {
+  if (selected.length === 0) return EMPTY
+  if (kind === 'nope') return nopeChoice(hand, actions, selected)
+  if (kind === 'give') return giveChoice(actions, selected)
+  return turnChoice(hand, actions, selected, discard, picked)
 }
 
 /** Five titles in TITLE_ORDER, or null when the selection is not five different titles. */
@@ -82,6 +59,96 @@ export function matching(hand: readonly EkCard[], actions: readonly EkAction[], 
   const titles = titlesOf(hand, selected)
   if (!titles) return []
   return actions.filter((action) => consumes(action, titles))
+}
+
+function nopeChoice(hand: readonly EkCard[], actions: readonly EkAction[], selected: readonly string[]): PlayChoice {
+  const nope = actions.find((action) => action.type === 'nope')
+  const card = selected.length === 1 ? hand.find((item) => item.id === selected[0]) : undefined
+  if (nope && card?.face.title === 'nope') return { action: nope, reason: null, targets: [], names: [] }
+  return { action: null, reason: 'Play a Nope.', targets: [], names: [] }
+}
+
+function giveChoice(actions: readonly EkAction[], selected: readonly string[]): PlayChoice {
+  if (selected.length === 1) {
+    const give = actions.find((action) => action.type === 'give' && action.cardId === selected[0])
+    if (give) return { action: give, reason: null, targets: [], names: [] }
+  }
+  return { action: null, reason: 'Give one card.', targets: [], names: [] }
+}
+
+function turnChoice(
+  hand: readonly EkCard[],
+  actions: readonly EkAction[],
+  selected: readonly string[],
+  discard: readonly EkCard[],
+  picked: { target?: SeatId | null; name?: Title | null; takeId?: string | null },
+): PlayChoice {
+  const matched = matching(hand, actions, selected)
+  const plays = matched.filter((action) => action.type === 'play')
+  if (plays.length === 1 && matched.length === 1 && plays[0]) return ready(plays[0])
+
+  const aimed = matched.filter((action) => action.type === 'favor' || action.type === 'pair')
+  if (aimed.length > 0 && matched.every((action) => action.type === 'favor' || action.type === 'pair')) {
+    return aimedChoice(aimed, picked.target ?? null)
+  }
+
+  const threes = matched.filter(isThree)
+  if (threes.length > 0 && matched.every(isThree)) {
+    return threeChoice(threes, picked.target ?? null, picked.name ?? null)
+  }
+
+  const titles = fiveTitles(hand, selected)
+  if (titles) {
+    const takeId = picked.takeId || defaultTake(selected, discard)
+    const action = takeId ? fiveAction(hand, selected, takeId) : null
+    if (action) return ready(action)
+    return { action: null, reason: 'Pick a card to take.', targets: [], names: [] }
+  }
+
+  return { action: null, reason: 'Need a matching pair.', targets: [], names: [] }
+}
+
+function aimedChoice(actions: readonly EkAction[], target: SeatId | null): PlayChoice {
+  const targets = seatsOf(actions)
+  const narrowed = target ? actions.filter((action) => 'target' in action && action.target === target) : actions
+  if (narrowed.length === 1 && narrowed[0]) return { action: narrowed[0], reason: null, targets, names: [] }
+  return { action: null, reason: 'Pick a player.', targets, names: [] }
+}
+
+function threeChoice(actions: readonly Extract<EkAction, { type: 'three' }>[], target: SeatId | null, name: Title | null): PlayChoice {
+  const targets = seatsOf(actions)
+  const seat = target ?? (targets.length === 1 ? targets[0] : null)
+  if (!seat) return { action: null, reason: 'Pick a player.', targets, names: [] }
+  const named = actions.filter((action) => action.target === seat)
+  const names = TITLE_ORDER.filter((title) => named.some((action) => action.name === title))
+  if (name) {
+    const action = named.find((item) => item.name === name)
+    if (action) return { action, reason: null, targets, names }
+  }
+  return { action: null, reason: 'Name a card.', targets, names }
+}
+
+function isThree(action: EkAction): action is Extract<EkAction, { type: 'three' }> {
+  return action.type === 'three'
+}
+
+function seatsOf(actions: readonly EkAction[]): SeatId[] {
+  const ids: SeatId[] = []
+  for (const action of actions) {
+    if ((action.type === 'favor' || action.type === 'pair' || action.type === 'three') && !ids.includes(action.target)) ids.push(action.target)
+  }
+  return ids
+}
+
+function ready(action: EkAction): PlayChoice {
+  return { action, reason: null, targets: [], names: [] }
+}
+
+/** The top discard, or one of the five when the discard is empty. Both are legal takes. */
+function defaultTake(selected: readonly string[], discard: readonly EkCard[]): string | null {
+  const top = discard[discard.length - 1]
+  if (top) return top.id
+  return selected[0] ?? null
 }
 
 function titlesOf(hand: readonly EkCard[], selected: readonly string[]): Title[] | null {

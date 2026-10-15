@@ -533,13 +533,13 @@ Middle: the draw pile (`draw`, `data-count`) and the discard (top face). Bottom:
 | Control | test id | Sends |
 | --- | --- | --- |
 | Draw | `action-draw` | `{ type: 'draw' }` |
-| Nope | `action-nope` | `{ type: 'nope' }` |
 | Pass | `action-pass` | `{ type: 'pass' }` |
-| A card | `action-card-<title>` | the solo play, or the selected combo. Hover or the first tap opens the rule and does not send. A second tap, or Play in the popup, sends. |
+| A card | `action-card-<title>` | raises or lowers that card. It does not send. |
+| Play | `play-card` | the one menu action the raised cards match. Disabled, with `play-reason`, when they match none. |
 | Defuse slot | `insert-<index>` | `{ type: 'defuse', index }` |
-| A gift | `give-<cardId>` | `{ type: 'give', cardId }` |
+| A gift | `give-<cardId>` | raises that card. `play-card` sends `{ type: 'give', cardId }`. |
 
-A combo is a selection filtered against `view.actions`, then a tap on `seat-<id>` or a discard card. The table sends the matching action object. It does not decide the rules.
+A combo is the raised cards filtered against `view.actions`. A seat tap or a discard tap only fills in the target, the name, or the take. `play-card` sends the matching action. The table does not decide the rules. A Nope window uses the same raise-then-Play flow on the Nope card.
 
 Root `ek-table` with `data-state` `playing` | `over` and `data-busy`. Opponent seats keep `seat-<id>`.
 

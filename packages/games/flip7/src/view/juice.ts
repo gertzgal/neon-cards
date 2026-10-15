@@ -38,7 +38,7 @@ export function createJuice(host: JuiceHost): JuiceMap {
   const at = (seat: SeatId) => seatTarget(host, seat)
   const handlers: { [K in Flip7Event['type']]?: (e: Extract<Flip7Event, { type: K }>, kit: JuiceKit) => void | Promise<void> } = {
     async CardDealt(e, kit) {
-      showPlayCallout(lineForCard(e.card.face), at(e.seat), e.seat)
+      showPlayCallout(lineForCard(e.card.face), 'draw-pile', e.seat)
       await kit.deal(`card-${e.card.id}`, { from: 'draw-pile' })
       if (e.card.face.kind === 'number' && e.seat === host.human) void kit.badgePulse('round-value')
     },

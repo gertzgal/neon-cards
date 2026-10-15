@@ -45,8 +45,8 @@ export interface HandProps<Face = unknown> {
   cards: CardView<Face>[]
   renderer: CardFaceRenderer<Face>
   size?: CardSize
-  /** `fan` rotates and arcs the cards (the human's hand); `row` lays them flat (tray, compact seats). */
-  layout?: 'fan' | 'row'
+  /** `fan` rotates and arcs. `row` is flat. `strip` is a straight row that overlaps slightly and scrolls. */
+  layout?: 'fan' | 'row' | 'strip'
   /** Max width the hand may use before cards overlap more, in px. Defaults per size and viewport. */
   maxWidth?: number
   state?: SeatState

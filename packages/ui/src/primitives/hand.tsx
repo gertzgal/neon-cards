@@ -18,10 +18,26 @@ const minScale = 0.6
  * Where each card sits in a hand: overlap tightens to fit `maxWidth`, then cards shrink so
  * long hands (Flip 7 runs to 7+ cards) stay readable. Fans rotate and arc.
  */
+/**
+ * A straight side-by-side row. No fan, no arc, no rotation.
+ * Cards keep a gap when they fit. A tight row overlaps slightly.
+ * `scrolls` is true when that overlap still runs past `maxWidth`.
+ */
+export function straightRow(count: number, card: Size, maxWidth: number): { width: number; card: Size; slots: SlotPlacement[]; scrolls: boolean } {
+  const gap = 8
+  const natural = card.w + gap
+  const minStep = card.w * 0.72
+  const fit = count > 1 ? (maxWidth - card.w) / (count - 1) : 0
+  const step = count <= 1 ? 0 : natural * (count - 1) + card.w <= maxWidth ? natural : Math.max(minStep, fit)
+  const slots = Array.from({ length: count }, (_, i) => ({ x: i * step, y: 0, rotate: 0 }))
+  const width = count ? card.w + step * Math.max(0, count - 1) : 0
+  return { width, card, slots, scrolls: width > maxWidth + 0.5 }
+}
+
 export function handLayout(
   count: number,
   base: Size,
-  layout: 'fan' | 'row',
+  layout: 'fan' | 'row' | 'strip',
   maxWidth: number,
   size: CardSize,
 ): { width: number; card: Size; slots: SlotPlacement[] } {
@@ -55,42 +71,56 @@ export function Hand<Face>({ cards, renderer, size = 'hand', layout, maxWidth, s
         : metrics.phone
           ? metrics.width * 0.4
           : Math.min(metrics.width * 0.2, 280))
-  const { width, card: fitted, slots } = handLayout(cards.length, box, mode, limit, size)
+  const strip = mode === 'strip' ? straightRow(cards.length, box, limit) : null
+  const laid = strip ?? handLayout(cards.length, box, mode, limit, size)
+  const { width, card: fitted, slots } = laid
   const minWidth = size === 'tray' ? box.w * 2 + 8 : 0
+  const frame = Math.max(width, minWidth)
+  const viewWidth = strip?.scrolls ? limit : frame
+  const slotsView = cards.map((c, i) => {
+    const slot = slots[i] ?? { x: 0, y: 0, rotate: 0 }
+    return (
+      <div
+        key={c.id}
+        className="nc-slot"
+        data-card={c.id}
+        data-face={c.face === null ? 'down' : 'up'}
+        style={
+          {
+            width: fitted.w,
+            height: fitted.h,
+            zIndex: i,
+            transform: strip ? `translate(${slot.x}px, 0px)` : `translate(${slot.x}px, ${slot.y}px) rotate(${slot.rotate}deg)`,
+            '--nc-c': cardAccent(renderer, c.face),
+          } as CSSProperties
+        }
+      >
+        <div className="nc-fly">
+          <div className={`nc-sway${size === 'compact' || strip ? ' nc-still' : ''}`}>
+            <PlayingCard card={c} renderer={renderer} size={size} box={fitted} {...(state ? { state } : {})} />
+          </div>
+        </div>
+      </div>
+    )
+  })
   return (
     <div
-      className={`nc-hand nc-hand-${size}`}
+      className={`nc-hand nc-hand-${size}${strip ? ' nc-hand-strip' : ''}`}
       data-testid={testId}
       data-state={state}
       data-count={cards.length}
-      style={{ width: Math.max(width, minWidth), height: fitted.h }}
+      data-layout={strip ? 'strip' : mode}
+      style={{ width: viewWidth, height: strip ? fitted.h + 40 : fitted.h }}
     >
-      {cards.map((c, i) => {
-        const slot = slots[i] ?? { x: 0, y: 0, rotate: 0 }
-        return (
-          <div
-            key={c.id}
-            className="nc-slot"
-            data-card={c.id}
-            data-face={c.face === null ? 'down' : 'up'}
-            style={
-              {
-                width: fitted.w,
-                height: fitted.h,
-                zIndex: i,
-                transform: `translate(${slot.x}px, ${slot.y}px) rotate(${slot.rotate}deg)`,
-                '--nc-c': cardAccent(renderer, c.face),
-              } as CSSProperties
-            }
-          >
-            <div className="nc-fly">
-              <div className={`nc-sway${size === 'compact' ? ' nc-still' : ''}`}>
-                <PlayingCard card={c} renderer={renderer} size={size} box={fitted} {...(state ? { state } : {})} />
-              </div>
-            </div>
+      {strip ? (
+        <div className="nc-hand-scroll" style={{ width: viewWidth }}>
+          <div className="nc-hand-row" style={{ width: frame, height: fitted.h }}>
+            {slotsView}
           </div>
-        )
-      })}
+        </div>
+      ) : (
+        slotsView
+      )}
     </div>
   )
 }

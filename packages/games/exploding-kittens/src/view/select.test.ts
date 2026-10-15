@@ -1,59 +1,99 @@
 import { describe, expect, it } from 'vitest'
 import type { EkAction, Title } from '../rules'
 import type { EkCard } from '../rules/types'
-import { actionForName, actionForSeat, fiveAction, onCardTap, targetSeats } from './select'
+import { fiveAction, playChoice, toggleRaised } from './select'
 
 const card = (id: string, title: Title): EkCard => ({ id, deck: 'exploding-kittens', face: { title } })
 
-describe('onCardTap', () => {
-  it('plays the only skip on the first tap', () => {
+describe('toggleRaised', () => {
+  it('raises a card, and a second tap lowers it without playing', () => {
+    const raised = toggleRaised([], 's')
+    expect(raised).toEqual(['s'])
+    expect(toggleRaised(raised, 's')).toEqual([])
+  })
+
+  it('keeps the most recently raised card last', () => {
+    const raised = toggleRaised(toggleRaised([], 'a'), 'b')
+    expect(raised).toEqual(['a', 'b'])
+    expect(toggleRaised(raised, 'a')).toEqual(['b'])
+  })
+})
+
+describe('playChoice', () => {
+  it('plays one skip from the menu', () => {
     const hand = [card('s', 'skip')]
     const play: EkAction = { type: 'play', title: 'skip' }
-    expect(onCardTap(hand, [play, { type: 'draw' }], [], 's')).toEqual({ send: play, selected: [] })
+    expect(playChoice(hand, [play, { type: 'draw' }], ['s'], 'turn', [])).toEqual({
+      action: play,
+      reason: null,
+      targets: [],
+      names: [],
+    })
   })
 
-  it('selects one of two skips, then the second tap plays it', () => {
-    const hand = [card('a', 'skip'), card('b', 'skip')]
-    const play: EkAction = { type: 'play', title: 'skip' }
-    const first = onCardTap(hand, [play], [], 'a')
-    expect(first).toEqual({ send: null, selected: ['a'] })
-    expect(onCardTap(hand, [play], first.selected, 'a')).toEqual({ send: play, selected: [] })
+  it('does not play a lone cat', () => {
+    const hand = [card('t', 'tacocat')]
+    const choice = playChoice(hand, [{ type: 'draw' }], ['t'], 'turn', [])
+    expect(choice.action).toBeNull()
+    expect(choice.reason).toBe('Need a matching pair.')
   })
 
-  it('sends the menu pair when only one seat can be stolen from', () => {
+  it('plays a pair when the menu has one target', () => {
     const hand = [card('a', 'tacocat'), card('b', 'tacocat')]
     const pair: EkAction = { type: 'pair', title: 'tacocat', target: 'cpu-1' }
-    const first = onCardTap(hand, [pair], [], 'a')
-    expect(first.selected).toEqual(['a'])
-    expect(onCardTap(hand, [pair], first.selected, 'b').send).toBe(pair)
+    expect(playChoice(hand, [pair], ['a', 'b'], 'turn', []).action).toBe(pair)
   })
 
-  it('waits for a seat when two opponents can be targeted', () => {
-    const hand = [card('f', 'favor')]
-    const a: EkAction = { type: 'favor', target: 'cpu-1' }
-    const b: EkAction = { type: 'favor', target: 'cpu-2' }
-    const tap = onCardTap(hand, [a, b], [], 'f')
-    expect(tap.send).toBeNull()
-    expect(targetSeats(hand, [a, b], tap.selected)).toEqual(['cpu-1', 'cpu-2'])
-    expect(actionForSeat(hand, [a, b], tap.selected, 'cpu-2')).toEqual({ send: b, ask: false })
+  it('asks for a player when a pair has two targets', () => {
+    const hand = [card('a', 'tacocat'), card('b', 'tacocat')]
+    const a: EkAction = { type: 'pair', title: 'tacocat', target: 'cpu-1' }
+    const b: EkAction = { type: 'pair', title: 'tacocat', target: 'cpu-2' }
+    const open = playChoice(hand, [a, b], ['a', 'b'], 'turn', [])
+    expect(open.action).toBeNull()
+    expect(open.reason).toBe('Pick a player.')
+    expect(open.targets).toEqual(['cpu-1', 'cpu-2'])
+    expect(playChoice(hand, [a, b], ['a', 'b'], 'turn', [], { target: 'cpu-2' }).action).toBe(b)
   })
 
-  it('asks for a name after the seat of a three', () => {
+  it('rejects two different cards', () => {
+    const hand = [card('a', 'skip'), card('b', 'attack')]
+    const actions: EkAction[] = [
+      { type: 'play', title: 'skip' },
+      { type: 'play', title: 'attack' },
+    ]
+    const choice = playChoice(hand, actions, ['a', 'b'], 'turn', [])
+    expect(choice.action).toBeNull()
+    expect(choice.reason).toBe('Need a matching pair.')
+  })
+
+  it('names a card for a three once the only player is known', () => {
     const hand = [card('a', 'beard'), card('b', 'beard'), card('c', 'beard')]
     const named: EkAction = { type: 'three', title: 'beard', target: 'cpu-1', name: 'defuse' }
-    let selected: string[] = []
-    for (const id of ['a', 'b', 'c']) selected = onCardTap(hand, [named], selected, id).selected
-    expect(actionForSeat(hand, [named], selected, 'cpu-1')).toEqual({ send: null, ask: true })
-    expect(actionForName(hand, [named], selected, 'cpu-1', 'defuse')).toBe(named)
+    const open = playChoice(hand, [named], ['a', 'b', 'c'], 'turn', [])
+    expect(open.action).toBeNull()
+    expect(open.reason).toBe('Name a card.')
+    expect(open.names).toEqual(['defuse'])
+    expect(playChoice(hand, [named], ['a', 'b', 'c'], 'turn', [], { name: 'defuse' }).action).toBe(named)
   })
 
-  it('builds a five from the selection and the tapped discard, not the menu entry', () => {
+  it('plays a five from the raised cards and the top discard', () => {
     const hand = [card('a', 'attack'), card('b', 'skip'), card('c', 'shuffle'), card('d', 'future'), card('e', 'favor')]
-    const menu: EkAction = { type: 'five', titles: ['attack', 'skip', 'shuffle', 'future', 'favor'], takeId: 'defuse-1' }
-    let selected: string[] = []
-    for (const id of ['e', 'a', 'c', 'b', 'd']) selected = onCardTap(hand, [menu], selected, id).selected
-    const sent = fiveAction(hand, selected, 'kitten-9')
-    expect(sent).toEqual({ type: 'five', titles: ['attack', 'skip', 'favor', 'shuffle', 'future'], takeId: 'kitten-9' })
-    expect(sent).not.toBe(menu)
+    const discard = [card('prize', 'defuse')]
+    const sent = playChoice(hand, [{ type: 'draw' }], ['e', 'a', 'c', 'b', 'd'], 'turn', discard).action
+    expect(sent).toEqual(fiveAction(hand, ['e', 'a', 'c', 'b', 'd'], 'prize'))
+  })
+
+  it('plays a raised Nope during a Nope window', () => {
+    const hand = [card('n', 'nope'), card('s', 'skip')]
+    const nope: EkAction = { type: 'nope' }
+    expect(playChoice(hand, [{ type: 'pass' }, nope], ['n'], 'nope', []).action).toBe(nope)
+    expect(playChoice(hand, [{ type: 'pass' }, nope], ['s'], 'nope', []).reason).toBe('Play a Nope.')
+  })
+
+  it('gives the one raised card', () => {
+    const hand = [card('a', 'skip'), card('b', 'favor')]
+    const give: EkAction = { type: 'give', cardId: 'b' }
+    expect(playChoice(hand, [give, { type: 'give', cardId: 'a' }], ['b'], 'give', []).action).toBe(give)
+    expect(playChoice(hand, [give], ['a', 'b'], 'give', []).reason).toBe('Give one card.')
   })
 })

@@ -4,19 +4,16 @@ import type { CardView, GameEvent, SeatId } from '@neon-cards/engine'
 import {
   ActionBar,
   Hud,
+  NeonButton,
   OpponentRows,
   PlayerSpot,
   PlayingCard,
-  CardInspect,
-  InspectFace,
   PixelSprite,
   ScoreBadge,
   TableLayout,
-  handLayout,
+  straightRow,
   toneColor,
-  useCardInspect,
   useTableMetrics,
-  type InspectCopy,
   type OpponentSeatModel,
   type SeatState,
   type TableProps,
@@ -26,31 +23,10 @@ import { FACE_LABEL } from '../rules/deck'
 import { scenes } from './art'
 import { applyEvent, displayFromView, owedBadge, type Display } from './display'
 import { ekFace, faceCorner, kittenMark } from './face'
-import { DrawIcon, NopeIcon, PassIcon, crown } from './icons'
+import { DrawIcon, PassIcon, crown } from './icons'
 import { createJuice } from './juice'
 import { useEkPlayback } from './playback'
-import { actionForName, actionForSeat, fiveAction, fiveTitles, onCardTap, targetSeats } from './select'
-
-function ekInspect(display: Display, el: HTMLElement, box: { w: number; h: number }): InspectCopy | null {
-  const raw = el.getAttribute('data-testid') ?? ''
-  if (!raw.startsWith('card-')) return null
-  const id = raw.slice('card-'.length)
-  const pool: CardView<EkFace>[] = [...display.hand, ...display.discard, ...display.knownTop]
-  if (display.revealed) pool.push(display.revealed)
-  if (display.pileBack?.face) pool.push(display.pileBack)
-  const card = pool.find((item) => item.id === id && item.face)
-  if (!card?.face) return null
-  const scene = scenes[card.face.title]
-  return {
-    title: FACE_LABEL[card.face.title],
-    rule: scene.rule,
-    preview: (
-      <InspectFace accent={scene.accent} box={box}>
-        {ekFace.render(card.face, { size: 'hand', widthPx: box.w })}
-      </InspectFace>
-    ),
-  }
-}
+import { playChoice, toggleRaised } from './select'
 
 function backs(id: SeatId, count: number, drawn: string | undefined): CardView<EkFace>[] {
   return Array.from({ length: count }, (_, i) => ({
@@ -63,13 +39,13 @@ function backs(id: SeatId, count: number, drawn: string | undefined): CardView<E
 export function ExplodingKittensTable({ seats, humanSeat, view, events, act, busy, hudIcons }: TableProps<EkView, EkAction>) {
   const [display, setDisplay] = useState<Display>(() => displayFromView(view))
   const [selected, setSelected] = useState<string[]>([])
-  const [askSeat, setAskSeat] = useState<SeatId | null>(null)
+  const [target, setTarget] = useState<SeatId | null>(null)
+  const [name, setName] = useState<Title | null>(null)
+  const [takeId, setTakeId] = useState<string | null>(null)
   const [juice] = useState(() => createJuice(humanSeat))
   const viewRef = useRef(view)
   const rootRef = useRef<HTMLDivElement>(null)
   const metrics = useTableMetrics()
-  const inspectBox = metrics.phone ? { w: 52, h: 70 } : { w: 64, h: 86 }
-  const inspect = useCardInspect(rootRef, (el) => ekInspect(display, el, inspectBox))
   useLayoutEffect(() => {
     viewRef.current = view
   })
@@ -90,7 +66,9 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
     void play(events.events).then(() => {
       setDisplay(displayFromView(viewRef.current))
       setSelected([])
-      setAskSeat(null)
+      setTarget(null)
+      setName(null)
+      setTakeId(null)
       setSettledId(id)
     })
   }, [events, play])
@@ -99,11 +77,12 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
   const interactive = settled && !busy
   const pending = settled ? view.pending : null
   const mine = pending && pending.seat === humanSeat ? pending : null
-  const taking = interactive && mine?.kind === 'turn' ? fiveTitles(view.hand, selected) : null
-  const picks = useMemo(
-    () => (interactive && mine?.kind === 'turn' && !taking ? targetSeats(view.hand, view.actions, selected) : []),
-    [interactive, mine, taking, view.hand, view.actions, selected],
+  const raising = mine?.kind === 'turn' || mine?.kind === 'nope' || mine?.kind === 'give' ? mine.kind : null
+  const choice = useMemo(
+    () => (raising ? playChoice(view.hand, view.actions, selected, raising, view.discard, { target, name, takeId }) : null),
+    [raising, view.hand, view.actions, view.discard, selected, target, name, takeId],
   )
+  const picks = choice && choice.reason === 'Pick a player.' ? choice.targets : []
 
   const send = useCallback(
     (action: EkAction) => {
@@ -114,49 +93,34 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
 
   const clearPick = () => {
     setSelected([])
-    setAskSeat(null)
+    setTarget(null)
+    setName(null)
+    setTakeId(null)
   }
 
   const onCard = (id: string) => {
-    if (!interactive || !mine) return
-    if (mine.kind === 'give') {
-      send({ type: 'give', cardId: id })
-      return
-    }
-    if (mine.kind !== 'turn') return
-    if (taking && selected.includes(id)) {
-      const five = fiveAction(view.hand, selected, id)
-      if (five) {
-        clearPick()
-        send(five)
-      }
-      return
-    }
-    const tap = onCardTap(view.hand, view.actions, selected, id)
-    if (tap.send) {
-      clearPick()
-      send(tap.send)
-    } else {
-      setSelected(tap.selected)
-      setAskSeat(null)
-    }
+    if (!interactive || !raising) return
+    setSelected((current) => toggleRaised(current, id))
+    setTarget(null)
+    setName(null)
+    setTakeId(null)
   }
 
   const onSeat = (id: SeatId) => {
-    if (!interactive || mine?.kind !== 'turn') return
-    const result = actionForSeat(view.hand, view.actions, selected, id)
-    if (result.send) {
-      clearPick()
-      send(result.send)
-    } else if (result.ask) setAskSeat(id)
+    if (!interactive || !picks.includes(id)) return
+    setTarget(id)
   }
 
   const onDiscard = (id: string) => {
-    if (!taking) return
-    const five = fiveAction(view.hand, selected, id)
-    if (!five) return
+    if (!interactive || selected.length !== 5) return
+    setTakeId(id)
+  }
+
+  const onPlay = () => {
+    if (!choice?.action) return
+    const action = choice.action
     clearPick()
-    send(five)
+    send(action)
   }
 
   useEffect(() => {
@@ -165,9 +129,8 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
       const target = event.target
       if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return
       const key = event.key.toLowerCase()
-      if (key === 'escape' && (selected.length > 0 || askSeat)) {
-        setSelected([])
-        setAskSeat(null)
+      if (key === 'escape' && (selected.length > 0 || target || name)) {
+        clearPick()
         event.preventDefault()
         return
       }
@@ -184,7 +147,7 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [interactive, mine, selected.length, askSeat, send, view.actions])
+  }, [interactive, mine, selected.length, target, name, send, view.actions])
 
   useLayoutEffect(() => {
     const root = rootRef.current
@@ -232,11 +195,13 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
   }
 
   const hand = display.hand
-  // Phone keeps the owed digit in the top bar. Beside the fan it shoved the first card off the screen.
-  const limit = metrics.phone ? metrics.width - 64 : Math.min(metrics.width * 0.7, 860)
-  const layout = handLayout(hand.length, metrics.card.hand, 'fan', limit, 'hand')
+  // The Play column stays on the right, so the row never runs under it. The owed digit stays in the phone top bar.
+  const playColumn = metrics.phone ? 176 : 208
+  const badge = metrics.phone ? 0 : 72
+  const limit = Math.max(140, metrics.width - playColumn - badge - 24)
+  const layout = straightRow(hand.length, metrics.card.hand, limit)
   const owner = new Map<Title, string>()
-  if (mine?.kind === 'turn') {
+  if (raising) {
     for (const title of TITLE_ORDER) {
       const ofTitle = hand.filter((card) => card.face?.title === title)
       const pick = ofTitle.find((card) => !selected.includes(card.id)) ?? ofTitle[0]
@@ -244,7 +209,9 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
     }
   }
 
-  const names = askSeat ? TITLE_ORDER.filter((title) => actionForName(view.hand, view.actions, selected, askSeat, title)) : []
+  const focus = hand.find((card) => card.id === selected[selected.length - 1])
+  const focusRule = focus?.face ? scenes[focus.face.title].rule : null
+  const names = choice?.reason === 'Name a card.' ? choice.names : []
   const kitten = mine?.kind === 'defuse' ? mine.kitten : display.revealed
   const topDiscard = display.discard.slice(-4)
   const myState = stateOf(humanSeat)
@@ -271,12 +238,9 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
       </div>
     ) : mine?.kind === 'nope' ? (
       <ActionBar
-        columns={{ phone: 2, desktop: 2 }}
-        onAction={(id) => send(id === 'nope' ? { type: 'nope' } : { type: 'pass' })}
-        actions={[
-          { id: 'nope', label: <NopeIcon />, primary: true, ariaLabel: 'Nope' },
-          { id: 'pass', label: <PassIcon />, tone: 'cyan', ariaLabel: 'Pass' },
-        ]}
+        columns={{ phone: 1, desktop: 1 }}
+        onAction={() => send({ type: 'pass' })}
+        actions={[{ id: 'pass', label: <PassIcon />, tone: 'cyan', ariaLabel: 'Pass' }]}
       />
     ) : (
       <ActionBar
@@ -348,7 +312,7 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
                   type="button"
                   className="ek-discard-card"
                   data-dim={display.dimmed.includes(card.id) ? 'true' : undefined}
-                  data-play={taking ? 'true' : undefined}
+                  data-take={selected.length === 5 && (takeId ?? view.discard[view.discard.length - 1]?.id) === card.id ? 'true' : undefined}
                   onClick={() => onDiscard(card.id)}
                 >
                   <PlayingCard card={card} renderer={ekFace} size="compact" />
@@ -358,13 +322,14 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
             {names.length > 0 && (
               <div className="ek-ask" data-testid="ask">
                 {names.map((title) => (
-                  <button key={title} type="button" data-testid={`ask-${title}`} aria-label={FACE_LABEL[title]} onClick={() => {
-                    if (!askSeat) return
-                    const action = actionForName(view.hand, view.actions, selected, askSeat, title)
-                    if (!action) return
-                    clearPick()
-                    send(action)
-                  }}>
+                  <button
+                    key={title}
+                    type="button"
+                    data-testid={`ask-${title}`}
+                    aria-label={FACE_LABEL[title]}
+                    data-on={name === title ? 'true' : undefined}
+                    onClick={() => setName(title)}
+                  >
                     {faceCorner(title)}
                   </button>
                 ))}
@@ -379,50 +344,76 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
             data-alive={display.seats[humanSeat]?.alive === false ? 'false' : 'true'}
             data-count={hand.length}
           >
-            <PlayerSpot
-              state={myState}
-              badge={metrics.phone ? null : owed}
-            >
-              <div className="ek-hand" data-testid="you-hand" data-count={hand.length} style={{ width: layout.width, height: layout.card.h }}>
-                {hand.map((card, index) => {
-                  const slot = layout.slots[index] ?? { x: 0, y: 0, rotate: 0 }
-                  const title = card.face?.title
-                  const on = selected.includes(card.id)
-                  const testId =
-                    mine?.kind === 'give'
-                      ? `give-${card.id}`
-                      : title && owner.get(title) === card.id
-                        ? `action-card-${title}`
-                        : `card-pick-${card.id}`
-                  return (
-                    <button
-                      key={card.id}
-                      type="button"
-                      className="ek-card-btn"
-                      data-testid={testId}
-                      data-card={card.id}
-                      data-selected={on ? 'true' : 'false'}
-                      aria-label={card.face ? FACE_LABEL[card.face.title] : 'face-down card'}
-                      data-play={interactive && mine && (mine.kind === 'give' || mine.kind === 'turn') ? 'true' : undefined}
-                      style={{
-                        width: layout.card.w,
-                        height: layout.card.h,
-                        zIndex: index + (on ? 20 : 0),
-                        transform: `translate(${slot.x}px, ${slot.y - (on ? 16 : 0)}px) rotate(${slot.rotate}deg)`,
-                      }}
-                      onClick={() => onCard(card.id)}
-                    >
-                      <PlayingCard card={card} renderer={ekFace} size="hand" box={layout.card} state={myState} />
-                    </button>
-                  )
-                })}
+            <div className="ek-bottom-row">
+              <div className="ek-hand-col">
+                {focusRule && (
+                  <p className="nc-rule-line" data-testid="card-rule">
+                    {focusRule}
+                  </p>
+                )}
+                <PlayerSpot state={myState} badge={metrics.phone ? null : owed}>
+                  <div
+                    className="ek-hand-scroll"
+                    data-testid="you-hand"
+                    data-count={hand.length}
+                    data-layout="strip"
+                    style={{ width: layout.scrolls ? limit : layout.width }}
+                  >
+                    <div className="ek-hand-row" style={{ width: layout.width, height: layout.card.h }}>
+                      {hand.map((card, index) => {
+                        const slot = layout.slots[index] ?? { x: 0, y: 0, rotate: 0 }
+                        const title = card.face?.title
+                        const on = selected.includes(card.id)
+                        const testId =
+                          mine?.kind === 'give'
+                            ? `give-${card.id}`
+                            : title && owner.get(title) === card.id
+                              ? `action-card-${title}`
+                              : `card-pick-${card.id}`
+                        return (
+                          <button
+                            key={card.id}
+                            type="button"
+                            className="ek-card-btn"
+                            data-testid={testId}
+                            data-card={card.id}
+                            data-selected={on ? 'true' : 'false'}
+                            aria-label={card.face ? FACE_LABEL[card.face.title] : 'face-down card'}
+                            style={{
+                              width: layout.card.w,
+                              height: layout.card.h,
+                              zIndex: index + (on ? 20 : 0),
+                              transform: `translate(${slot.x}px, ${on ? -36 : 0}px)`,
+                            }}
+                            onClick={() => onCard(card.id)}
+                          >
+                            <PlayingCard card={card} renderer={ekFace} size="hand" box={layout.card} state={myState} />
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </PlayerSpot>
               </div>
-            </PlayerSpot>
+              <div className="nc-play-dock" data-testid="play-dock" data-open={selected.length > 0 ? 'true' : 'false'}>
+                {selected.length > 0 && (
+                  <>
+                    {choice?.reason && (
+                      <p className="nc-play-reason" data-testid="play-reason">
+                        {choice.reason}
+                      </p>
+                    )}
+                    <NeonButton primary testId="play-card" ariaLabel="Play" disabled={!choice?.action} onClick={onPlay}>
+                      Play
+                    </NeonButton>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         }
         controls={controls}
       />
-      <CardInspect copy={inspect.copy} cardId={inspect.cardId} playable={inspect.playable} onPlay={inspect.confirm} onClose={inspect.close} />
     </div>
   )
 }

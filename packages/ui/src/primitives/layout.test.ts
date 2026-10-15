@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { chipsFor, formatMoney } from './chips'
-import { handLayout } from './hand'
+import { handLayout, straightRow } from './hand'
 import { tableMetrics } from './metrics'
 import { bitmapRects } from './pixel'
 
@@ -55,6 +55,27 @@ describe('handLayout', () => {
 
   it('lays out nothing for an empty hand', () => {
     expect(handLayout(0, card, 'fan', 270, 'hand')).toEqual({ width: 0, card, slots: [] })
+  })
+})
+
+describe('straightRow', () => {
+  const card = { w: 150, h: 203 }
+
+  it('keeps a gap and no rotation when the row fits', () => {
+    const row = straightRow(2, card, 400)
+    expect(row.card).toEqual(card)
+    expect(row.slots.map((slot) => slot.rotate)).toEqual([0, 0])
+    expect(row.slots.map((slot) => slot.y)).toEqual([0, 0])
+    expect(row.slots[1]?.x).toBe(158)
+    expect(row.scrolls).toBe(false)
+  })
+
+  it('overlaps slightly, then scrolls once the row is still too wide', () => {
+    const phone = straightRow(8, card, 262)
+    expect(phone.slots.every((slot) => slot.rotate === 0 && slot.y === 0)).toBe(true)
+    expect(phone.slots[1]?.x).toBeCloseTo(108)
+    expect(phone.width).toBeGreaterThan(262)
+    expect(phone.scrolls).toBe(true)
   })
 })
 

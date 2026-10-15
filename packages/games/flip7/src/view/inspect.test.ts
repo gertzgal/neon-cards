@@ -1,18 +1,22 @@
 import type { Flip7Face } from '@neon-cards/engine'
 import { describe, expect, it } from 'vitest'
-import { inspectRule } from './face'
+import { actionSentence } from './face'
 
-describe('press to read', () => {
-  it('has a rule for the specials and does not put that sentence on the face', () => {
-    const faces: Flip7Face[] = [
+describe('action explanations', () => {
+  it('explains only Freeze, Flip Three, and Second Chance', () => {
+    const actions: Flip7Face[] = [
       { kind: 'action', action: 'freeze' },
       { kind: 'action', action: 'flipThree' },
       { kind: 'action', action: 'secondChance' },
-      { kind: 'modifier', op: 'add', value: 4 },
-      { kind: 'modifier', op: 'times', value: 2 },
     ]
-    for (const face of faces) expect(inspectRule(face).length).toBeGreaterThan(8)
-    expect(inspectRule({ kind: 'action', action: 'freeze' })).toBe('They bank their score and sit out.')
-    expect(inspectRule({ kind: 'modifier', op: 'add', value: 10 })).toBe('Add 10 to the round.')
+    for (const face of actions) {
+      const sentence = actionSentence(face)
+      expect(sentence?.endsWith('.')).toBe(true)
+      expect(sentence?.slice(0, -1)).not.toContain('.')
+    }
+    expect(actionSentence({ kind: 'action', action: 'freeze' })).toBe('That player banks their score and sits this round out.')
+    expect(actionSentence({ kind: 'number', value: 7 })).toBeNull()
+    expect(actionSentence({ kind: 'modifier', op: 'add', value: 10 })).toBeNull()
+    expect(actionSentence({ kind: 'modifier', op: 'times', value: 2 })).toBeNull()
   })
 })

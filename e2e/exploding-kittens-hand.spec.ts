@@ -12,24 +12,27 @@ test('the opening hand stays inside the screen, with the owed digit', async ({ p
 
   const viewport = page.viewportSize()
   if (!viewport) throw new Error('no viewport')
+  const hand = page.getByTestId('you-hand')
+  await expect(hand).toHaveAttribute('data-layout', 'strip')
   const cards = page.locator('.ek-card-btn')
   await expect(cards).toHaveCount(8)
   const boxes = await cards.evaluateAll((nodes) =>
     nodes.map((node) => {
       const r = node.getBoundingClientRect()
-      return { x: r.x, right: r.right, y: r.y, bottom: r.bottom }
+      return { y: r.y, style: node.getAttribute('style') ?? '' }
     }),
   )
-  for (const box of boxes) {
-    expect(box.x).toBeGreaterThanOrEqual(-1)
-    expect(box.right).toBeLessThanOrEqual(viewport.width + 1)
-    expect(box.y).toBeGreaterThanOrEqual(-1)
-    expect(box.bottom).toBeLessThanOrEqual(viewport.height + 1)
-  }
+  const tops = boxes.map((box) => box.y)
+  expect(Math.max(...tops) - Math.min(...tops)).toBeLessThan(2)
+  for (const box of boxes) expect(box.style).not.toContain('rotate')
 
-  const hand = await page.getByTestId('you-hand').boundingBox()
+  const handBox = await hand.boundingBox()
   const draw = await page.getByTestId('action-draw').boundingBox()
-  expect(hand).not.toBeNull()
+  const dock = await page.getByTestId('play-dock').boundingBox()
+  expect(handBox).not.toBeNull()
   expect(draw).not.toBeNull()
-  expect((hand?.y ?? 0) + (hand?.height ?? 0)).toBeLessThanOrEqual((draw?.y ?? 0) + 1)
+  expect(dock).not.toBeNull()
+  expect(handBox?.x ?? 0).toBeGreaterThanOrEqual(-1)
+  expect((handBox?.x ?? 0) + (handBox?.width ?? 0)).toBeLessThanOrEqual((dock?.x ?? viewport.width) + 1)
+  expect((handBox?.y ?? 0) + (handBox?.height ?? 0)).toBeLessThanOrEqual((draw?.y ?? 0) + 1)
 })
