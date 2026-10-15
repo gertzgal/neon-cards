@@ -9,6 +9,18 @@ export interface PresenceRow {
   sockets: number
 }
 
+export interface Remembered {
+  commandId: string
+  playerId: string
+  frame: OutFrame
+}
+
+export interface SeqFrame {
+  seq: number
+  playerId: string
+  frame: OutFrame
+}
+
 export interface Lobby {
   kind: 'lobby'
   code: string
@@ -17,6 +29,10 @@ export interface Lobby {
   chairs: LobbyChair[]
   watching: string[]
   present: PresenceRow[]
+  config: unknown
+  generation: number
+  remembered: Remembered[]
+  seqFrames: SeqFrame[]
 }
 
 export interface ClosedRoom {
@@ -37,16 +53,33 @@ export interface LobbyFrame {
   canOpen: boolean
 }
 
+export interface LiveFrame {
+  type: 'live'
+  code: string
+  gameId: string
+  host: boolean
+  you: string | null
+  canAct: boolean
+  canOpen: boolean
+  seats: { id: string; kind: 'human' | 'cpu' | 'house'; name: string; difficulty?: 'easy' | 'medium' | 'hard' }[]
+  eyes: number
+  seq: number
+  view: unknown
+  events: unknown
+  snap: boolean
+  deadline: number | null
+}
+
 export interface ClosedFrame {
   type: 'closed'
 }
 
 export interface RejectedFrame {
   type: 'rejected'
-  reason: 'not-host' | 'closed' | 'illegal' | 'full'
+  reason: 'not-your-turn' | 'seq' | 'not-host' | 'closed' | 'illegal' | 'full' | 'hold' | 'chips'
 }
 
-export type OutFrame = LobbyFrame | ClosedFrame | RejectedFrame
+export type OutFrame = LobbyFrame | LiveFrame | ClosedFrame | RejectedFrame
 
 export function createLobby(input: { code: string; gameId: string; hostId: string; nickname: string; seats: number }): Lobby {
   if (input.seats < 2) throw new Error('a room needs at least two seats')
@@ -63,6 +96,10 @@ export function createLobby(input: { code: string; gameId: string; hostId: strin
     chairs,
     watching: [],
     present: [],
+    config: {},
+    generation: 0,
+    remembered: [],
+    seqFrames: [],
   }
 }
 
@@ -82,7 +119,7 @@ export function seatPlayer(room: Lobby, playerId: string, nickname: string): Lob
   }
 }
 
-export function addSocket(room: Lobby, playerId: string): Lobby {
+export function addSocket<T extends { present: PresenceRow[] }>(room: T, playerId: string): T {
   const row = room.present.find((p) => p.playerId === playerId)
   const present = row
     ? room.present.map((p) => (p.playerId === playerId ? { ...p, sockets: p.sockets + 1 } : p))
@@ -90,7 +127,7 @@ export function addSocket(room: Lobby, playerId: string): Lobby {
   return { ...room, present }
 }
 
-export function dropSocket(room: Lobby, playerId: string): Lobby {
+export function dropSocket<T extends { present: PresenceRow[] }>(room: T, playerId: string): T {
   const present = room.present.flatMap((p) => {
     if (p.playerId !== playerId) return [p]
     if (p.sockets <= 1) return []
