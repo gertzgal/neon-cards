@@ -656,3 +656,13 @@ The frame `view` is `definition.view`. A watcher, and a seated player's own fram
 A live human's turn stores a deadline 30 seconds out. The first time it lapses, `autoAct` plays one action at the room's filler difficulty and the chair stays human with misses 1. The second lapse flips that chair to `cpu` with `away` set, then `continueMatch`. `back` from that player flips the chair to human again. The frame shows the covered seat as a CPU with the nickname and no difficulty.
 
 Host grace is 15 seconds from the moment the host's socket count hits 0. An explicit `leave` still closes immediately and does not arm grace. Reconnecting clears the grace. One `setAlarm` points at the earliest of the turn, the quick window, and the grace. Flip 7 has no quick window, so that deadline stays empty. On a wake, a due grace closes the room and does not play the turn. A retry whose stored deadline is already in the future writes nothing. Quick decline for a game that sets `meta.quick` is still the next slice. This one only clears a quick deadline if one is ever due, and Flip 7 does not set one.
+
+## Rematch rotates, and a watcher can take a CPU seat (2026-10-15)
+
+`rematch` is host-only and only when the room phase is `over`. It mints a new `historyId` and a new server seed, then starts a fresh match. It does not call `startMatch` on the old one. Playing chairs rotate left by one and are numbered `s0` onward again, so the previous second seat goes first. House chairs stay at the end. Flip 7 has none. Misses reset. Remembered commands belong to the new match.
+
+`sit` with a `seatId` holds an open CPU chair (`away` null). A covered friend is not an open chair. The player must not already be seated or holding. During a hand the hold waits. At `between` or `over`, including the deal that starts the next round and a rematch, the hold becomes a human chair and that player leaves the eye list. A hold stores the nickname because the spec's hold has no name and the chair caption needs one. The eye count stays `eyes` on the frame. The shell's `spectator-count` is the next slice.
+
+## Rematch waits for Deal (2026-10-15)
+
+The first cut of `rematch` also called `applyOpening`. The spec leaves the new match undealt. `rematch` now stops after `startMatch`. The host uses Deal for the opening, the same command as the lobby.

@@ -12,6 +12,7 @@ import {
 import {
   HOST_GRACE_MS,
   TURN_MS,
+  applyHolds,
   addSocket,
   createLobby,
   dropSocket,
@@ -25,6 +26,7 @@ import {
   lobbyFrame,
   remember,
   rememberedFrame,
+  rotatePlaying,
   roomSeats,
   seatPlayer,
   stripRig,
@@ -53,6 +55,7 @@ interface Incoming {
   seq?: unknown
   action?: unknown
   config?: unknown
+  seatId?: unknown
 }
 
 type Stored = Lobby | LiveRoom | { kind: 'closed'; code: string }
@@ -162,14 +165,20 @@ export class RoomObject implements DurableObject {
       await this.back(ws, att, state, commandId)
       return
     }
+    if (command.type === 'rematch') {
+      await this.rematch(ws, att, state, commandId)
+      return
+    }
     try {
       if (command.type === 'watch') this.save(isLive(state) ? watchLive(state, att.playerId) : watch(state, att.playerId))
       else if (command.type === 'sit') {
-        if (!isLobby(state)) {
-          this.send(ws, { type: 'rejected', reason: 'illegal' })
-          return
-        }
-        this.save(seatPlayer(state, att.playerId, att.nickname))
+        if (isLive(state)) {
+          const reason = this.holdSeat(state, att, typeof command.seatId === 'string' ? command.seatId : '')
+          if (reason) {
+            this.send(ws, { type: 'rejected', reason })
+            return
+          }
+        } else this.save(seatPlayer(state, att.playerId, att.nickname))
       } else if (command.type === 'leave') {
         const next = isLive(state) ? leaveLive(state, att.playerId) : leave(state, att.playerId)
         if (next.kind === 'closed') {
@@ -210,6 +219,7 @@ export class RoomObject implements DurableObject {
     let room = state
     if (plan.turn) room = this.miss(rules, room, now)
     if (plan.quick) room = { ...room, deadlines: { ...room.deadlines, quick: null } }
+    room = this.settleHolds(room)
     const saved = { ...room, generation: room.generation + 1 }
     this.save(saved)
     await this.arm(saved)
@@ -314,15 +324,16 @@ export class RoomObject implements DurableObject {
   }
 
   private async dealAgain(rules: GameRules, room: LiveRoom, playerId: string, commandId: string): Promise<void> {
-    if (room.phase !== 'between' || rules.definition.opening?.(room.match.state) == null) throw new Error('illegal')
-    const step = applyOpening(rules, asMatch(room.match))
+    const settled = this.settleHolds(room)
+    if (settled.phase !== 'between' || rules.definition.opening?.(settled.match.state) == null) throw new Error('illegal')
+    const step = applyOpening(rules, asMatch(settled.match))
     const live: LiveRoom = {
-      ...room,
+      ...settled,
       match: storeMatch(step.match),
       phase: phaseOf(rules, step.match.state),
       events: step.events,
     }
-    await this.commit(rules, live, playerId, commandId, room.match.seq, step.events)
+    await this.commit(rules, live, playerId, commandId, settled.match.seq, step.events)
   }
 
   private async act(ws: WebSocket, att: Attachment, state: Lobby | LiveRoom, commandId: string, command: Incoming): Promise<void> {
@@ -393,7 +404,7 @@ export class RoomObject implements DurableObject {
   }
 
   private async commit(rules: GameRules, room: LiveRoom, playerId: string, commandId: string, seq: number, events: unknown[]): Promise<void> {
-    const scheduled = this.schedule(rules, room, Date.now())
+    const scheduled = this.schedule(rules, this.settleHolds(room), Date.now())
     const frame = this.liveFor(rules, scheduled, playerId, events, false)
     const saved = remember({ ...scheduled, events }, commandId, playerId, frame, seq)
     this.save(saved)
@@ -500,6 +511,92 @@ export class RoomObject implements DurableObject {
     })
   }
 
+  private holdSeat(room: LiveRoom, att: Attachment, seatId: string): RejectedFrame['reason'] | null {
+    if (room.chairs.some((chair) => chair.kind === 'human' && chair.playerId === att.playerId)) return 'illegal'
+    if (room.holds.some((hold) => hold.playerId === att.playerId || hold.seatId === seatId)) return 'hold'
+    const chair = room.chairs.find((item) => item.seatId === seatId)
+    if (chair?.kind !== 'cpu' || chair.away !== null) return 'illegal'
+    const hold = { playerId: att.playerId, seatId, nickname: att.nickname }
+    if (room.phase === 'playing') {
+      this.save({ ...room, holds: [...room.holds, hold] })
+      return null
+    }
+    const applied = applyHolds(room.chairs, [hold])
+    this.save({
+      ...room,
+      chairs: applied.chairs,
+      holds: [],
+      match: humanSeats(room.match, applied.chairs),
+      watching: room.watching.filter((id) => !applied.seated.includes(id)),
+    })
+    return null
+  }
+
+  private settleHolds(room: LiveRoom): LiveRoom {
+    if (room.phase === 'playing' || room.holds.length === 0) return room
+    const applied = applyHolds(room.chairs, room.holds)
+    return {
+      ...room,
+      chairs: applied.chairs,
+      holds: [],
+      match: humanSeats(room.match, applied.chairs),
+      watching: room.watching.filter((id) => !applied.seated.includes(id)),
+    }
+  }
+
+  private async rematch(ws: WebSocket, att: Attachment, state: Lobby | LiveRoom, commandId: string): Promise<void> {
+    if (!isLive(state)) {
+      this.send(ws, { type: 'rejected', reason: 'illegal' })
+      return
+    }
+    if (att.playerId !== state.hostId) {
+      this.send(ws, { type: 'rejected', reason: 'not-host' })
+      return
+    }
+    if (state.phase !== 'over') {
+      this.send(ws, { type: 'rejected', reason: 'illegal' })
+      return
+    }
+    const rules = rulesFor(state.gameId)
+    if (!rules) {
+      this.send(ws, { type: 'rejected', reason: 'illegal' })
+      return
+    }
+    const settled = this.settleHolds(state)
+    const chairs = rotatePlaying(settled.chairs).map((chair) => (chair.kind === 'human' ? { ...chair, misses: 0 as const } : chair))
+    const playing: RoomSeat[] = chairs.map((chair) => {
+      if (chair.kind === 'human') return { id: chair.seatId, kind: 'human' as const, name: chair.nickname }
+      if (chair.kind === 'cpu') return { id: chair.seatId, kind: 'cpu' as const, name: chair.name, difficulty: chair.difficulty }
+      return { id: chair.seatId, kind: 'house' as const, name: chair.name }
+    })
+    const known = new Set(playing.map((seat) => seat.id))
+    const house: RoomSeat[] = rules.definition.house.flatMap((seat) =>
+      known.has(seat.id) ? [] : [{ id: seat.id, kind: 'house' as const, name: seat.name }],
+    )
+    try {
+      const config = rules.definition.parseConfig(stripRig(settled.config, this.env.DEV_RIG === '1'))
+      const seed = crypto.randomUUID()
+      const started = startMatch(rules, { config, seats: [...playing, ...house], seed })
+      const watching = settled.watching.filter((id) => !chairs.some((chair) => chair.kind === 'human' && chair.playerId === id))
+      const live: LiveRoom = {
+        ...settled,
+        historyId: crypto.randomUUID(),
+        chairs,
+        watching,
+        holds: [],
+        match: storeMatch(started.match),
+        remembered: [],
+        seqFrames: [],
+        phase: phaseOf(rules, started.match.state),
+        events: started.events,
+        deadlines: { turn: null, quick: null, hostGrace: settled.deadlines.hostGrace },
+      }
+      await this.commit(rules, live, att.playerId, commandId, 0, started.events)
+    } catch (err) {
+      this.send(ws, { type: 'rejected', reason: rejectReason(err) })
+    }
+  }
+
   private async closeRoom(code: string): Promise<void> {
     this.ctx.storage.sql.exec('DELETE FROM room')
     await this.ctx.storage.deleteAlarm()
@@ -546,6 +643,17 @@ export class RoomObject implements DurableObject {
 
   private send(ws: WebSocket, frame: OutFrame): void {
     ws.send(JSON.stringify(frame))
+  }
+}
+
+function humanSeats(match: EngineMatch, chairs: LiveRoom['chairs']): EngineMatch {
+  return {
+    ...match,
+    seats: match.seats.map((seat) => {
+      const chair = chairs.find((item) => item.seatId === seat.id)
+      if (chair?.kind === 'human' && seat.kind !== 'human') return { id: seat.id, kind: 'human' as const, name: chair.nickname }
+      return seat
+    }),
   }
 }
 

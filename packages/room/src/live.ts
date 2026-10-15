@@ -1,6 +1,7 @@
 import type { Deadlines } from './clock'
 import { earliest } from './clock'
 import type { LiveFrame, OutFrame, PresenceRow, Remembered, SeqFrame } from './lobby'
+import type { Hold } from './rematch'
 import type { LiveChair, RoomSeat } from './seats'
 
 export interface EngineMatch {
@@ -23,7 +24,7 @@ export interface LiveRoom {
   config: unknown
   chairs: LiveChair[]
   watching: string[]
-  holds: []
+  holds: Hold[]
   present: PresenceRow[]
   deadlines: Deadlines
   match: EngineMatch
