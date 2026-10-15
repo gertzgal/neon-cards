@@ -624,3 +624,9 @@ Flip 7 is version 2. `toAct` is null on `ready` and `roundOver`. `opening()` is 
 Cross-project edits, logged here. Flip 7 gained the opening, the fixed dealer, the rig mapping, and the `canOpen` gate. Exploding Kittens and Blackjack lost `seatsFor` and gained `house`. Blackjack's human id stays `player`. The coin contract fixture and the high-card test game gained `house: []`.
 
 `docs/architecture.md` now describes the roster, `house`, and `opening`, because this slice deleted `seatsFor`.
+
+## Room codes have a table (2026-10-15)
+
+`players` gains `nickname` and `nickname_locked`. A new player has a null nickname and lock 0. The lock is 0 or 1. No route sets the nickname yet. Joins will read the row. They will not trust a name on the command.
+
+`room_directory` stores `code`, `game_id`, `host_player_id`, `created_at`, and `closed_at`. The code is the primary key. A worker test inserts one code. No route reads the table yet. `session_members` waits for the history copy.

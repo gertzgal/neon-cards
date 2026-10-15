@@ -1,9 +1,11 @@
-// Drizzle mirror of migrations/0002_core.sql. The SQL migrations are the source of truth for D1.
+// Drizzle mirror of the SQL migrations. The SQL files are the source of truth for D1.
 import { index, integer, primaryKey, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core'
 
 export const players = sqliteTable('players', {
   id: text('id').primaryKey(),
   createdAt: integer('created_at').notNull(),
+  nickname: text('nickname'),
+  nicknameLocked: integer('nickname_locked').notNull().default(0),
 })
 
 export const wallets = sqliteTable('wallets', {
@@ -77,3 +79,13 @@ export const rounds = sqliteTable(
   },
   (t) => [unique().on(t.sessionId, t.roundNo)],
 )
+
+export const roomDirectory = sqliteTable('room_directory', {
+  code: text('code').primaryKey(),
+  gameId: text('game_id').notNull(),
+  hostPlayerId: text('host_player_id')
+    .notNull()
+    .references(() => players.id),
+  createdAt: integer('created_at').notNull(),
+  closedAt: integer('closed_at'),
+})
