@@ -68,7 +68,7 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
   const viewRef = useRef(view)
   const rootRef = useRef<HTMLDivElement>(null)
   const metrics = useTableMetrics()
-  const inspectBox = metrics.phone ? { w: 118, h: 160 } : { w: 148, h: 200 }
+  const inspectBox = metrics.phone ? { w: 52, h: 70 } : { w: 64, h: 86 }
   const inspect = useCardInspect(rootRef, (el) => ekInspect(display, el, inspectBox))
   useLayoutEffect(() => {
     viewRef.current = view
