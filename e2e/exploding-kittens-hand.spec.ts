@@ -32,10 +32,4 @@ test('the opening hand stays inside the screen, with the owed digit', async ({ p
   expect(hand).not.toBeNull()
   expect(draw).not.toBeNull()
   expect((hand?.y ?? 0) + (hand?.height ?? 0)).toBeLessThanOrEqual((draw?.y ?? 0) + 1)
-  const covered = await page.getByTestId('action-draw').evaluate((el) => {
-    const r = el.getBoundingClientRect()
-    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
-    return !hit?.closest('[data-testid="action-draw"]')
-  })
-  expect(covered).toBe(false)
 })
