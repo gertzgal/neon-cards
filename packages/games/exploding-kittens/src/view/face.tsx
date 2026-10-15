@@ -3,7 +3,7 @@ import { FACE_LABEL } from '../rules/deck'
 import type { EkFace, Title } from '../rules'
 import { InkSprite, fitScale, type Bitmap, type CardFaceRenderer, type Tone } from '@neon-cards/ui'
 import { scenes } from './art'
-import { TITLE_LINES, ruleFont, titleFont } from './type-size'
+import { TITLE_LINES, titleFont } from './type-size'
 import './face.css'
 
 /** Small mark for the plant row. The card art is the multi-ink scene. */
@@ -61,9 +61,6 @@ export const ekFace: CardFaceRenderer<EkFace> = {
         </div>
         <div className="ek-face-art">
           <InkSprite bitmap={scene.art} inks={scene.inks} scale={scale} />
-        </div>
-        <div className="ek-face-rule" style={{ fontSize: ruleFont(widthPx, scene.rule) }}>
-          {scene.rule}
         </div>
       </div>
     )

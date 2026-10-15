@@ -515,3 +515,6 @@ On a phone the eight-card fan shrinks the card, so titles wrap onto their words 
 ## Card-face quality pass (Quality agent, 2026-10-15)
 
 Played `d3d0e35` on phone and desktop. Blackjack deal, hole, and hit keep the mock's ranks and pips inside the card. Flip 7's 8 fills the hand card and +10 fills the compact extra. Exploding Kittens on seed `ek-gap-open` keeps the phone fan from x 16 to 374, above the draw button, with the owed digit in the top bar. Desktop is the same fan as `bdbc4b6` (x 258 to 1182). No face was clipped and no new bug turned up, so this pass is the write-up only. Shots are in `docs/quality/faces-*`.
+## Press to read (2026-10-15)
+
+This draft was not merged. A tap on a card's name, or a long-press anywhere on the card, opens one inspect panel with that card's rule. A later tap on the panel dismisses it. Exploding Kittens keeps the shared scene, colors, and title. The rule line is not drawn on the face. Flip 7 keeps the shared numeral, action name, and modifier mark. Freeze, Flip Three, Second Chance, and the modifiers show their rule in that same panel. A short tap on the picture still plays an Exploding Kittens card, and a short tap still picks a Flip 7 target. There is no played-card animation.

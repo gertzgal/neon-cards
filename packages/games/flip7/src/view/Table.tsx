@@ -4,8 +4,10 @@ import { flushSync } from 'react-dom'
 import { faceDown, type CardView, type Flip7Face, type GameEvent, type SeatId } from '@neon-cards/engine'
 import {
   ActionBar,
+  CardInspect,
   Hand,
   Hud,
+  InspectFace,
   NeonButton,
   OpponentRows,
   PixelSprite,
@@ -15,8 +17,11 @@ import {
   TableLayout,
   bitmaps,
   toneColor,
+  useCardInspect,
   useCountUp,
   usePlayback,
+  useTableMetrics,
+  type InspectCopy,
   type OpponentSeatModel,
   type Point,
   type SeatState,
@@ -24,9 +29,38 @@ import {
 } from '@neon-cards/ui'
 import { hasAnyCard, roundValue, type F7Card, type Flip7Action, type Flip7View, type RoundScore } from '../rules'
 import { applyEvent, displayFromView, type Display, type DisplaySeat } from './display'
-import { flip7Face } from './face'
+import { faceInk, faceText, flip7Face, inspectRule } from './face'
 import { crown, HitIcon, NextIcon, StayIcon } from './icons'
 import { createJuice } from './juice'
+
+/** A short tap reads. A tap on a seat you are choosing is the target, so it does not open the panel. */
+function readOnTap(card: HTMLElement): boolean {
+  return !card.closest('[data-pick="true"]')
+}
+
+function f7Inspect(display: Display, el: HTMLElement, box: { w: number; h: number }): InspectCopy | null {
+  const raw = el.getAttribute('data-testid') ?? ''
+  if (!raw.startsWith('card-')) return null
+  const id = raw.slice('card-'.length)
+  const cards: F7Card[] = [...display.tray]
+  if (display.held) cards.push(display.held.card)
+  for (const seat of Object.values(display.seats)) {
+    cards.push(...seat.numbers, ...seat.modifiers)
+    if (seat.secondChance) cards.push(seat.secondChance)
+    if (seat.freeze) cards.push(seat.freeze)
+  }
+  const card = cards.find((item) => item.id === id && item.face)
+  if (!card?.face) return null
+  return {
+    title: faceText(card.face),
+    rule: inspectRule(card.face),
+    preview: (
+      <InspectFace accent={faceInk(card.face)} box={box}>
+        {flip7Face.render(card.face, { size: 'hand', widthPx: box.w })}
+      </InspectFace>
+    ),
+  }
+}
 
 const lineOf = (s: DisplaySeat) => ({ numbers: s.numbers, modifiers: s.modifiers, secondChance: s.secondChance, freeze: s.freeze })
 const valueOf = (s: DisplaySeat) => roundValue({ status: s.status, line: lineOf(s), flip7: s.flip7 })
@@ -89,6 +123,9 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
   )
   const viewRef = useRef(view)
   const rootRef = useRef<HTMLDivElement>(null)
+  const metrics = useTableMetrics()
+  const inspectBox = metrics.phone ? { w: 132, h: 178 } : { w: 160, h: 216 }
+  const inspect = useCardInspect(rootRef, (el) => f7Inspect(display, el, inspectBox), readOnTap)
   useLayoutEffect(() => {
     viewRef.current = view
   })
@@ -329,6 +366,7 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
         }
         controls={controls}
       />
+      <CardInspect copy={inspect.copy} onClose={inspect.close} />
     </div>
   )
 }

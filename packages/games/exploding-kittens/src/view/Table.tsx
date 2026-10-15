@@ -7,24 +7,57 @@ import {
   OpponentRows,
   PlayerSpot,
   PlayingCard,
+  CardInspect,
+  InspectFace,
   PixelSprite,
   ScoreBadge,
   TableLayout,
   handLayout,
   toneColor,
+  useCardInspect,
   useTableMetrics,
+  type InspectCopy,
   type OpponentSeatModel,
   type SeatState,
   type TableProps,
 } from '@neon-cards/ui'
 import { TITLE_ORDER, type EkAction, type EkFace, type EkView, type Title } from '../rules'
 import { FACE_LABEL } from '../rules/deck'
+import { scenes } from './art'
 import { applyEvent, displayFromView, owedBadge, type Display } from './display'
 import { ekFace, faceCorner, kittenMark } from './face'
 import { DrawIcon, NopeIcon, PassIcon, crown } from './icons'
 import { createJuice } from './juice'
 import { useEkPlayback } from './playback'
 import { actionForName, actionForSeat, fiveAction, fiveTitles, onCardTap, targetSeats } from './select'
+
+/** A short tap reads unless it is the picture of a card you can play right now. */
+function readOnTap(card: HTMLElement, target: EventTarget | null): boolean {
+  const button = card.closest('button.ek-card-btn, button.ek-discard-card')
+  if (!(button instanceof HTMLButtonElement) || button.dataset.play !== 'true') return true
+  return target instanceof Element && Boolean(target.closest('.ek-face-title'))
+}
+
+function ekInspect(display: Display, el: HTMLElement, box: { w: number; h: number }): InspectCopy | null {
+  const raw = el.getAttribute('data-testid') ?? ''
+  if (!raw.startsWith('card-')) return null
+  const id = raw.slice('card-'.length)
+  const pool: CardView<EkFace>[] = [...display.hand, ...display.discard, ...display.knownTop]
+  if (display.revealed) pool.push(display.revealed)
+  if (display.pileBack?.face) pool.push(display.pileBack)
+  const card = pool.find((item) => item.id === id && item.face)
+  if (!card?.face) return null
+  const scene = scenes[card.face.title]
+  return {
+    title: FACE_LABEL[card.face.title],
+    rule: scene.rule,
+    preview: (
+      <InspectFace accent={scene.accent} box={box}>
+        {ekFace.render(card.face, { size: 'hand', widthPx: box.w })}
+      </InspectFace>
+    ),
+  }
+}
 
 function backs(id: SeatId, count: number, drawn: string | undefined): CardView<EkFace>[] {
   return Array.from({ length: count }, (_, i) => ({
@@ -42,6 +75,8 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
   const viewRef = useRef(view)
   const rootRef = useRef<HTMLDivElement>(null)
   const metrics = useTableMetrics()
+  const inspectBox = metrics.phone ? { w: 132, h: 178 } : { w: 160, h: 216 }
+  const inspect = useCardInspect(rootRef, (el) => ekInspect(display, el, inspectBox), readOnTap)
   useLayoutEffect(() => {
     viewRef.current = view
   })
@@ -320,7 +355,7 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
                   type="button"
                   className="ek-discard-card"
                   data-dim={display.dimmed.includes(card.id) ? 'true' : undefined}
-                  disabled={!taking}
+                  data-play={taking ? 'true' : undefined}
                   onClick={() => onDiscard(card.id)}
                 >
                   <PlayingCard card={card} renderer={ekFace} size="compact" />
@@ -375,7 +410,7 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
                       data-card={card.id}
                       data-selected={on ? 'true' : 'false'}
                       aria-label={card.face ? FACE_LABEL[card.face.title] : 'face-down card'}
-                      disabled={!interactive || !mine || mine.kind === 'nope' || mine.kind === 'defuse'}
+                      data-play={interactive && mine && (mine.kind === 'give' || mine.kind === 'turn') ? 'true' : undefined}
                       style={{
                         width: layout.card.w,
                         height: layout.card.h,
@@ -394,6 +429,7 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
         }
         controls={controls}
       />
+      <CardInspect copy={inspect.copy} onClose={inspect.close} />
     </div>
   )
 }
