@@ -51,6 +51,8 @@ export interface HandProps<Face = unknown> {
   maxWidth?: number
   /** `fit` only. Scales the size token before the row is fitted, so the opening card can be smaller than the shared hand. */
   scale?: number
+  /** `fit` only. Space between cards, in px. Defaults to 6. Tightens only when that is what keeps the row inside `maxWidth`. */
+  gap?: number
   state?: SeatState
   testId?: string
 }

@@ -236,7 +236,14 @@
   pointer-events: none;
 }
 
-/* One centered row: numbers, then the score badge. The hand scales into the room this leaves. */
+/* The score sits with the progress marks, centered above the cards. Nothing sits beside the row. */
+.f7-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
 .f7-me .nc-player {
   display: flex;
   align-items: center;
@@ -245,11 +252,6 @@
   max-width: 100%;
   box-sizing: border-box;
   padding: 0 10px;
-  gap: 12px;
-}
-
-.f7-me .nc-badge-spacer {
-  display: none;
 }
 
 .f7-me .nc-card {
@@ -263,7 +265,7 @@
 .f7-slots {
   display: flex;
   gap: 6px;
-  margin-bottom: 6px;
+  margin: 0;
 }
 
 .f7-slots i {

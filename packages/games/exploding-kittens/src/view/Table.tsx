@@ -11,7 +11,7 @@ import {
   PixelSprite,
   ScoreBadge,
   TableLayout,
-  straightRow,
+  fittedRow,
   toneColor,
   useTableMetrics,
   type OpponentSeatModel,
@@ -47,6 +47,7 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
   const viewRef = useRef(view)
   const rootRef = useRef<HTMLDivElement>(null)
   const metrics = useTableMetrics()
+  const [handLimit, setHandLimit] = useState<number | null>(null)
   useLayoutEffect(() => {
     viewRef.current = view
   })
@@ -180,6 +181,26 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
     }
   })
 
+  useLayoutEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+    const col = root.querySelector('.ek-hand-col')
+    if (!(col instanceof HTMLElement)) return
+    const measure = () => {
+      const spot = col.querySelector('[data-testid="player-spot"]')
+      const badge = col.querySelector('[data-testid="owed"]')
+      const width = spot instanceof HTMLElement ? spot.clientWidth : col.clientWidth
+      if (width < 40) return
+      const beside = badge instanceof HTMLElement && spot instanceof HTMLElement && spot.contains(badge) ? badge.offsetWidth : 0
+      const next = Math.max(72, Math.floor(width - (beside > 0 ? beside * 2 + 16 : 0)))
+      setHandLimit((prev) => (prev === next ? prev : next))
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(col)
+    return () => observer.disconnect()
+  })
+
   const acting = playback.playing ? playback.actingSeat : display.turn
   const stateOf = (id: SeatId): SeatState => {
     if (display.winner === id) return 'win'
@@ -212,11 +233,9 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
   }
 
   const hand = display.hand
-  // The Play column stays on the right, so the row never runs under it. The owed digit stays in the phone top bar.
-  const playColumn = metrics.phone ? 176 : 208
-  const badge = metrics.phone ? 0 : 72
-  const limit = Math.max(140, metrics.width - playColumn - badge - 24)
-  const layout = straightRow(hand.length, metrics.card.hand, limit)
+  // The empty Play column collapses, so a defuse hand can use the width. A raised card still leaves room for Play.
+  const room = handLimit ?? Math.max(120, metrics.width - 16)
+  const layout = fittedRow(hand.length, metrics.card.hand, room, 1, 12, 28)
   const owner = new Map<Title, string>()
   if (raising) {
     for (const title of TITLE_ORDER) {
@@ -373,11 +392,11 @@ export function ExplodingKittensTable({ seats, humanSeat, view, events, act, bus
                 )}
                 <PlayerSpot state={myState} badge={metrics.phone ? null : owed}>
                   <div
-                    className="ek-hand-scroll"
+                    className="ek-hand"
                     data-testid="you-hand"
                     data-count={hand.length}
-                    data-layout="strip"
-                    style={{ width: layout.scrolls ? limit : layout.width }}
+                    data-layout="fit"
+                    style={{ width: layout.width, height: layout.card.h + 40 }}
                   >
                     <div className="ek-hand-row" style={{ width: layout.width, height: layout.card.h }}>
                       {hand.map((card, index) => {

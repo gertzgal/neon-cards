@@ -131,17 +131,23 @@
   align-items: center;
 }
 
-.ek-hand-scroll {
+.ek-hand {
+  position: relative;
   max-width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
   padding-top: 40px;
   pointer-events: auto;
-  scrollbar-width: none;
+  overflow: visible;
 }
 
-.ek-hand-scroll::-webkit-scrollbar {
-  display: none;
+.ek .nc-play-dock[data-open='false'] {
+  width: 0;
+  min-width: 0;
+  max-width: 0;
+  height: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
 .ek-hand-row {
@@ -162,24 +168,26 @@
 .ek-inserts {
   display: flex;
   flex-wrap: nowrap;
-  justify-content: flex-start;
-  gap: 4px;
-  width: min(100% - 20px, 640px);
+  justify-content: stretch;
+  align-items: stretch;
+  gap: 2px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   margin: 0 auto 8px;
-  overflow-x: auto;
+  padding: 0 4px;
+  overflow: hidden;
   pointer-events: auto;
-  scrollbar-width: none;
-}
-
-.ek-inserts::-webkit-scrollbar {
-  display: none;
 }
 
 .ek-inserts button {
-  flex: none;
-  width: 22px;
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
   height: 44px;
   padding: 0;
+  overflow: hidden;
   border: 2px solid rgba(46, 242, 255, 0.45);
   background: rgba(46, 242, 255, 0.08);
   pointer-events: auto;
@@ -191,10 +199,12 @@
 
 .ek-inserts button[data-end='top'],
 .ek-inserts button[data-end='bottom'] {
+  flex: 0 0 auto;
   width: auto;
-  min-width: 64px;
+  min-width: 0;
   height: 44px;
-  padding: 0 10px;
+  padding: 0 8px;
+  white-space: nowrap;
 }
 
 .ek-inserts button[data-end='top'] {

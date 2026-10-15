@@ -24,8 +24,8 @@ export const TITLE_LINES: Record<Title, readonly string[]> = {
 export function titleFont(widthPx: number, lines: readonly string[]): number {
   const height = widthPx / 0.74
   const band = height * (lines.length >= 3 ? 0.46 : lines.length === 2 ? 0.38 : 0.26)
-  const maxPx = Math.max(8, Math.floor(band / lines.length))
+  const maxPx = Math.max(1, Math.floor(band / lines.length))
   const longest = lines.reduce((best, line) => (line.length > best.length ? line : best))
   const byWidth = Math.floor((widthPx * 0.9) / (longest.length * CHAR))
-  return Math.max(8, Math.min(maxPx, byWidth))
+  return Math.max(1, Math.min(maxPx, byWidth))
 }

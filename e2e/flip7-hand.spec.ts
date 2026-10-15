@@ -77,8 +77,20 @@ async function badgeProblems(page: Page): Promise<string[]> {
   if (badge.x < -1 || badge.x + badge.width > viewport.width + 1) bad.push(`badge x ${Math.round(badge.x)}..${Math.round(badge.x + badge.width)}`)
   if (badge.y < -1 || badge.y + badge.height > viewport.height + 1) bad.push(`badge y ${Math.round(badge.y)}..${Math.round(badge.y + badge.height)}`)
   const cards = await cardsOf(page, 'you-hand')
-  const last = cards.reduce((end, card) => Math.max(end, card.right), 0)
-  if (cards.length > 0 && badge.x < last - 1) bad.push(`badge covers the row by ${Math.round(last - badge.x)}`)
+  if (cards.length > 0) {
+    const top = Math.min(...cards.map((card) => card.y))
+    if (badge.y + badge.height > top + 2) bad.push(`badge hangs beside the row at y ${Math.round(badge.y)}`)
+    const left = Math.min(...cards.map((card) => card.x))
+    const right = Math.max(...cards.map((card) => card.right))
+    const mid = (left + right) / 2
+    if (Math.abs(mid - viewport.width / 2) > 28) bad.push(`row center ${Math.round(mid)}`)
+    const first = cards[0]
+    const second = cards[1]
+    if (first && second) {
+      const gap = second.x - first.right
+      if (gap > 20) bad.push(`gap ${Math.round(gap)}`)
+    }
+  }
   return bad
 }
 
@@ -96,8 +108,8 @@ test('the opening card is smaller and the score badge stays on screen', async ({
   const card = (await cardsOf(page, 'you-hand'))[0]
   if (!card) throw new Error('missing opening card')
   const phone = viewport.width < 700
-  expect(card.w).toBeGreaterThan(phone ? 108 : 128)
-  expect(card.w).toBeLessThan(phone ? 145 : 170)
+  expect(card.w).toBeGreaterThan(phone ? 108 : 90)
+  expect(card.w).toBeLessThan(phone ? 145 : 120)
   await expect.poll(() => rowProblems(page, 'you-hand')).toEqual([])
   await expect.poll(() => badgeProblems(page)).toEqual([])
 })
