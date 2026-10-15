@@ -109,7 +109,33 @@ function rejectReason(err: unknown): RejectedFrame['reason'] {
   return 'illegal'
 }
 
+export interface RoomUsage {
+  saves: number
+  setAlarms: number
+  deleteAlarms: number
+  rowDeletes: number
+  requests: number
+  actionRecords: number
+  commandMs: number
+  alarmMs: number
+  readMs: number
+  handlerMs: number
+}
+
 export class RoomObject implements DurableObject {
+  private usageMeter: RoomUsage = {
+    saves: 0,
+    setAlarms: 0,
+    deleteAlarms: 0,
+    rowDeletes: 0,
+    requests: 0,
+    actionRecords: 0,
+    commandMs: 0,
+    alarmMs: 0,
+    readMs: 0,
+    handlerMs: 0,
+  }
+
   constructor(
     private readonly ctx: DurableObjectState,
     private readonly env: Env,
@@ -119,7 +145,29 @@ export class RoomObject implements DurableObject {
     })
   }
 
+  usage(): RoomUsage {
+    return { ...this.usageMeter }
+  }
+
+  private bump(field: 'commandMs' | 'alarmMs' | 'readMs' | 'handlerMs', ms: number): void {
+    if (ms > this.usageMeter[field]) this.usageMeter[field] = ms
+  }
+
+  private note(step: { log: readonly unknown[] }): void {
+    this.usageMeter.actionRecords += step.log.length
+  }
+
   async fetch(request: Request): Promise<Response> {
+    const started = performance.now()
+    this.usageMeter.requests += 1
+    try {
+      return await this.onFetch(request)
+    } finally {
+      this.bump('handlerMs', performance.now() - started)
+    }
+  }
+
+  private async onFetch(request: Request): Promise<Response> {
     const url = new URL(request.url)
     if (request.method === 'POST' && url.pathname === '/init') return this.init(request)
     if (request.headers.get('Upgrade')?.toLowerCase() === 'websocket') return this.join(request)
@@ -127,6 +175,18 @@ export class RoomObject implements DurableObject {
   }
 
   async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
+    const started = performance.now()
+    this.usageMeter.requests += 1
+    try {
+      await this.onSocketMessage(ws, message)
+    } finally {
+      const ms = performance.now() - started
+      this.bump('handlerMs', ms)
+      this.bump('commandMs', ms)
+    }
+  }
+
+  private async onSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
     const att = this.attachment(ws)
     if (!att || typeof message !== 'string') return
     let command: Incoming
@@ -202,6 +262,16 @@ export class RoomObject implements DurableObject {
   }
 
   async alarm(info?: { isRetry?: boolean }): Promise<void> {
+    const started = performance.now()
+    this.usageMeter.requests += 1
+    try {
+      await this.onAlarm(info)
+    } finally {
+      this.bump('alarmMs', performance.now() - started)
+    }
+  }
+
+  private async onAlarm(info?: { isRetry?: boolean }): Promise<void> {
     const state = this.read()
     if (!state || !isLive(state)) return
     const now = Date.now()
@@ -229,6 +299,7 @@ export class RoomObject implements DurableObject {
   }
 
   async webSocketClose(ws: WebSocket): Promise<void> {
+    this.usageMeter.requests += 1
     const att = this.attachment(ws)
     const state = this.read()
     if (!att || !state || state.kind === 'closed') return
@@ -303,6 +374,7 @@ export class RoomObject implements DurableObject {
     const seed = crypto.randomUUID()
     const started = startMatch(rules, { config, seats, seed })
     const step = rules.definition.opening?.(started.match.state) != null ? applyOpening(rules, started.match) : started
+    this.note(step)
     const live: LiveRoom = {
       kind: 'live',
       code: lobby.code,
@@ -329,6 +401,7 @@ export class RoomObject implements DurableObject {
     const settled = this.settleHolds(room)
     if (settled.phase !== 'between' || rules.definition.opening?.(settled.match.state) == null) throw new Error('illegal')
     const step = applyOpening(rules, asMatch(settled.match))
+    this.note(step)
     const live: LiveRoom = {
       ...settled,
       match: storeMatch(step.match),
@@ -369,6 +442,7 @@ export class RoomObject implements DurableObject {
     }
     try {
       const step = playAct(rules, asMatch(state.match), chair.seatId, command.action)
+      this.note(step)
       const live: LiveRoom = {
         ...state,
         match: storeMatch(step.match),
@@ -433,6 +507,7 @@ export class RoomObject implements DurableObject {
     if (!decline || !toAct || !chair) return this.schedule(rules, cleared, now)
     try {
       const step = playAct(rules, asMatch(room.match), toAct, decline)
+      this.note(step)
       return this.schedule(
         rules,
         { ...room, match: storeMatch(step.match), phase: phaseOf(rules, step.match.state), events: step.events },
@@ -457,6 +532,7 @@ export class RoomObject implements DurableObject {
     const difficulty = this.filler(room)
     if (chair.misses === 0) {
       const step = autoAct(rules, asMatch(room.match), difficulty)
+      this.note(step)
       const chairs = room.chairs.map((item) =>
         item.kind === 'human' && item.seatId === chair.seatId ? { ...item, misses: 1 as const } : item,
       )
@@ -475,6 +551,7 @@ export class RoomObject implements DurableObject {
       seat.id === chair.seatId ? { id: seat.id, kind: 'cpu' as const, name: chair.nickname, difficulty } : seat,
     )
     const step = continueMatch(rules, { ...asMatch(room.match), seats })
+    this.note(step)
     return this.schedule(
       rules,
       { ...room, chairs, match: storeMatch(step.match), phase: phaseOf(rules, step.match.state), events: step.events },
@@ -491,12 +568,18 @@ export class RoomObject implements DurableObject {
 
   private async arm(state: Stored | null): Promise<void> {
     if (!state || !isLive(state)) {
+      this.usageMeter.deleteAlarms += 1
       await this.ctx.storage.deleteAlarm()
       return
     }
     const due = earliest(state.deadlines)
-    if (due === null) await this.ctx.storage.deleteAlarm()
-    else await this.ctx.storage.setAlarm(due)
+    if (due === null) {
+      this.usageMeter.deleteAlarms += 1
+      await this.ctx.storage.deleteAlarm()
+    } else {
+      this.usageMeter.setAlarms += 1
+      await this.ctx.storage.setAlarm(due)
+    }
   }
 
   private async back(ws: WebSocket, att: Attachment, state: Lobby | LiveRoom, commandId: string): Promise<void> {
@@ -601,6 +684,7 @@ export class RoomObject implements DurableObject {
       const config = rules.definition.parseConfig(stripRig(settled.config, this.env.DEV_RIG === '1'))
       const seed = crypto.randomUUID()
       const started = startMatch(rules, { config, seats: [...playing, ...house], seed })
+      this.note(started)
       const watching = settled.watching.filter((id) => !chairs.some((chair) => chair.kind === 'human' && chair.playerId === id))
       const live: LiveRoom = {
         ...settled,
@@ -622,6 +706,7 @@ export class RoomObject implements DurableObject {
   }
 
   private async closeRoom(code: string): Promise<void> {
+    this.usageMeter.rowDeletes += 1
     this.ctx.storage.sql.exec('DELETE FROM room')
     await this.ctx.storage.deleteAlarm()
     await this.env.DB.prepare('UPDATE room_directory SET closed_at = ? WHERE code = ? AND closed_at IS NULL').bind(Date.now(), code).run()
@@ -632,13 +717,19 @@ export class RoomObject implements DurableObject {
   }
 
   private read(): Stored | null {
-    const rows = this.ctx.storage.sql.exec<{ body: string }>('SELECT body FROM room WHERE id = 1').toArray()
-    const body = rows[0]?.body
-    if (!body) return null
-    return JSON.parse(body) as Stored
+    const started = performance.now()
+    try {
+      const rows = this.ctx.storage.sql.exec<{ body: string }>('SELECT body FROM room WHERE id = 1').toArray()
+      const body = rows[0]?.body
+      if (!body) return null
+      return JSON.parse(body) as Stored
+    } finally {
+      this.bump('readMs', performance.now() - started)
+    }
   }
 
   private save(state: Stored): void {
+    this.usageMeter.saves += 1
     this.ctx.storage.sql.exec('INSERT OR REPLACE INTO room (id, body) VALUES (1, ?)', JSON.stringify(state))
   }
 

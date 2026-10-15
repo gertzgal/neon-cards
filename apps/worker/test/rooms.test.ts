@@ -7,6 +7,19 @@ interface Card {
   face: { title: string }
 }
 
+interface Usage {
+  saves: number
+  setAlarms: number
+  deleteAlarms: number
+  rowDeletes: number
+  requests: number
+  actionRecords: number
+  commandMs: number
+  alarmMs: number
+  readMs: number
+  handlerMs: number
+}
+
 interface Created {
   code: string
   frame: RoomFrame
@@ -24,7 +37,7 @@ interface RoomFrame {
   seq?: number
   deadline?: number | null
   reason?: string
-  view?: { me?: string; pending?: { kind?: string; seat?: string } | null }
+  view?: { me?: string; pending?: { kind?: string; seat?: string } | null; stage?: string }
 }
 
 function nextFrame(ws: WebSocket): Promise<RoomFrame> {
@@ -67,6 +80,10 @@ async function dealtHost(): Promise<{ cookie: string; code: string; socket: WebS
 
 function stubFor(code: string) {
   return env.ROOMS.get(env.ROOMS.idFromName(code))
+}
+
+function usageOf(code: string): Promise<Usage> {
+  return runInDurableObject(stubFor(code), (instance: { usage(): Usage }) => instance.usage())
 }
 
 async function rewriteDeadlines(code: string, deadlines: { turn: boolean; grace: boolean }): Promise<void> {
@@ -332,6 +349,47 @@ describe('room lobby', () => {
     expect(saved.events.some((event) => event.type === 'Passed')).toBe(true)
     hostSocket.close()
     guestSocket.close()
+  })
+
+  it('a finished four-seat Flip 7 counts snapshot writes, alarms, and action records', async () => {
+    const host = client()
+    const created = await host.post('/api/rooms', { gameId: 'flip7' })
+    const body = await json<Created>(created)
+    const socket = await connect(`nc_player=${host.playerId()}`, body.code)
+    await nextFrame(socket)
+    const set = nextFrame(socket)
+    socket.send(JSON.stringify({ type: 'settings', commandId: 'set1', config: { rig: 'win', difficulty: 'medium' } }))
+    await set
+    const before = await usageOf(body.code)
+
+    const dealt = nextFrame(socket)
+    socket.send(JSON.stringify({ type: 'deal', commandId: 'd1' }))
+    const live = await dealt
+    expect(live.view).toMatchObject({ pending: { kind: 'hitOrStay', seat: 's0' } })
+
+    const hitWait = nextFrame(socket)
+    socket.send(JSON.stringify({ type: 'act', commandId: 'hit', seq: live.seq ?? 0, action: { type: 'hit' } }))
+    const hit = await hitWait
+    expect(hit.view).toMatchObject({ pending: { kind: 'hitOrStay', seat: 's0' } })
+
+    const stayWait = nextFrame(socket)
+    socket.send(JSON.stringify({ type: 'act', commandId: 'stay', seq: hit.seq ?? 0, action: { type: 'stay' } }))
+    const done = await stayWait
+    expect(done.view).toMatchObject({ stage: 'gameOver' })
+
+    const after = await usageOf(body.code)
+    expect(before).toMatchObject({ saves: 3, setAlarms: 0, deleteAlarms: 1, rowDeletes: 0, requests: 3, actionRecords: 0 })
+    expect(after.saves - before.saves).toBe(3)
+    expect(after.setAlarms - before.setAlarms).toBe(2)
+    expect(after.deleteAlarms - before.deleteAlarms).toBe(1)
+    expect(after.rowDeletes).toBe(0)
+    expect(after.requests - before.requests).toBe(3)
+    expect(after.actionRecords).toBe(12)
+    expect(after.alarmMs).toBe(0)
+    expect(after.commandMs).toBeGreaterThan(0)
+    expect(after.handlerMs).toBeGreaterThanOrEqual(after.commandMs)
+    expect(after.readMs).toBeGreaterThanOrEqual(0)
+    socket.close()
   })
 
   it('answers 404 for a bad code and 400 for a game with no rooms', async () => {

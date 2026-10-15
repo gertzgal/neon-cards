@@ -678,3 +678,13 @@ The live frame gains `backSeat`. The spec's display seat already drops `difficul
 ## Exploding Kittens shares the room (2026-10-15)
 
 Setup accepts one or more humans and starts the first of them. A seat id that is not in the order gets an empty hand, no known cards, and no actions. `GameMeta.quick` for this game is `pass` and `nope`, and the decline is `pass`. The room arms the 5 second deadline instead of the 30 second turn while every legal action is one of those types. The alarm plays that decline. Misses stay put. A game with no `opening()` deals by `startMatch` alone. Flip 7 still opens with `applyOpening`. Blackjack stays off the room route.
+
+## One finished Flip 7 writes nine Durable Object rows (2026-10-15)
+
+The object still stores the room as one snapshot row. It does not insert a step row, and `record.ts` still does not exist, so the object still writes `closed_at` itself. The measurement is that snapshot design, not the step-row design in the spec.
+
+The sample is the `win` rig. One human and three medium CPUs. Deal, hit, stay. The host starts at 190, so the hand ends the match. From the deal through game over the object did 3 snapshot replacements, 2 `setAlarm` calls, and 1 `deleteAlarm`. The only index is the primary key, so those replacements are also 3 index updates. Counting the row, the index, `setAlarm`, and `deleteAlarm` gives 9 Durable Object row writes. The same three commands carried 12 `ActionRecord`s, because the CPU cascade sits inside the stay. The lobby before the deal was 3 more snapshot writes and 1 `deleteAlarm`. No room row was deleted.
+
+Local `performance.now` around the command peaked at 3 ms, and the handler peak was the same 3 ms. The snapshot read was under the timer, so it recorded 0 ms. No alarm ran in this test, so alarm time is 0. These are local wall times. They do not decide the free-plan CPU cap.
+
+At 9 writes for a hand of this length, 100,000 writes a day is about 11,000 such hands. A longer match repeats the per-command cost. One human command is one snapshot, one primary-key index update, and one `setAlarm` while a human still has a turn. That replaces the 330 illustration for this short hand only. The free-plan alarm and WebSocket sample is still open until the preview worker records it.
