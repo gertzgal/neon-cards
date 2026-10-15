@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { actionSentence } from './face'
+import { actionSentence, feltSentence } from './face'
 
 describe('action explanations', () => {
   it('gives every face one sentence', () => {
@@ -11,5 +11,12 @@ describe('action explanations', () => {
     expect(actionSentence({ kind: 'number', value: 7 })).toBe('A second copy busts. Seven different numbers scores Flip 7.')
     expect(actionSentence({ kind: 'modifier', op: 'add', value: 10 })).toBe('Add 10 to the round.')
     expect(actionSentence({ kind: 'modifier', op: 'times', value: 2 })).toBe('Double your number cards.')
+  })
+
+  it('keeps a number and a modifier off the felt', () => {
+    expect(feltSentence({ kind: 'number', value: 8 })).toBeNull()
+    expect(feltSentence({ kind: 'modifier', op: 'add', value: 10 })).toBeNull()
+    expect(feltSentence({ kind: 'modifier', op: 'times', value: 2 })).toBeNull()
+    expect(feltSentence({ kind: 'action', action: 'freeze' })).toBe('That player banks their score and sits this round out.')
   })
 })

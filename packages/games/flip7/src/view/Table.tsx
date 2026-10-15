@@ -25,7 +25,7 @@ import {
 } from '@neon-cards/ui'
 import { hasAnyCard, roundValue, type F7Card, type Flip7Action, type Flip7View, type RoundScore } from '../rules'
 import { applyEvent, cardOnTable, displayFromView, type Display, type DisplaySeat } from './display'
-import { ACTION_HINT_MS, actionSentence, flip7Face } from './face'
+import { ACTION_HINT_MS, feltSentence, flip7Face } from './face'
 import { crown, HitIcon, NextIcon, StayIcon } from './icons'
 import { createJuice } from './juice'
 
@@ -108,7 +108,8 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
     (event: GameEvent) => {
       if (event.type === 'CardDealt') {
         const dealt = event as { card?: F7Card }
-        if (dealt.card) setHint({ text: actionSentence(dealt.card.face), until: Date.now() + ACTION_HINT_MS })
+        const sentence = dealt.card ? feltSentence(dealt.card.face) : null
+        if (sentence) setHint({ text: sentence, until: Date.now() + ACTION_HINT_MS })
       }
       const card = (event as { card?: F7Card }).card
       if (card) {
@@ -243,7 +244,8 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
     if (!raw.startsWith('card-')) return
     const card = cardOnTable(display, raw.slice('card-'.length))
     if (!card) return
-    setHint({ text: actionSentence(card.face), until: null })
+    const sentence = feltSentence(card.face)
+    setHint(sentence ? { text: sentence, until: null } : null)
   }
 
   const myScore = scoreOf(humanSeat)

@@ -52,7 +52,7 @@ export function faceTone(face: Flip7Face): Tone {
   return ACTION[face.action].tone
 }
 
-/** The rule line and the guide both read this. Every face has one sentence. */
+/** The guide reads this. Every face has one sentence. */
 export function actionSentence(face: Flip7Face): string {
   switch (face.kind) {
     case 'number':
@@ -86,6 +86,11 @@ export function actionSentence(face: Flip7Face): string {
       return unreachable
     }
   }
+}
+
+/** The felt hint. A number or a modifier stays quiet; the guide page teaches those. */
+export function feltSentence(face: Flip7Face): string | null {
+  return face.kind === 'action' ? actionSentence(face) : null
 }
 
 /** How long a drawn action's sentence stays up. A tap does not use this. */
