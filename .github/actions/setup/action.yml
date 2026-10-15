@@ -32,9 +32,10 @@ runs:
           packages/ui/node_modules
           packages/games/blackjack/node_modules
           packages/games/flip7/node_modules
+          packages/games/exploding-kittens/node_modules
           ~/.wrangler
           ~/.config/.wrangler
-        key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+        key: deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', '.github/actions/setup/action.yml') }}
     - name: Install dependencies
       id: install
       if: steps.deps.outputs.cache-hit != 'true'

@@ -87,6 +87,7 @@ jobs:
             packages/ui/tsconfig.tsbuildinfo
             packages/games/blackjack/tsconfig.tsbuildinfo
             packages/games/flip7/tsconfig.tsbuildinfo
+            packages/games/exploding-kittens/tsconfig.tsbuildinfo
           key: tsbuild-${{ runner.os }}-${{ steps.task.outputs.hash }}
           restore-keys: |
             tsbuild-${{ runner.os }}-
