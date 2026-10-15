@@ -1,6 +1,6 @@
 # Rooms
 
-Play with friends opens a Flip 7 room. The address is `/r/` plus a 4-character code, and that same code is on the screen. A nickname is assigned once and shown on the seat. The host presses Deal. Watchers are an eye count (`spectator-count`) on the shell. A watcher can take an open CPU seat for the next round. Two missed turns cover a chair, and I'm back returns it. Rematch rotates who goes first and waits for Deal. The host leaving closes the room. Blackjack has no room.
+Play with friends opens a Flip 7 room. Exploding Kittens uses the same room from its pre-game sheet. A Nope window is five seconds. The address is `/r/` plus a 4-character code, and that same code is on the screen. A nickname is assigned once and shown on the seat. The host presses Deal. Watchers are an eye count (`spectator-count`) on the shell. A watcher can take an open CPU seat for the next round. Two missed turns cover a chair, and I'm back returns it. Rematch rotates who goes first and waits for Deal. The host leaving closes the room. Blackjack has no room.
 
 ## Sub-features
 

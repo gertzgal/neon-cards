@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { earliest, wakePlan } from './clock'
+import { earliest, isQuickWindow, wakePlan } from './clock'
 
 describe('room clock', () => {
   it('picks the earliest deadline', () => {
@@ -13,6 +13,12 @@ describe('room clock', () => {
       turn: false,
       quick: false,
     })
+  })
+
+  it('treats a nope menu as a short window and a draw menu as a turn', () => {
+    expect(isQuickWindow(['pass', 'nope'], [{ type: 'pass' }, { type: 'nope' }])).toBe(true)
+    expect(isQuickWindow(['pass', 'nope'], [{ type: 'draw' }, { type: 'play' }])).toBe(false)
+    expect(isQuickWindow(undefined, [{ type: 'pass' }])).toBe(false)
   })
 
   it('plays a due turn when grace is later', () => {

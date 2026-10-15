@@ -33,5 +33,6 @@ export const rules: GameRules<EkConfig, EkState, EkAction, EkView, EkFace> = {
     description: 'Draw cards. Do not explode. Last one alive wins.',
     economy: 'score',
     settings,
+    quick: { types: ['pass', 'nope'], decline: { type: 'pass' } },
   },
 }

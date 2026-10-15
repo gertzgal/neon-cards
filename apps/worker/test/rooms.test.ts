@@ -3,6 +3,10 @@ import { env } from 'cloudflare:workers'
 import { describe, expect, it } from 'vitest'
 import { client, json, testApp } from './client'
 
+interface Card {
+  face: { title: string }
+}
+
 interface Created {
   code: string
   frame: RoomFrame
@@ -255,6 +259,79 @@ describe('room lobby', () => {
     expect(watcherAfter).toMatchObject({ type: 'live', you: 's0', eyes: 0, canOpen: false })
     dealt.socket.close()
     watcherSocket.close()
+  })
+
+  it('a nope window is about five seconds and a timeout passes without a miss', async () => {
+    const host = client()
+    const created = await host.post('/api/rooms', { gameId: 'exploding-kittens' })
+    const body = await json<Created>(created)
+    const hostSocket = await connect(`nc_player=${host.playerId()}`, body.code)
+    const guest = client()
+    await guest.post('/api/sessions', { gameId: 'blackjack', config: {} })
+    const hostSawGuest = nextFrame(hostSocket)
+    const guestSocket = await connect(`nc_player=${guest.playerId()}`, body.code)
+    await nextFrame(guestSocket)
+    await hostSawGuest
+    const dealt = nextFrame(hostSocket)
+    const guestDealt = nextFrame(guestSocket)
+    hostSocket.send(JSON.stringify({ type: 'deal', commandId: 'd1' }))
+    const opening = await dealt
+    await guestDealt
+    await runInDurableObject(stubFor(body.code), (_instance: unknown, state) => {
+      const rows = state.storage.sql.exec<{ body: string }>('SELECT body FROM room WHERE id = 1').toArray()
+      const room = JSON.parse(rows[0]?.body ?? '{}') as {
+        match: { state: { order: string[]; draw: Card[]; discard: Card[]; removed: Card[]; seats: Record<string, { hand: Card[] }> } }
+      }
+      const ek = room.match.state
+      const take = (title: string): Card => {
+        for (const id of ek.order) {
+          const hand = ek.seats[id]?.hand ?? []
+          const index = hand.findIndex((card) => card.face.title === title)
+          const card = index >= 0 ? hand.splice(index, 1)[0] : undefined
+          if (card) return card
+        }
+        for (const pile of [ek.draw, ek.discard, ek.removed]) {
+          const index = pile.findIndex((card) => card.face.title === title)
+          const card = index >= 0 ? pile.splice(index, 1)[0] : undefined
+          if (card) return card
+        }
+        throw new Error(`no ${title}`)
+      }
+      ek.seats.s0?.hand.push(take('attack'))
+      ek.seats.s1?.hand.push(take('nope'))
+      state.storage.sql.exec('INSERT OR REPLACE INTO room (id, body) VALUES (1, ?)', JSON.stringify(room))
+    })
+    const hostWindow = nextFrame(hostSocket)
+    const guestWindow = nextFrame(guestSocket)
+    hostSocket.send(JSON.stringify({ type: 'act', commandId: 'atk', seq: opening.seq, action: { type: 'play', title: 'attack' } }))
+    const hostLive = await hostWindow
+    const guestLive = await guestWindow
+    expect(guestLive.view?.pending).toMatchObject({ kind: 'nope', seat: 's1' })
+    expect(hostLive.deadline).toBeTypeOf('number')
+    expect((hostLive.deadline ?? 0) - Date.now()).toBeGreaterThan(3_000)
+    expect((hostLive.deadline ?? 0) - Date.now()).toBeLessThan(6_000)
+    await runInDurableObject(stubFor(body.code), (_instance: unknown, state) => {
+      const rows = state.storage.sql.exec<{ body: string }>('SELECT body FROM room WHERE id = 1').toArray()
+      const room = JSON.parse(rows[0]?.body ?? '{}') as { deadlines: { quick: { dueAt: number } | null } }
+      if (room.deadlines.quick) room.deadlines.quick.dueAt = 1
+      state.storage.sql.exec('INSERT OR REPLACE INTO room (id, body) VALUES (1, ?)', JSON.stringify(room))
+    })
+    expect(await runDurableObjectAlarm(stubFor(body.code))).toBe(true)
+    const saved = await runInDurableObject(stubFor(body.code), (_instance: unknown, state) => {
+      const rows = state.storage.sql.exec<{ body: string }>('SELECT body FROM room WHERE id = 1').toArray()
+      return JSON.parse(rows[0]?.body ?? '{}') as {
+        chairs: { seatId: string; kind: string; misses?: number }[]
+        deadlines: { quick: unknown }
+        match: { state: { pending: { kind: string } | null } }
+        events: { type: string }[]
+      }
+    })
+    expect(saved.chairs.find((chair) => chair.seatId === 's0')).toMatchObject({ kind: 'human', misses: 0 })
+    expect(saved.chairs.find((chair) => chair.seatId === 's1')).toMatchObject({ kind: 'human', misses: 0 })
+    expect(saved.deadlines.quick).toBeNull()
+    expect(saved.events.some((event) => event.type === 'Passed')).toBe(true)
+    hostSocket.close()
+    guestSocket.close()
   })
 
   it('answers 404 for a bad code and 400 for a game with no rooms', async () => {

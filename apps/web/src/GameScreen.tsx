@@ -1,7 +1,8 @@
 import { useLayoutEffect, useState } from 'react'
+import { api } from './api'
+import { navigate } from './router'
 import { loadGameSettings, saveGameSettings, type GameSettings } from './game-settings'
 import type { GamePlugin } from '@neon-cards/ui'
-import { navigate } from './router'
 import { useGameSession } from './session'
 import { Hud, HudIcons } from './shell/Hud'
 import { Segmented } from './shell/Segmented'
@@ -106,6 +107,20 @@ function PreGameSheet({
           onChange={(value) => setSettings({ ...settings, [spec.key]: value })}
         />
       ))}
+      {definition.id === 'exploding-kittens' && (
+        <button
+          type="button"
+          className="btn wide"
+          data-testid="pregame-friends"
+          onClick={() => {
+            void api.createRoom('exploding-kittens').then((created) => {
+              navigate({ name: 'room', code: created.code })
+            })
+          }}
+        >
+          Play with friends
+        </button>
+      )}
       <button
         type="button"
         className="btn main wide"

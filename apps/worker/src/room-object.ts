@@ -11,7 +11,9 @@ import {
 } from '@neon-cards/engine'
 import {
   HOST_GRACE_MS,
+  QUICK_MS,
   TURN_MS,
+  isQuickWindow,
   applyHolds,
   addSocket,
   createLobby,
@@ -218,7 +220,7 @@ export class RoomObject implements DurableObject {
     if (!rules) return
     let room = state
     if (plan.turn) room = this.miss(rules, room, now)
-    if (plan.quick) room = { ...room, deadlines: { ...room.deadlines, quick: null } }
+    if (plan.quick) room = this.decline(rules, room, now)
     room = this.settleHolds(room)
     const saved = { ...room, generation: room.generation + 1 }
     this.save(saved)
@@ -300,7 +302,7 @@ export class RoomObject implements DurableObject {
     const seats: Seat[] = [...playing, ...house]
     const seed = crypto.randomUUID()
     const started = startMatch(rules, { config, seats, seed })
-    const step = applyOpening(rules, started.match)
+    const step = rules.definition.opening?.(started.match.state) != null ? applyOpening(rules, started.match) : started
     const live: LiveRoom = {
       kind: 'live',
       code: lobby.code,
@@ -414,9 +416,31 @@ export class RoomObject implements DurableObject {
 
   private schedule(rules: GameRules, room: LiveRoom, now: number): LiveRoom {
     const toAct = rules.definition.toAct(room.match.state)
+    const actions = toAct ? (rules.definition.legalActions(room.match.state, toAct) as { type?: unknown }[]) : []
+    if (toAct && isQuickWindow(rules.meta.quick?.types, actions)) {
+      return { ...room, deadlines: { ...room.deadlines, turn: null, quick: { seatId: toAct, dueAt: now + QUICK_MS } } }
+    }
     const human = room.chairs.find((chair) => chair.kind === 'human' && chair.seatId === toAct)
     const turn = human ? { seatId: human.seatId, dueAt: now + TURN_MS } : null
-    return { ...room, deadlines: { ...room.deadlines, turn } }
+    return { ...room, deadlines: { ...room.deadlines, turn, quick: null } }
+  }
+
+  private decline(rules: GameRules, room: LiveRoom, now: number): LiveRoom {
+    const decline = rules.meta.quick?.decline
+    const toAct = rules.definition.toAct(room.match.state)
+    const chair = room.chairs.find((item) => item.kind === 'human' && item.seatId === toAct)
+    const cleared = { ...room, deadlines: { ...room.deadlines, quick: null } }
+    if (!decline || !toAct || !chair) return this.schedule(rules, cleared, now)
+    try {
+      const step = playAct(rules, asMatch(room.match), toAct, decline)
+      return this.schedule(
+        rules,
+        { ...room, match: storeMatch(step.match), phase: phaseOf(rules, step.match.state), events: step.events },
+        now,
+      )
+    } catch {
+      return this.schedule(rules, cleared, now)
+    }
   }
 
   private filler(room: LiveRoom): 'easy' | 'medium' | 'hard' {
@@ -497,8 +521,8 @@ export class RoomObject implements DurableObject {
 
   private liveFor(rules: GameRules, room: LiveRoom, playerId: string, events: unknown, snap: boolean): OutFrame {
     const chair = room.chairs.find((item) => item.kind === 'human' && item.playerId === playerId)
-    const seat = chair?.seatId ?? room.match.seats[0]?.id
-    const view = seat ? rules.definition.view(room.match.state, seat) : null
+    const seat = chair?.seatId ?? 'watch'
+    const view = rules.definition.view(room.match.state, seat)
     const toAct = rules.definition.toAct(room.match.state)
     return liveFrame({
       room,

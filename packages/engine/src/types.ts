@@ -102,6 +102,11 @@ export interface GameMeta {
   minBet?: number
   /** Shown on the pre-game sheet; values land in config[key]. */
   settings?: SettingSpec[]
+  /**
+   * Action types that are a short window. A timeout plays `decline` and does not
+   * call the policy or count a missed turn.
+   */
+  quick?: { types: readonly string[]; decline: unknown }
 }
 
 /** What `@neon-cards/game-<id>/rules` exports. Pure: the Worker runs it. */
