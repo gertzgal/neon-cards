@@ -231,7 +231,25 @@
   display: grid;
   justify-items: center;
   gap: 4px;
+  width: 100%;
+  min-width: 0;
   pointer-events: none;
+}
+
+/* One centered row: numbers, then the score badge. The hand scales into the room this leaves. */
+.f7-me .nc-player {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0 10px;
+  gap: 12px;
+}
+
+.f7-me .nc-badge-spacer {
+  display: none;
 }
 
 .f7-me .nc-card {

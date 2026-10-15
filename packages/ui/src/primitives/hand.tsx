@@ -15,8 +15,8 @@ const minVisible = 0.45
 const minScale = 0.6
 
 /**
- * Where each card sits in a hand: overlap tightens to fit `maxWidth`, then cards shrink so
- * long hands (Flip 7 runs to 7+ cards) stay readable. Fans rotate and arc.
+ * Where each card sits in a fan or a flat row: overlap tightens to fit `maxWidth`, then cards shrink.
+ * Fans rotate and arc.
  */
 /**
  * A straight side-by-side row. No fan, no arc, no rotation.
@@ -32,6 +32,45 @@ export function straightRow(count: number, card: Size, maxWidth: number): { widt
   const slots = Array.from({ length: count }, (_, i) => ({ x: i * step, y: 0, rotate: 0 }))
   const width = count ? card.w + step * Math.max(0, count - 1) : 0
   return { width, card, slots, scrolls: width > maxWidth + 0.5 }
+}
+
+/**
+ * A straight row that scales down until it fits `maxWidth`.
+ * No overlap, wrap, fan, rotation, or scroll. `startScale` shrinks the size token first,
+ * so a one-card row can open smaller than the shared hand.
+ */
+export function fittedRow(
+  count: number,
+  card: Size,
+  maxWidth: number,
+  startScale = 1,
+): { width: number; card: Size; slots: SlotPlacement[] } {
+  const gap = 6
+  const baseW = card.w * startScale
+  const baseH = card.h * startScale
+  const full = { w: Math.max(1, Math.round(baseW)), h: Math.max(1, Math.round(baseH)) }
+  if (count <= 0 || maxWidth <= 0 || baseW <= 0) return { width: 0, card: full, slots: [] }
+  const natural = count * baseW + gap * (count - 1)
+  const scale = Math.min(1, maxWidth / natural)
+  let w = Math.max(1, Math.floor(baseW * scale))
+  let h = Math.max(1, Math.round(baseH * (w / baseW)))
+  let stepGap = count > 1 ? (scale < 1 ? gap * scale : gap) : 0
+  let row = count * w + stepGap * (count - 1)
+  if (scale < 1 && count > 1 && row < maxWidth) stepGap += (maxWidth - row) / (count - 1)
+  row = count * w + stepGap * (count - 1)
+  if (row > maxWidth + 0.01 && count > 1) {
+    stepGap = Math.max(0, (maxWidth - count * w) / (count - 1))
+    row = count * w + stepGap * (count - 1)
+  }
+  while (row > maxWidth + 0.01 && w > 1) {
+    w -= 1
+    h = Math.max(1, Math.round(baseH * (w / baseW)))
+    stepGap = count > 1 ? Math.max(0, (maxWidth - count * w) / (count - 1)) : 0
+    row = count * w + stepGap * (count - 1)
+  }
+  const advance = w + stepGap
+  const slots = Array.from({ length: count }, (_, i) => ({ x: i * advance, y: 0, rotate: 0 }))
+  return { width: count > 1 ? w + (count - 1) * advance : w, card: { w, h }, slots }
 }
 
 export function handLayout(
@@ -56,7 +95,7 @@ export function handLayout(
 }
 
 /** A row or fan of cards. Each card sits in a slot that the juice system animates. */
-export function Hand<Face>({ cards, renderer, size = 'hand', layout, maxWidth, state, testId }: HandProps<Face>) {
+export function Hand<Face>({ cards, renderer, size = 'hand', layout, maxWidth, scale, state, testId }: HandProps<Face>) {
   const metrics = useTableMetrics()
   const box = metrics.card[size]
   const mode = layout ?? (size === 'hand' ? 'fan' : 'row')
@@ -71,12 +110,15 @@ export function Hand<Face>({ cards, renderer, size = 'hand', layout, maxWidth, s
         : metrics.phone
           ? metrics.width * 0.4
           : Math.min(metrics.width * 0.2, 280))
+  const fit = mode === 'fit' ? fittedRow(cards.length, box, limit, scale ?? 1) : null
   const strip = mode === 'strip' ? straightRow(cards.length, box, limit) : null
-  const laid = strip ?? handLayout(cards.length, box, mode, limit, size)
+  const straightMode = mode === 'fan' || mode === 'row' ? mode : 'row'
+  const laid = fit ?? strip ?? handLayout(cards.length, box, straightMode, limit, size)
   const { width, card: fitted, slots } = laid
   const minWidth = size === 'tray' ? box.w * 2 + 8 : 0
   const frame = Math.max(width, minWidth)
   const viewWidth = strip?.scrolls ? limit : frame
+  const flat = Boolean(fit || strip)
   const slotsView = cards.map((c, i) => {
     const slot = slots[i] ?? { x: 0, y: 0, rotate: 0 }
     return (
@@ -90,13 +132,13 @@ export function Hand<Face>({ cards, renderer, size = 'hand', layout, maxWidth, s
             width: fitted.w,
             height: fitted.h,
             zIndex: i,
-            transform: strip ? `translate(${slot.x}px, 0px)` : `translate(${slot.x}px, ${slot.y}px) rotate(${slot.rotate}deg)`,
+            transform: flat ? `translate(${slot.x}px, 0px)` : `translate(${slot.x}px, ${slot.y}px) rotate(${slot.rotate}deg)`,
             '--nc-c': cardAccent(renderer, c.face),
           } as CSSProperties
         }
       >
         <div className="nc-fly">
-          <div className={`nc-sway${size === 'compact' || strip ? ' nc-still' : ''}`}>
+          <div className={`nc-sway${size === 'compact' || flat ? ' nc-still' : ''}`}>
             <PlayingCard card={c} renderer={renderer} size={size} box={fitted} {...(state ? { state } : {})} />
           </div>
         </div>
@@ -109,7 +151,7 @@ export function Hand<Face>({ cards, renderer, size = 'hand', layout, maxWidth, s
       data-testid={testId}
       data-state={state}
       data-count={cards.length}
-      data-layout={strip ? 'strip' : mode}
+      data-layout={fit ? 'fit' : strip ? 'strip' : mode}
       style={{ width: viewWidth, height: strip ? fitted.h + 40 : fitted.h }}
     >
       {strip ? (

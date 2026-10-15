@@ -26,6 +26,7 @@ import {
 import { hasAnyCard, roundValue, type F7Card, type Flip7Action, type Flip7View, type RoundScore } from '../rules'
 import { applyEvent, cardOnTable, displayFromView, type Display, type DisplaySeat } from './display'
 import { ACTION_HINT_MS, feltSentence, flip7Face } from './face'
+import { FLIP7_HAND_GAP, FLIP7_HAND_PAD, FLIP7_OPEN_SCALE, flip7HandRoom } from './hand-room'
 import { crown, HitIcon, NextIcon, StayIcon } from './icons'
 import { createJuice } from './juice'
 
@@ -92,6 +93,29 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
   const viewRef = useRef(view)
   const rootRef = useRef<HTMLDivElement>(null)
   const metrics = useTableMetrics()
+  const [handRoom, setHandRoom] = useState<number | null>(null)
+  const spotReady = Boolean(display.seats[humanSeat])
+  useLayoutEffect(() => {
+    if (!spotReady) return
+    const root = rootRef.current
+    if (!root) return
+    const player = root.querySelector('[data-testid="player-spot"]')
+    const badge = root.querySelector('[data-testid="round-value"]')
+    if (!(player instanceof HTMLElement) || !(badge instanceof HTMLElement)) return
+    const measure = () => {
+      if (player.clientWidth < 40) return
+      const style = getComputedStyle(player)
+      const paddingX = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0)
+      const gap = parseFloat(style.columnGap) || parseFloat(style.gap) || 0
+      const next = flip7HandRoom(player.clientWidth, paddingX, gap, badge.offsetWidth)
+      setHandRoom((prev) => (prev === next ? prev : next))
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(player)
+    observer.observe(badge)
+    return () => observer.disconnect()
+  }, [spotReady])
   useLayoutEffect(() => {
     viewRef.current = view
   })
@@ -249,6 +273,8 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
   }
 
   const myScore = scoreOf(humanSeat)
+  const badgeGuess = Math.ceil(metrics.card.hand.h * 0.16 * 3.4 + 6)
+  const room = handRoom ?? flip7HandRoom(metrics.width, FLIP7_HAND_PAD * 2, FLIP7_HAND_GAP, badgeGuess)
   const held = display.held
   const flipThree = display.flipThree
   const pendingCard = mine && mine.kind === 'assign' ? mine.card.id : held?.card.id
@@ -336,7 +362,14 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
               onClick={() => pick(humanSeat)}
             >
               <div className="f7-extras">
-                <Hand cards={extrasOf(me)} renderer={flip7Face} size="compact" layout="row" testId="you-extras" />
+                <Hand
+                  cards={extrasOf(me)}
+                  renderer={flip7Face}
+                  size="compact"
+                  layout="fit"
+                  maxWidth={Math.max(72, metrics.width - FLIP7_HAND_PAD * 2)}
+                  testId="you-extras"
+                />
               </div>
               <Slots filled={me.status === 'busted' ? 0 : unique} gold={me.flip7} />
               {hint && (
@@ -359,8 +392,9 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
                   cards={cardsOf(humanSeat, me)}
                   renderer={flip7Face}
                   size="hand"
-                  layout="strip"
-                  maxWidth={Math.max(160, metrics.width - (metrics.phone ? 24 : 80))}
+                  layout="fit"
+                  scale={FLIP7_OPEN_SCALE}
+                  maxWidth={room}
                   testId="you-hand"
                   state={myState}
                 />

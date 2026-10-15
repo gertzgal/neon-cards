@@ -45,10 +45,12 @@ export interface HandProps<Face = unknown> {
   cards: CardView<Face>[]
   renderer: CardFaceRenderer<Face>
   size?: CardSize
-  /** `fan` rotates and arcs. `row` is flat. `strip` is a straight row that overlaps slightly and scrolls. */
-  layout?: 'fan' | 'row' | 'strip'
-  /** Max width the hand may use before cards overlap more, in px. Defaults per size and viewport. */
+  /** `fan` rotates and arcs. `row` is flat. `strip` overlaps slightly, then scrolls. `fit` scales a straight row into `maxWidth`. */
+  layout?: 'fan' | 'row' | 'strip' | 'fit'
+  /** Max width the hand may use before cards overlap more, in px. `fit` scales the row into this width. Defaults per size and viewport. */
   maxWidth?: number
+  /** `fit` only. Scales the size token before the row is fitted, so the opening card can be smaller than the shared hand. */
+  scale?: number
   state?: SeatState
   testId?: string
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { chipsFor, formatMoney } from './chips'
-import { handLayout, straightRow } from './hand'
+import { fittedRow, handLayout, straightRow } from './hand'
 import { tableMetrics } from './metrics'
 import { bitmapRects } from './pixel'
 
@@ -76,6 +76,47 @@ describe('straightRow', () => {
     expect(phone.slots[1]?.x).toBeCloseTo(108)
     expect(phone.width).toBeGreaterThan(262)
     expect(phone.scrolls).toBe(true)
+  })
+})
+
+describe('fittedRow', () => {
+  const phone = { w: 150, h: 203 }
+  const desktop = { w: 180, h: 243 }
+
+  it('opens one card smaller than the shared hand, flat and unrotated', () => {
+    const row = fittedRow(1, phone, 268, 0.8)
+    expect(row.card).toEqual({ w: 120, h: 162 })
+    expect(row.width).toBe(120)
+    expect(row.slots).toEqual([{ x: 0, y: 0, rotate: 0 }])
+  })
+
+  it('keeps a gap when the row fits', () => {
+    const row = fittedRow(2, phone, 400, 0.8)
+    expect(row.card.w).toBe(120)
+    expect(row.slots[1]?.x).toBe(126)
+    expect(row.width).toBe(246)
+    expect(row.slots.every((slot) => slot.rotate === 0 && slot.y === 0)).toBe(true)
+  })
+
+  it('scales seven phone cards into the badge room without overlap or scroll', () => {
+    const room = 262
+    const row = fittedRow(7, phone, room, 0.8)
+    expect(row.width).toBeLessThanOrEqual(room + 0.01)
+    expect(row.card.w).toBeGreaterThanOrEqual(30)
+    expect(row.card.w).toBeLessThan(120)
+    expect(row.slots.every((slot) => slot.rotate === 0 && slot.y === 0)).toBe(true)
+    expect(Math.max(...row.slots.map((slot) => slot.x + row.card.w))).toBeLessThanOrEqual(room + 0.01)
+    for (let i = 1; i < row.slots.length; i++) {
+      const slot = row.slots[i]
+      const prev = row.slots[i - 1]
+      expect(slot?.x ?? 0).toBeGreaterThanOrEqual((prev?.x ?? 0) + row.card.w - 0.01)
+    }
+  })
+
+  it('keeps seven desktop cards at the opening size when they fit beside the badge', () => {
+    const row = fittedRow(7, desktop, 1268, 0.8)
+    expect(row.card).toEqual({ w: 144, h: 194 })
+    expect(row.width).toBe(144 * 7 + 6 * 6)
   })
 })
 
