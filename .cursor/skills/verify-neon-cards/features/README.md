@@ -14,6 +14,7 @@ The maintained source for verifying what a Neon Cards player can see and do. Rea
 | Flip 7: setup, rounds, actions, FLIP 7!, scoring, win | [flip7.md](flip7.md) | live (Flip 7) |
 | Exploding Kittens: setup, draw, Nope window, defuse | [exploding-kittens.md](exploding-kittens.md) | live (Exploding Kittens) |
 | How to play: first visit, book, close, refresh | [guide.md](guide.md) | live (Shell) |
+| Rooms: Play with friends, a code, Deal, eyes, I'm back | [rooms.md](rooms.md) | live (Shell) |
 
 ## Baseline preconditions
 

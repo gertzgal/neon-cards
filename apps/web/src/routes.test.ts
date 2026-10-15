@@ -10,6 +10,9 @@ describe('parseRoute', () => {
     expect(parseRoute('/history', '?game=blackjack')).toEqual({ name: 'history', gameId: 'blackjack' })
     expect(parseRoute('/games/Bad_Id', '')).toEqual({ name: 'notFound', path: '/games/Bad_Id' })
     expect(parseRoute('/nope', '')).toEqual({ name: 'notFound', path: '/nope' })
+    expect(parseRoute('/r/ABCD', '')).toEqual({ name: 'room', code: 'ABCD' })
+    expect(parseRoute('/r/ab12', '')).toEqual({ name: 'notFound', path: '/r/ab12' })
+    expect(parseRoute('/r/IIII', '')).toEqual({ name: 'notFound', path: '/r/IIII' })
   })
 })
 
@@ -19,6 +22,8 @@ describe('hrefFor', () => {
     expect(hrefFor({ name: 'game', gameId: 'blackjack' })).toBe('/games/blackjack')
     expect(hrefFor({ name: 'history', gameId: null })).toBe('/history')
     expect(hrefFor({ name: 'history', gameId: 'flip7' })).toBe('/history?game=flip7')
+    expect(hrefFor({ name: 'room', code: 'ABCD' })).toBe('/r/ABCD')
+    expect(parseRoute('/r/ABCD', '')).toEqual({ name: 'room', code: 'ABCD' })
     const [path, search] = hrefFor({ name: 'history', gameId: 'flip7' }).split('?')
     expect(parseRoute(path ?? '', `?${search}`)).toEqual({ name: 'history', gameId: 'flip7' })
   })

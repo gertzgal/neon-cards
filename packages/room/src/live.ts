@@ -119,5 +119,11 @@ export function liveFrame(input: {
     events: input.events,
     snap: input.snap,
     deadline: earliest(input.room.deadlines),
+    backSeat: coveredSeat(input.room, input.playerId),
   }
+}
+
+function coveredSeat(room: LiveRoom, playerId: string): string | null {
+  const chair = room.chairs.find((item) => item.kind === 'cpu' && item.away === playerId)
+  return chair?.seatId ?? null
 }

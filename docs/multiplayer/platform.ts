@@ -226,6 +226,8 @@ export interface LiveFrame {
   events: unknown
   snap: boolean
   deadline: number | null
+  /** Seat this player is covering. Null when they are seated or only watching. */
+  backSeat: SeatId | null
 }
 
 export interface ClosedFrame {

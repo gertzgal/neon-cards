@@ -5,6 +5,7 @@ import { findGame } from './games'
 import { History } from './History'
 import { Home } from './Home'
 import { NotFound } from './NotFound'
+import { RoomScreen } from './RoomScreen'
 import { useRoute } from './router'
 import type { Route } from './routes'
 import { useReducedMotion, useSettings } from './settings'
@@ -44,6 +45,8 @@ function Screen({ route }: { route: Route }) {
       const plugin = findGame(route.gameId)
       return plugin ? <GameScreen key={route.gameId} plugin={plugin} /> : <NotFound what={`No game called "${route.gameId}".`} />
     }
+    case 'room':
+      return <RoomScreen key={route.code} code={route.code} />
     case 'notFound':
       return <NotFound what={`${route.path} is not a page.`} />
   }
