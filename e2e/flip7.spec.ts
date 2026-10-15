@@ -31,7 +31,7 @@ async function stay(page: Page) {
 
 const opponentCards = (page: Page, seat: string) => page.locator(`[data-testid="seat-${seat}"] [data-testid^="card-"]`)
 
-test('the setup sheet seats the chosen number of CPUs; only numbers on the table', async ({ page }, testInfo) => {
+test('the setup sheet seats the chosen number of CPUs; names sit on the seats and the felt stays numeric', async ({ page }, testInfo) => {
   await page.goto('/games/flip7')
   await expect(page.getByTestId('pregame-opponents')).toHaveAttribute('data-value', '2')
   await expect(page.getByTestId('pregame-difficulty')).toHaveAttribute('data-value', 'medium')
@@ -41,8 +41,10 @@ test('the setup sheet seats the chosen number of CPUs; only numbers on the table
   await expect(page.getByTestId('hud-total')).toHaveAttribute('data-value', '0')
   // A dealt action card keeps its sentence on the felt for about two seconds. Wait it out, then require a quiet table.
   await expect(page.getByTestId('card-rule')).toHaveCount(0)
+  const captions = (await page.locator('.nc-seat-name').allInnerTexts()).join(' ')
+  const allowed = new Set(['FLIP', 'BUST', ...(captions.match(/[A-Za-z]{2,}/g) ?? [])])
   const words = (await table(page).innerText()).match(/[A-Za-z]{2,}/g) ?? []
-  expect(words.filter((w) => !['FLIP', 'BUST'].includes(w))).toEqual([])
+  expect(words.filter((word) => !allowed.has(word))).toEqual([])
   await page.screenshot({ path: testInfo.outputPath('setup-3-cpus.png') })
 })
 

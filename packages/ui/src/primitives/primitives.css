@@ -43,9 +43,8 @@
   align-items: center;
   column-gap: 10px;
   row-gap: 8px;
-  padding: 14px 16px 8px;
-  min-height: 58px;
-  height: auto;
+  padding: 14px 16px 0;
+  height: 58px;
   flex: none;
   position: relative;
   z-index: 6;
@@ -67,6 +66,12 @@
   display: flex;
   min-width: 0;
   max-width: 100%;
+}
+
+/* A room bar grows under the score. A solo bar stays the fixed height the setup sheet clears. */
+.nc-hud:has(.nc-hud-center) {
+  height: auto;
+  padding-bottom: 8px;
 }
 
 .nc-icons {
@@ -980,8 +985,8 @@
 
 @media (min-width: 700px) {
   .nc-hud {
-    padding: 20px 26px 8px;
-    min-height: 70px;
+    padding: 20px 26px 0;
+    height: 70px;
   }
   .nc-bankroll {
     font-size: 40px;
