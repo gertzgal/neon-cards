@@ -218,6 +218,46 @@ describe('room lobby', () => {
     dealt.socket.close()
   })
 
+  it('a watcher counts as an eye, holds a CPU seat, and rematch rotates the host', async () => {
+    const dealt = await dealtHost()
+    const watcher = client()
+    await watcher.post('/api/sessions', { gameId: 'blackjack', config: {} })
+    const hostSawJoin = nextFrame(dealt.socket)
+    const watcherSocket = await connect(`nc_player=${watcher.playerId()}`, dealt.code)
+    const watcherFrame = await nextFrame(watcherSocket)
+    expect(watcherFrame).toMatchObject({ type: 'live', you: null, eyes: 1, canAct: false })
+    expect(await hostSawJoin).toMatchObject({ eyes: 1 })
+
+    const hostSawSit = nextFrame(dealt.socket)
+    const watcherSawSit = nextFrame(watcherSocket)
+    watcherSocket.send(JSON.stringify({ type: 'sit', commandId: 'sit-1', seatId: 's1' }))
+    expect(await watcherSawSit).toMatchObject({ you: null, eyes: 1 })
+    await hostSawSit
+    const held = await runInDurableObject(stubFor(dealt.code), (_instance: unknown, state) => {
+      const rows = state.storage.sql.exec<{ body: string }>('SELECT body FROM room WHERE id = 1').toArray()
+      return JSON.parse(rows[0]?.body ?? '{}') as { holds: { seatId: string }[]; chairs: { seatId: string; kind: string }[] }
+    })
+    expect(held.holds.map((hold) => hold.seatId)).toEqual(['s1'])
+    expect(held.chairs.find((chair) => chair.seatId === 's1')?.kind).toBe('cpu')
+
+    await runInDurableObject(stubFor(dealt.code), (_instance: unknown, state) => {
+      const rows = state.storage.sql.exec<{ body: string }>('SELECT body FROM room WHERE id = 1').toArray()
+      const room = JSON.parse(rows[0]?.body ?? '{}') as { phase: string }
+      room.phase = 'over'
+      state.storage.sql.exec('INSERT OR REPLACE INTO room (id, body) VALUES (1, ?)', JSON.stringify(room))
+    })
+    const hostNext = nextFrame(dealt.socket)
+    const watcherNext = nextFrame(watcherSocket)
+    dealt.socket.send(JSON.stringify({ type: 'rematch', commandId: 'again' }))
+    const hostAfter = await hostNext
+    const watcherAfter = await watcherNext
+    expect(hostAfter).toMatchObject({ type: 'live', you: 's3', eyes: 0 })
+    expect(watcherAfter).toMatchObject({ type: 'live', you: 's0', eyes: 0 })
+    expect(hostAfter.seq).toBeGreaterThan(0)
+    dealt.socket.close()
+    watcherSocket.close()
+  })
+
   it('answers 404 for a bad code and 400 for a game with no rooms', async () => {
     const p = client()
     await p.post('/api/sessions', { gameId: 'flip7', config: { opponents: 1 } })

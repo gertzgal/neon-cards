@@ -31,5 +31,6 @@ export {
   type RoomState,
 } from './lobby'
 export { randomNickname } from './nickname'
+export { applyHolds, rotatePlaying, type Hold } from './rematch'
 export { stripRig } from './rig'
 export { liveChairs, roomSeats, type LiveChair, type RoomDifficulty, type RoomSeat } from './seats'
