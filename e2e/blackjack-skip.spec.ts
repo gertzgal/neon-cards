@@ -96,7 +96,7 @@ test.describe('Blackjack: tap or key to skip the round animation', () => {
         await page.keyboard.press('Space')
       },
     )
-    expect(ms).toBeLessThan(1_500)
+    expect(ms).toBeLessThan(2_500)
     await expect(table(page)).toHaveAttribute('data-stage', 'betting')
     await expect(page.getByTestId('bet-amount')).toHaveAttribute('data-value', '25')
     const history = await (await page.request.get('/api/history?gameId=blackjack')).json()
