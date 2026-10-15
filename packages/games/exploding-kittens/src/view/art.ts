@@ -29,6 +29,7 @@ export interface EkScene {
 
 const fur = '#ffe2b8'
 const dark = '#14080c'
+const pairRule = 'A pair of these steals a card.'
 
 /**
  * Original pixel scenes. Each one follows the physical card: a colored field,
@@ -248,7 +249,7 @@ export const scenes: Record<Title, EkScene> = {
     accent: '#ff8a2a',
     field: '#1a1008',
     short: 'TACO',
-    rule: 'A pair of these steals a card.',
+    rule: pairRule,
     inks: { K: fur, D: dark, H: '#ffb020', A: '#7dff4a', R: '#ff4d6a' },
     art: grid(`
       .... HHHH HHHH ....
@@ -274,7 +275,7 @@ export const scenes: Record<Title, EkScene> = {
     accent: '#e0a15a',
     field: '#16100a',
     short: 'POTATO',
-    rule: 'A pair of these steals a card.',
+    rule: pairRule,
     inks: { K: '#e8b56a', D: dark, H: '#f4e2c0', A: '#ff7ab4' },
     art: grid(`
       ...H .H.H H.H. H...
@@ -300,7 +301,7 @@ export const scenes: Record<Title, EkScene> = {
     accent: '#3dff7a',
     field: '#08140c',
     short: 'MELON',
-    rule: 'A pair of these steals a card.',
+    rule: pairRule,
     inks: { A: '#3dff7a', H: '#ff4d88', K: '#ffd0e0', D: dark, W: '#e8ffe8' },
     art: grid(`
       .... .AAA AAAA ....
@@ -326,7 +327,7 @@ export const scenes: Record<Title, EkScene> = {
     accent: '#d7a15a',
     field: '#14100c',
     short: 'BEARD',
-    rule: 'A pair of these steals a card.',
+    rule: pairRule,
     inks: { K: '#ffe0c0', D: dark, H: '#c4844a', A: '#ff7ab4' },
     art: grid(`
       .... .KK. .KK. ....
@@ -352,7 +353,7 @@ export const scenes: Record<Title, EkScene> = {
     accent: '#ff7ab4',
     field: '#100818',
     short: 'RAINBOW',
-    rule: 'A pair of these steals a card.',
+    rule: pairRule,
     inks: { K: fur, D: dark, H: '#ff4d4d', A: '#ffe14a', W: '#3dff7a', B: '#2ef2ff', C: '#c084ff' },
     art: grid(`
       .... .KK. .KK. ....
