@@ -13,7 +13,13 @@ export function TableLayout({ hud, top, middle, bottom, controls }: TableLayoutP
       className="nc-table"
       data-testid="table"
       data-layout={metrics.phone ? 'phone' : 'desktop'}
-      style={{ '--nc-felt-h': `${metrics.feltHeight}px`, '--nc-hand-h': `${metrics.card.hand.h}px` } as CSSProperties}
+      style={
+        {
+          '--nc-felt-h': `${metrics.feltHeight}px`,
+          '--nc-hand-h': `${metrics.card.hand.h}px`,
+          '--nc-compact-h': `${metrics.card.compact.h}px`,
+        } as CSSProperties
+      }
     >
       {hud}
       <div className="nc-zone-top" data-testid="table-top">

@@ -97,10 +97,14 @@
   width: 100%;
 }
 
+.f7 .nc-zone-middle,
+.f7-middle {
+  min-height: calc(var(--nc-compact-h, 48px) + 22px);
+}
+
 .f7-middle {
   position: relative;
   width: min(100% - 24px, 640px);
-  min-height: 96px;
   display: grid;
   grid-template-columns: auto 1fr auto;
   grid-template-areas: 'pile center tray';

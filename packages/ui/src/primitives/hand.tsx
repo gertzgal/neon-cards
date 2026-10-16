@@ -20,11 +20,25 @@ const minScale = 0.6
  */
 /**
  * A straight side-by-side row. No fan, no arc, no rotation.
- * Cards keep a gap when they fit. A tight row overlaps slightly.
- * `scrolls` is true when that overlap still runs past `maxWidth`.
+ * Cards keep `gap` when they fit. With `shrink`, a long row gets smaller until the gap still fits.
+ * Without `shrink`, a tight row overlaps, and `scrolls` is true when that overlap runs past `maxWidth`.
  */
-export function straightRow(count: number, card: Size, maxWidth: number): { width: number; card: Size; slots: SlotPlacement[]; scrolls: boolean } {
-  const gap = 8
+export function straightRow(
+  count: number,
+  card: Size,
+  maxWidth: number,
+  shrink = false,
+  gap = 8,
+): { width: number; card: Size; slots: SlotPlacement[]; scrolls: boolean } {
+  if (shrink && count > 1) {
+    const gaps = gap * (count - 1)
+    const fittedW = Math.max(1, Math.min(card.w, Math.floor((maxWidth - gaps) / count)))
+    const fitted = fittedW === card.w ? card : { w: fittedW, h: Math.max(1, Math.round((card.h * fittedW) / card.w)) }
+    const step = fitted.w + gap
+    const slots = Array.from({ length: count }, (_, i) => ({ x: i * step, y: 0, rotate: 0 }))
+    const width = fitted.w + step * (count - 1)
+    return { width, card: fitted, slots, scrolls: width > maxWidth + 0.5 }
+  }
   const natural = card.w + gap
   const minStep = card.w * 0.72
   const fit = count > 1 ? (maxWidth - card.w) / (count - 1) : 0
@@ -56,7 +70,7 @@ export function handLayout(
 }
 
 /** A row or fan of cards. Each card sits in a slot that the juice system animates. */
-export function Hand<Face>({ cards, renderer, size = 'hand', layout, maxWidth, state, testId }: HandProps<Face>) {
+export function Hand<Face>({ cards, renderer, size = 'hand', layout, maxWidth, gap, state, testId }: HandProps<Face>) {
   const metrics = useTableMetrics()
   const box = metrics.card[size]
   const mode = layout ?? (size === 'hand' ? 'fan' : 'row')
@@ -71,7 +85,7 @@ export function Hand<Face>({ cards, renderer, size = 'hand', layout, maxWidth, s
         : metrics.phone
           ? metrics.width * 0.4
           : Math.min(metrics.width * 0.2, 280))
-  const strip = mode === 'strip' ? straightRow(cards.length, box, limit) : null
+  const strip = mode === 'strip' ? straightRow(cards.length, box, limit, true, gap) : null
   const laid = strip ?? handLayout(cards.length, box, mode, limit, size)
   const { width, card: fitted, slots } = laid
   const minWidth = size === 'tray' ? box.w * 2 + 8 : 0
@@ -110,7 +124,7 @@ export function Hand<Face>({ cards, renderer, size = 'hand', layout, maxWidth, s
       data-state={state}
       data-count={cards.length}
       data-layout={strip ? 'strip' : mode}
-      style={{ width: viewWidth, height: strip ? fitted.h + 40 : fitted.h }}
+      style={{ width: viewWidth, height: fitted.h }}
     >
       {strip ? (
         <div className="nc-hand-scroll" style={{ width: viewWidth }}>

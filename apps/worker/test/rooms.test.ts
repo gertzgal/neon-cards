@@ -404,5 +404,7 @@ describe('room lobby', () => {
     )
     expect(missing.status).toBe(404)
     expect((await p.post('/api/rooms', { gameId: 'blackjack' })).status).toBe(400)
+    expect((await p.post('/api/rooms', { gameId: 'flip7', seats: 1 })).status).toBe(400)
+    expect((await p.post('/api/rooms', { gameId: 'flip7', seats: 9 })).status).toBe(400)
   })
 })
