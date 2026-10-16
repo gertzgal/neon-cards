@@ -98,7 +98,7 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
   const roomBar = hudCenter != null
   const [hudHeight, setHudHeight] = useState(() => (metrics.phone ? (roomBar ? 102 : 58) : roomBar ? 120 : 70))
   const opponentCount = Math.max(0, seats.length - 1)
-  const fitted = fitTable(metrics, { opponents: opponentCount, hudHeight })
+  const fitted = fitTable(metrics, { opponents: opponentCount, hudHeight, room: roomBar })
   useLayoutEffect(() => {
     viewRef.current = view
   })
@@ -221,7 +221,8 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
   }
   const scoreOf = (id: SeatId) => display.lastScores?.find((r) => r.seat === id) ?? null
   const cardsOf = (id: SeatId, s: DisplaySeat): CardView<Flip7Face>[] => {
-    const hidden = s.status === 'busted' && !revealing.includes(id)
+    // The local line stays face up through a bust. An opponent line turns down after its BUST stamp.
+    const hidden = id !== humanSeat && s.status === 'busted' && !revealing.includes(id)
     const numbers: CardView<Flip7Face>[] = hidden ? s.numbers.map(faceDown) : s.numbers
     return id === humanSeat ? numbers : [...numbers, ...extrasOf(s)]
   }
@@ -377,6 +378,7 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
                   renderer={flip7Face}
                   size="hand"
                   layout="strip"
+                  gap={roomBar && !metrics.phone ? 12 : 8}
                   maxWidth={Math.max(160, metrics.width - (metrics.phone ? 108 : 80))}
                   testId="you-hand"
                   state={myState}

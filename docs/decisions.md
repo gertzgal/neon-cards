@@ -720,3 +720,9 @@ The solo bar stays 58px on a phone and 70px on a desktop, which is what the setu
 ## The room table uses the solo card budget (2026-10-16)
 
 A four-seat phone room was taller than the viewport. The name sat on its own row, the hand kept 40px of lift it never uses, and the middle zone was the only row allowed to shrink. It shrank under the draw pile, so the pile painted over the seat totals. `fitTable` starts from `tableMetrics` and scales the hand and the compact cards until the column fits. A phone name sits beside the cards again. A short phone may also drop the felt from 178px to 132px, which still holds the 54px buttons. `POST /api/rooms` accepts a chair count inside the game's min and max so a 2-player room is not forced to four seats.
+
+## The local Flip 7 hand stays face up (2026-10-16)
+
+The room proof showed card backs in the big hand. That line was busted. `cardsOf` turned every busted line face down as soon as the BUST stamp landed, which is earlier than the round moving on, and it hid the local hand with the opponents. The local numbers stay face up through a bust, including after the stamp, until the next round clears them. An opponent line still turns face down after its stamp.
+
+A phone strip keeps the solo 8px gap and shrinks until the cards sit side by side. Four cards at 390 no longer overlap inside a row that has room for a gap. A short phone keeps the solo pile and seat-card size, and the hand takes the shrink, so the pile count is not sitting on BUST and the turn card is not a sliver. A desktop room hand is 70% of the solo desktop hand, with a 12px gap, and the player spot keeps it centered. Solo Flip 7 is unchanged when it is not a room.

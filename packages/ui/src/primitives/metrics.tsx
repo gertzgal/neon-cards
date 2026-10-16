@@ -57,8 +57,12 @@ const minCardScale = 0.6
  * Phone seats stack, so each opponent costs a row. Desktop seats sit in one row.
  * The felt overlaps the hand by 20%, which the budget gives back.
  * A phone name is at least 46px beside the card, so a tiny card does not shrink the row further.
+ * A room keeps the solo pile and seat cards. The hand takes the shrink. A desktop room hand is 70% of solo.
  */
-export function fitTable(base: TableMetrics, input: { opponents: number; hudHeight: number }): TableMetrics {
+export function fitTable(
+  base: TableMetrics,
+  input: { opponents: number; hudHeight: number; room?: boolean },
+): TableMetrics {
   const phone = base.phone
   const rows = phone ? input.opponents : input.opponents > 0 ? 1 : 0
   const pileLabel = 22
@@ -69,6 +73,7 @@ export function fitTable(base: TableMetrics, input: { opponents: number; hudHeig
   const nameBlock = 46
   const seatPad = 16
   const desktopChrome = 84
+  const sized = (box: Size, scale: number): Size => ({ w: Math.round(box.w * scale), h: Math.round(box.h * scale) })
 
   const solve = (felt: number): number => {
     const overlap = 0.2 * handH
@@ -92,13 +97,32 @@ export function fitTable(base: TableMetrics, input: { opponents: number; hudHeig
     felt = 132
     scale = solve(felt)
   }
+
+  if (input.room && !phone) {
+    return { ...base, card: { ...base.card, hand: sized(base.card.hand, 0.7) } }
+  }
+
+  if (input.room && phone && scale < 1) {
+    const handRoom = (feltH: number) => {
+      const fixed = input.hudHeight + feltH + pileLabel + bottomChrome + gaps
+      const seatRow = Math.max(nameBlock, compactH) + seatPad
+      return (base.height - fixed - rows * seatRow - compactH) / 0.8
+    }
+    felt = 132
+    const handScale = Math.min(1, handRoom(felt) / handH)
+    return {
+      ...base,
+      feltHeight: felt,
+      card: { hand: sized(base.card.hand, handScale), tray: sized(base.card.tray, handScale), compact: base.card.compact },
+    }
+  }
+
   scale = Math.max(minCardScale, Math.min(1, scale))
   if (scale === 1 && felt === base.feltHeight) return base
-  const size = (box: Size): Size => ({ w: Math.round(box.w * scale), h: Math.round(box.h * scale) })
   return {
     ...base,
     feltHeight: felt,
-    card: { hand: size(base.card.hand), tray: size(base.card.tray), compact: size(base.card.compact) },
+    card: { hand: sized(base.card.hand, scale), tray: sized(base.card.tray, scale), compact: sized(base.card.compact, scale) },
   }
 }
 

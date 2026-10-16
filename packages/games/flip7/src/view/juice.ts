@@ -7,7 +7,7 @@ export interface JuiceHost {
   human: SeatId
   /** Where each card was on screen just before the event that moved it. */
   before: Map<string, Point>
-  /** Turns a busted line face down once its BUST stamp has landed. */
+  /** Turns an opponent's busted line face down once its BUST stamp has landed. The local line stays face up. */
   settleBust(seat: SeatId): void
 }
 
