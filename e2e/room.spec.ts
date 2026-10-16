@@ -157,6 +157,115 @@ test('the room top bar does not overlap or clip', async ({ page }) => {
   expect(problems, problems.join('\n')).toEqual([])
 })
 
+async function openSizedRoom(page: Page, seats: number) {
+  const rig = 'you=1,2,3,4,5,6;cpu=12,11,10'
+  await page.goto('/')
+  const code = await page.evaluate(async (count) => {
+    const res = await fetch('/api/rooms', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ gameId: 'flip7', seats: count }),
+    })
+    if (!res.ok) throw new Error(await res.text())
+    const body = (await res.json()) as { code: string }
+    return body.code
+  }, seats)
+  await page.goto(`/r/${code}?rig=${encodeURIComponent(rig)}`)
+  await expect(page.getByTestId('room-deal')).toBeEnabled({ timeout: 15_000 })
+  await page.getByTestId('room-deal').click()
+  await expect(page.getByTestId('flip7-table')).toHaveAttribute('data-stage', 'playing')
+  await settled(page)
+  await expect(page.locator('[data-testid="opponent-rows"] .nc-seat')).toHaveCount(seats - 1)
+}
+
+type FitEl = {
+  getBoundingClientRect(): { x: number; y: number; right: number; bottom: number; width: number; height: number }
+  getAttribute(name: string): string | null
+  scrollWidth: number
+  clientWidth: number
+  scrollHeight: number
+  clientHeight: number
+}
+type FitPage = {
+  document: { querySelector(selector: string): FitEl | null; querySelectorAll(selector: string): Iterable<FitEl> }
+  innerWidth: number
+  innerHeight: number
+}
+
+test('a room table fits 2, 3, and 4 players without overlap', async ({ page }, testInfo) => {
+  test.setTimeout(180_000)
+  const viewports =
+    testInfo.project.name === 'phone'
+      ? [
+          { width: 390, height: 844 },
+          { width: 360, height: 640 },
+        ]
+      : [
+          { width: 1440, height: 900 },
+          { width: 1280, height: 800 },
+        ]
+  for (const seats of [2, 3, 4]) {
+    await openSizedRoom(page, seats)
+    for (let n = 0; n < 4; n++) {
+      const hit = page.getByTestId('action-hit')
+      if ((await hit.count()) === 0 || !(await hit.isEnabled())) break
+      await hit.click()
+      await settled(page)
+    }
+    expect(Number(await page.getByTestId('you-hand').getAttribute('data-count'))).toBeGreaterThan(1)
+    for (const viewport of viewports) {
+      await page.setViewportSize(viewport)
+      await page.evaluate(async () => {
+        const w = globalThis as unknown as {
+          requestAnimationFrame(fn: () => void): number
+          document: { getAnimations(): { finished: Promise<void> }[] }
+          CSSTransition: new () => { finished: Promise<void> }
+        }
+        await new Promise<void>((resolve) => w.requestAnimationFrame(() => w.requestAnimationFrame(() => resolve())))
+        const pending = w.document.getAnimations().filter((anim) => anim instanceof w.CSSTransition)
+        await Promise.all(pending.map((anim) => anim.finished.catch(() => undefined)))
+        await new Promise<void>((resolve) => w.requestAnimationFrame(() => resolve()))
+      })
+      const problems = await page.evaluate(() => {
+        const g = globalThis as unknown as FitPage
+        const layout = [
+          ...g.document.querySelectorAll('[data-testid="hud"]'),
+          ...g.document.querySelectorAll('[data-testid="opponent-rows"] .nc-seat'),
+          ...g.document.querySelectorAll('[data-testid="draw-pile"]'),
+          ...g.document.querySelectorAll('[data-testid="you-hand"]'),
+          ...g.document.querySelectorAll('[data-testid="round-value"]'),
+        ]
+        const names = [...g.document.querySelectorAll('[data-testid="opponent-rows"] .nc-seat-name')]
+        const boxOf = (el: FitEl) => {
+          const r = el.getBoundingClientRect()
+          return { id: el.getAttribute('data-testid') || 'name', x: r.x, y: r.y, right: r.right, bottom: r.bottom, el }
+        }
+        const boxes = layout.map(boxOf)
+        const found: string[] = []
+        const scroller = g.document.querySelector('[data-testid="you-hand"] .nc-hand-scroll')
+        if (scroller && scroller.scrollWidth > scroller.clientWidth + 1) found.push('hand scrolls')
+        const mark = (a: { id: string; x: number; y: number; right: number; bottom: number; el: FitEl }, text: boolean) => {
+          if (a.x < -1 || a.y < -1 || a.right > g.innerWidth + 1 || a.bottom > g.innerHeight + 1) found.push(`offscreen ${a.id}`)
+          if (text && (a.el.scrollWidth > a.el.clientWidth + 1 || a.el.scrollHeight > a.el.clientHeight + 1)) found.push(`clipped ${a.id}`)
+        }
+        boxes.forEach((a, i) => {
+          mark(a, false)
+          for (let j = i + 1; j < boxes.length; j++) {
+            const b = boxes[j]
+            if (!b) continue
+            const w = Math.min(a.right, b.right) - Math.max(a.x, b.x)
+            const h = Math.min(a.bottom, b.bottom) - Math.max(a.y, b.y)
+            if (w > 1 && h > 1) found.push(`overlap ${a.id} ${b.id}`)
+          }
+        })
+        names.map(boxOf).forEach((name) => mark(name, true))
+        return found
+      })
+      expect(problems, `${seats} players at ${viewport.width}x${viewport.height}\n${problems.join('\n')}`).toEqual([])
+    }
+  }
+})
+
 test('two missed turns cover the chair, a reload keeps I am back, and the player returns', async ({ page, browser }) => {
   test.setTimeout(150_000)
   const code = await openRoom(page, 'you=2,3,4;cpu=12,11,10')

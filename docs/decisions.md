@@ -716,3 +716,7 @@ Gal's proof shots showed the room chips covering the `0/200` pill, no how-to-pla
 Flip 7 and Exploding Kittens had hidden `.nc-seat-name`. Captions are visible on every seat, including the human's own. A human caption is the nickname. A CPU caption is the name `roomSeats` already assigns from the nickname list, plus an 8-bit bot. A covered friend stays a CPU chair and keeps that player's nickname, with the bot, because the chair is being played. The difficulty word stays off the felt. The phone seat puts the caption on its own row so the name is not squeezed into the card column.
 
 The solo bar stays 58px on a phone and 70px on a desktop, which is what the setup sheet clears at 72px. Only a bar that contains the room chips grows onto a second row. The Exploding Kittens caption sits above the hand, in a column, so the name does not push the play reason past the screen edge.
+
+## The room table uses the solo card budget (2026-10-16)
+
+A four-seat phone room was taller than the viewport. The name sat on its own row, the hand kept 40px of lift it never uses, and the middle zone was the only row allowed to shrink. It shrank under the draw pile, so the pile painted over the seat totals. `fitTable` starts from `tableMetrics` and scales the hand and the compact cards until the column fits. A phone name sits beside the cards again. A short phone may also drop the felt from 178px to 132px, which still holds the 54px buttons. `POST /api/rooms` accepts a chair count inside the game's min and max so a 2-player room is not forced to four seats.

@@ -116,6 +116,11 @@ export function createApp(games: readonly GameRules[], devGames: readonly GameRu
     const rules = regFor(c.env).get(gameId)
     if (!rules) throw new ApiError(404, `unknown game "${gameId}"`)
     const nickname = await nicknameFor(c.var.db, c.var.playerId)
+    const span = rules.definition.seats
+    const requested = body.seats
+    const seats =
+      requested === undefined ? span.max : typeof requested === 'number' && Number.isInteger(requested) ? requested : NaN
+    if (!Number.isInteger(seats) || seats < span.min || seats > span.max) throw new ApiError(400, 'that table size is not in this game')
     const code = await mintUnique(c.var.db)
     await c.var.db.insert(schema.roomDirectory).values({
       code,
@@ -132,7 +137,7 @@ export function createApp(games: readonly GameRules[], devGames: readonly GameRu
         gameId,
         hostId: c.var.playerId,
         nickname,
-        seats: rules.definition.seats.max,
+        seats,
       }),
     })
     if (!opened.ok) throw new Error('room did not open')

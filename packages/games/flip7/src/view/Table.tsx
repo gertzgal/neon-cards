@@ -14,7 +14,9 @@ import {
   PlayingCard,
   ScoreBadge,
   TableLayout,
+  MetricsScope,
   bitmaps,
+  fitTable,
   toneColor,
   useCountUp,
   usePlayback,
@@ -93,6 +95,10 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
   const viewRef = useRef(view)
   const rootRef = useRef<HTMLDivElement>(null)
   const metrics = useTableMetrics()
+  const roomBar = hudCenter != null
+  const [hudHeight, setHudHeight] = useState(() => (metrics.phone ? (roomBar ? 102 : 58) : roomBar ? 120 : 70))
+  const opponentCount = Math.max(0, seats.length - 1)
+  const fitted = fitTable(metrics, { opponents: opponentCount, hudHeight })
   useLayoutEffect(() => {
     viewRef.current = view
   })
@@ -257,6 +263,13 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
   const myState = stateOf(humanSeat)
   const mySeat = seats.find((seat) => seat.id === humanSeat)
 
+  useLayoutEffect(() => {
+    const hud = rootRef.current?.querySelector('[data-testid="hud"]')
+    if (!hud) return
+    const next = Math.round(hud.getBoundingClientRect().height)
+    setHudHeight((prev) => (prev === next ? prev : next))
+  }, [roomBar, metrics.width, metrics.height])
+
   const controls =
     display.stage === 'roundOver' ? (
       <div className="nc-actions f7-next" data-testid="action-bar">
@@ -280,6 +293,7 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
     )
 
   return (
+    <MetricsScope metrics={fitted}>
     <div
       ref={rootRef}
       className="f7"
@@ -363,7 +377,7 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
                   renderer={flip7Face}
                   size="hand"
                   layout="strip"
-                  maxWidth={Math.max(160, metrics.width - (metrics.phone ? 24 : 80))}
+                  maxWidth={Math.max(160, metrics.width - (metrics.phone ? 108 : 80))}
                   testId="you-hand"
                   state={myState}
                 />
@@ -374,6 +388,7 @@ export function Flip7Table({ seats, humanSeat, view, events, act, busy, hudIcons
         controls={controls}
       />
     </div>
+    </MetricsScope>
   )
 }
 

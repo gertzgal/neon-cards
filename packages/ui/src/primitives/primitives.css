@@ -334,7 +334,6 @@
 .nc-hand-scroll {
   overflow-x: auto;
   overflow-y: hidden;
-  padding-top: 40px;
   scrollbar-width: none;
 }
 
@@ -782,7 +781,7 @@
 .nc-seat {
   display: grid;
   grid-template-columns: 1fr auto;
-  grid-template-areas: 'head head' 'status body';
+  grid-template-areas: 'head body' 'status body';
   align-items: center;
   column-gap: 10px;
   padding: 6px 10px;

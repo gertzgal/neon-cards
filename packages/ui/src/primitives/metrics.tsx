@@ -50,6 +50,62 @@ const serverMetrics = tableMetrics(390, 844)
 
 const MetricsContext = createContext<TableMetrics | null>(null)
 
+const minCardScale = 0.6
+
+/**
+ * Shrink the solo card sizes until a Flip 7 column fits the viewport.
+ * Phone seats stack, so each opponent costs a row. Desktop seats sit in one row.
+ * The felt overlaps the hand by 20%, which the budget gives back.
+ * A phone name is at least 46px beside the card, so a tiny card does not shrink the row further.
+ */
+export function fitTable(base: TableMetrics, input: { opponents: number; hudHeight: number }): TableMetrics {
+  const phone = base.phone
+  const rows = phone ? input.opponents : input.opponents > 0 ? 1 : 0
+  const pileLabel = 22
+  const gaps = 12
+  const bottomChrome = phone ? 72 : 108
+  const handH = base.card.hand.h
+  const compactH = base.card.compact.h
+  const nameBlock = 46
+  const seatPad = 16
+  const desktopChrome = 84
+
+  const solve = (felt: number): number => {
+    const overlap = 0.2 * handH
+    const fixed = input.hudHeight + felt + pileLabel + bottomChrome + gaps
+    if (phone) {
+      const beside = rows * compactH + compactH + handH
+      const budget = base.height - fixed - rows * seatPad
+      const scale = budget / (beside - overlap)
+      if (scale * compactH >= nameBlock) return scale
+      const locked = base.height - fixed - rows * (nameBlock + seatPad)
+      return locked / (compactH + handH - overlap)
+    }
+    const units = (rows > 0 ? compactH : 0) + compactH + handH
+    const budget = base.height - fixed - rows * desktopChrome
+    return budget / (units - overlap)
+  }
+
+  let felt = base.feltHeight
+  let scale = solve(felt)
+  if (phone && scale < minCardScale) {
+    felt = 132
+    scale = solve(felt)
+  }
+  scale = Math.max(minCardScale, Math.min(1, scale))
+  if (scale === 1 && felt === base.feltHeight) return base
+  const size = (box: Size): Size => ({ w: Math.round(box.w * scale), h: Math.round(box.h * scale) })
+  return {
+    ...base,
+    feltHeight: felt,
+    card: { hand: size(base.card.hand), tray: size(base.card.tray), compact: size(base.card.compact) },
+  }
+}
+
+export function MetricsScope({ metrics, children }: { metrics: TableMetrics; children: ReactNode }) {
+  return <MetricsContext.Provider value={metrics}>{children}</MetricsContext.Provider>
+}
+
 export function MetricsProvider({ children }: { children: ReactNode }) {
   const metrics = useSyncExternalStore(subscribe, snapshot, () => serverMetrics)
   return <MetricsContext.Provider value={metrics}>{children}</MetricsContext.Provider>
