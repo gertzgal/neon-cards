@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { chipsFor, formatMoney } from './chips'
 import { handLayout, straightRow } from './hand'
-import { tableMetrics } from './metrics'
+import { fitTable, tableMetrics } from './metrics'
 import { bitmapRects } from './pixel'
 
 describe('tableMetrics', () => {
@@ -58,6 +58,47 @@ describe('handLayout', () => {
   })
 })
 
+describe('fitTable', () => {
+  it('keeps the solo phone sizes when two opponents fit', () => {
+    const base = tableMetrics(390, 844)
+    expect(fitTable(base, { opponents: 2, hudHeight: 58 })).toEqual(base)
+  })
+
+  it('shrinks a four-seat room on a short phone', () => {
+    const base = tableMetrics(360, 640)
+    const fitted = fitTable(base, { opponents: 3, hudHeight: 102 })
+    expect(fitted.card.hand.h).toBeLessThan(base.card.hand.h)
+    expect(fitted.card.hand.h).toBeGreaterThanOrEqual(Math.round(base.card.hand.h * 0.6))
+    expect(fitted.card.compact.h).toBeLessThan(base.card.compact.h)
+  })
+
+  it('keeps the solo phone hand on a 390 room and the solo pile on a short room', () => {
+    const phone = tableMetrics(390, 844)
+    expect(fitTable(phone, { opponents: 3, hudHeight: 102, room: true }).card).toEqual(phone.card)
+    const short = tableMetrics(360, 640)
+    const fitted = fitTable(short, { opponents: 3, hudHeight: 102, room: true })
+    expect(fitted.card.compact).toEqual(short.card.compact)
+    expect(fitted.card.hand).toEqual({ w: 55, h: 75 })
+    expect(fitted.feltHeight).toBe(132)
+  })
+
+  it('draws a desktop room hand at 70 percent of the solo hand', () => {
+    const base = tableMetrics(1440, 900)
+    const fitted = fitTable(base, { opponents: 3, hudHeight: 120, room: true })
+    expect(fitted.card.hand).toEqual({ w: 126, h: 170 })
+    expect(fitted.card.compact).toEqual(base.card.compact)
+    expect(fitted.card.tray).toEqual(base.card.tray)
+  })
+
+  it('shrinks a 1280x800 room hand so the buttons have room', () => {
+    const base = tableMetrics(1280, 800)
+    const fitted = fitTable(base, { opponents: 3, hudHeight: 120, room: true })
+    expect(fitted.card.hand).toEqual({ w: 80, h: 108 })
+    expect(fitted.card.hand.h).toBeLessThan(Math.round(base.card.hand.h * 0.7))
+    expect(fitted.card.compact).toEqual(base.card.compact)
+  })
+})
+
 describe('straightRow', () => {
   const card = { w: 150, h: 203 }
 
@@ -67,6 +108,28 @@ describe('straightRow', () => {
     expect(row.slots.map((slot) => slot.rotate)).toEqual([0, 0])
     expect(row.slots.map((slot) => slot.y)).toEqual([0, 0])
     expect(row.slots[1]?.x).toBe(158)
+    expect(row.scrolls).toBe(false)
+  })
+
+  it('shrinks a long strip until the row fits', () => {
+    const row = straightRow(6, card, 282, true)
+    expect(row.card.w).toBeLessThan(card.w)
+    expect(row.width).toBeLessThanOrEqual(282.5)
+    expect(row.scrolls).toBe(false)
+  })
+
+  it('sits four phone cards side by side with the solo gap', () => {
+    const row = straightRow(4, card, 282, true)
+    expect(row.card.w).toBe(64)
+    expect(row.slots[1]?.x).toBe(row.card.w + 8)
+    expect(row.width).toBeLessThanOrEqual(282.5)
+    expect(row.scrolls).toBe(false)
+  })
+
+  it('uses a 12px gap for a desktop room strip', () => {
+    const row = straightRow(4, { w: 126, h: 170 }, 1360, true, 12)
+    expect(row.card).toEqual({ w: 126, h: 170 })
+    expect(row.slots[1]?.x).toBe(138)
     expect(row.scrolls).toBe(false)
   })
 

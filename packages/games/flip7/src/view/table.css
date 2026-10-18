@@ -97,10 +97,37 @@
   width: 100%;
 }
 
+.f7 .nc-zone-middle,
+.f7-middle {
+  min-height: calc(var(--nc-compact-h, 48px) + 32px);
+  margin-top: 8px;
+}
+
+/* A 1280x800 room is short. Drop the vertical gaps so the buttons can sit on screen with a smaller hand. */
+@media (min-width: 700px) and (max-height: 800px) {
+  .f7 .nc-zone-top {
+    margin-top: 0;
+  }
+  .f7 .nc-zone-middle,
+  .f7 .f7-middle {
+    margin-top: 0;
+  }
+  .f7 .nc-seat {
+    padding-top: 4px;
+    padding-bottom: 4px;
+    row-gap: 2px;
+  }
+  .f7-me {
+    gap: 2px;
+  }
+  .f7-slots {
+    margin-bottom: 2px;
+  }
+}
+
 .f7-middle {
   position: relative;
   width: min(100% - 24px, 640px);
-  min-height: 96px;
   display: grid;
   grid-template-columns: auto 1fr auto;
   grid-template-areas: 'pile center tray';
@@ -120,16 +147,22 @@
   content: '';
   position: absolute;
   inset: 4px -4px auto 4px;
-  height: calc(100% - 22px);
+  height: var(--nc-compact-h, 48px);
   border-radius: 6px;
   border: 2px solid rgba(255, 46, 136, 0.35);
   z-index: -1;
 }
 
 .f7-pile-count {
+  margin-top: 6px;
   font-size: 18px;
   line-height: 1;
   color: var(--nc-dim);
+}
+
+/* The shared bust dim is for a turned line. Local faces stay at full ink. */
+.f7-me[data-status='busted'] .nc-card {
+  filter: none;
 }
 
 .f7-held {

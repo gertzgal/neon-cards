@@ -8,7 +8,9 @@ export function showPlayCallout(text: string, anchorTestId: string, seat: string
   const anchor = document.querySelector(`[data-testid="${CSS.escape(anchorTestId)}"]`)
   const rect = anchor?.getBoundingClientRect()
   const x = rect ? rect.left + rect.width / 2 : window.innerWidth / 2
-  const y = rect ? rect.top + Math.min(rect.height * 0.42, 120) : window.innerHeight * 0.42
+  // The fade starts with most of the line below this point. Park that point above the anchor
+  // so a Second Chance toast does not draw on the pile.
+  const y = rect ? rect.top - 36 : window.innerHeight * 0.28
   for (const old of host.querySelectorAll('[data-testid="play-callout"]')) old.remove()
   const el = document.createElement('div')
   el.className = 'nc-callout'
@@ -23,6 +25,23 @@ export function showPlayCallout(text: string, anchorTestId: string, seat: string
   label.textContent = text
   el.append(ring, label)
   host.appendChild(el)
+  // The intro scale can still dip onto the anchor. Lift until the line clears it, and keep the words on screen.
+  const clearAnchor = () => {
+    const box = el.getBoundingClientRect()
+    let left = Number.parseFloat(el.style.left)
+    let top = Number.parseFloat(el.style.top)
+    if (rect) {
+      const overlapX = Math.min(box.right, rect.right) - Math.max(box.left, rect.left)
+      const overlapY = Math.min(box.bottom, rect.bottom) - Math.max(box.top, rect.top)
+      if (overlapX > 1 && overlapY > 1) top -= box.bottom - rect.top + 10
+    }
+    if (box.left < 8) left += 8 - box.left
+    if (box.right > window.innerWidth - 8) left -= box.right - (window.innerWidth - 8)
+    el.style.left = `${left}px`
+    el.style.top = `${top}px`
+  }
+  clearAnchor()
+  window.requestAnimationFrame(clearAnchor)
   window.setTimeout(() => {
     el.remove()
   }, HOLD_MS)
