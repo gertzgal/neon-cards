@@ -22,13 +22,13 @@ Preconditions:
 
 - `pnpm verify doctor` passes. `pnpm verify start` is what brings that stack up. `DEV_RIG=1` is already set on it.
 
-- **All four sizes.** `pnpm verify layout`. The command plays the three tables above in Chromium and writes `layout.json` plus one screenshot per viewport and scene. Exit code 1 means a card, slot, or button is off the viewport, clipped by a scrolling ancestor, overlapping its row, or covered so the click lands elsewhere.
+- **All four sizes.** `pnpm verify layout`. The command plays the three tables above in Chromium and writes `layout.json` plus one screenshot per viewport and scene. Exit code 1 means a card, slot, or button is off the viewport, clipped by a scrolling ancestor, overlapping its row, a progress mark overlaps a card or a button, or a click on an action button or an insert slot lands elsewhere.
 - **One scene by hand.** `pnpm verify drive` still screenshots phone 390×844 and desktop 1440×900 only. It does not measure boxes. Use `layout` for fit.
 
 ## Gotchas
 
 - The layout browser sets reduced motion so the blackjack sway does not move a box during the measure. The tables, clicks, and server are the real app.
-- A blackjack fan may overlap its own cards. Fit rows (Flip 7 and Exploding Kittens hands) may not. Buttons stay tappable where a card overlaps the felt: the check hits the button's own points.
+- A blackjack fan may overlap its own cards. Fit rows (Flip 7 and Exploding Kittens hands) may not. Buttons stay tappable where a card overlaps the felt: the check hits the button's own points. Flip 7's progress marks do not take clicks. The check uses their boxes. Insert slots do take clicks.
 - `action-card-*` is a card in the hand, not an action button. Insert slots are the defuse row, not the action bar.
 - The first visit opens How to play. The script presses GOT IT before it measures. A stored guide flag in a reused browser skips that page.
 - A rig URL needs the verify stack. A production worker rejects `?rig=`.

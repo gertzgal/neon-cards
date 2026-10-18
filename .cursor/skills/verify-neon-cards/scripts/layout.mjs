@@ -344,7 +344,20 @@ async function measure(page) {
       return null
     }
 
+    for (const slot of slots) {
+      if (slot.tagName === 'BUTTON') continue
+      for (const card of cards) {
+        if (!overlaps(box(slot), box(card))) continue
+        issues.push({ kind: 'overlap', label: `slot ${labelOf(slot)}`, detail: `overlaps card ${labelOf(card)}` })
+      }
+      for (const button of buttons) {
+        if (!overlaps(box(slot), box(button))) continue
+        issues.push({ kind: 'overlap', label: `slot ${labelOf(slot)}`, detail: `overlaps button ${labelOf(button)}` })
+      }
+    }
+
     for (const el of [...buttons, ...slots]) {
+      if (el.tagName !== 'BUTTON') continue
       const hit = covered(el)
       if (hit) issues.push({ kind: 'overlap', label: labelOf(el), detail: `covered by ${hit}` })
     }
