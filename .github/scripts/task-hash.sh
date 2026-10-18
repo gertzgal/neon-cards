@@ -23,7 +23,7 @@ case "$task" in
     }
     ;;
   unit)
-    trees apps packages vitest.config.ts package.json pnpm-lock.yaml pnpm-workspace.yaml
+    trees apps packages prototypes vitest.config.ts package.json pnpm-lock.yaml pnpm-workspace.yaml
     ;;
   e2e|e2e-phone|e2e-desktop)
     trees apps packages e2e playwright.config.ts package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json tsconfig.json .github/workflows/ci.yml .github/scripts .github/actions

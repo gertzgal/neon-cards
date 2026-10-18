@@ -235,7 +235,7 @@ The lint rule `table-fit/no-hand-tuned-card-size` rejects the six placers' patte
 
 Today the ESLint glob is `prototypes/table-fit/**/*.ts`, so `pnpm lint` fails if the prototype grows a hand-tuned size, and it does not fail on the games. Widening the glob to `packages/games/**` and `packages/ui/**` before those placers are deleted fails the build. That widening is the migration PR, not this one.
 
-`auditPlacement` is the structural check. The `unit` CI job runs it, because `pnpm test` includes `prototypes/table-fit/**/*.test.ts`. It fails the #85/#95 boxes, the synthetic chip-on-score pair, and a 15×15 slot that never leaves the viewport. It passes `placeTable` at 360×640, 390×844, 1280×800, and 1440×900, including the wrapped 23-slot row. `pnpm verify layout` (#104) remains the check that drives the real Blackjack, Flip 7, and Exploding Kittens tables at those sizes. The two checks answer different questions. This PR does not extend the skill.
+`auditPlacement` is the structural check. The `unit` CI job runs it, because `pnpm test` includes `prototypes/table-fit/**/*.test.ts`, and the unit input hash includes `prototypes`, so an engine change re-runs that job. It fails the #85/#95 boxes, the synthetic chip-on-score pair, and a 15×15 slot that never leaves the viewport. It passes `placeTable` at 360×640, 390×844, 1280×800, and 1440×900, including the wrapped 23-slot row. `pnpm verify layout` (#104) remains the check that drives the real Blackjack, Flip 7, and Exploding Kittens tables at those sizes. The two checks answer different questions. This PR does not extend the skill.
 
 ## How the open multiplayer stack moves over
 
