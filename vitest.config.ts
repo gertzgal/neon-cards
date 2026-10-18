@@ -8,7 +8,11 @@ export default defineConfig({
       {
         test: {
           name: 'unit',
-          include: ['packages/**/src/**/*.test.{ts,tsx}', 'apps/web/src/**/*.test.{ts,tsx}'],
+          include: [
+            'packages/**/src/**/*.test.{ts,tsx}',
+            'apps/web/src/**/*.test.{ts,tsx}',
+            'prototypes/table-fit/**/*.test.ts',
+          ],
         },
       },
     ],
