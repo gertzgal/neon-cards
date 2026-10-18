@@ -206,5 +206,19 @@ jobs:
             playwright-report/
           retention-days: 7
 
+  ux-layout:
+    name: ux-layout
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          playwright: "true"
+      - name: Multiplayer UX layout
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.playwright-browsers
+        run: node docs/multiplayer/ux/layout-check.mjs
+
 # Deploy is Cloudflare Workers Builds on push to main, not a job here.
 # A second deploy in Actions would race that build.

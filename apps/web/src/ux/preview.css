@@ -1,0 +1,270 @@
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: #050409;
+}
+
+.ux-icons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ux-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ux-seats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 8px;
+  flex: none;
+}
+
+.ux-seat.nc-seat {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 4px 8px;
+}
+
+.ux-seat .nc-seat-name {
+  font-size: 18px;
+  flex: none;
+}
+
+.ux-seat-id {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  min-width: 0;
+}
+
+.ux-points {
+  flex: none;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--nc-gold);
+}
+
+.ux-cards {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  min-width: 0;
+}
+
+.ux-card {
+  flex: none;
+  line-height: 0;
+}
+
+.ux-card[data-selected='true'] {
+  outline: 3px solid #ff2e88;
+  outline-offset: 1px;
+}
+
+.ux-status {
+  flex: none;
+  font-size: 16px;
+  letter-spacing: 1px;
+  line-height: 1;
+  color: var(--nc-cyan);
+}
+
+.ux-seat[data-state='out'] .ux-status {
+  color: var(--nc-bust);
+}
+
+.ux-seat[data-pick='true'] {
+  border-color: var(--nc-gold);
+  box-shadow: 0 0 10px rgba(255, 210, 63, 0.45);
+}
+
+.ux-middle {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 4px 8px;
+  min-height: 0;
+}
+
+.ux-pile,
+.ux-discard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+
+.ux-count {
+  font-size: 16px;
+  line-height: 1;
+  letter-spacing: 1px;
+  color: var(--nc-cyan);
+}
+
+.ux-timer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+}
+
+.ux-timer-label {
+  font-size: 14px;
+  letter-spacing: 1px;
+  line-height: 1;
+  color: var(--nc-cyan);
+}
+
+.ux-dealer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  padding: 4px 10px;
+  border: 2px solid rgba(46, 242, 255, 0.7);
+  border-radius: 8px;
+  background: rgba(6, 10, 16, 0.82);
+}
+
+.ux-dealer-name {
+  font-size: 18px;
+  line-height: 1;
+  color: var(--nc-cyan);
+  flex: none;
+}
+
+.ux-you {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 8px;
+  flex: none;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.ux-you .nc-seat-name {
+  font-size: 18px;
+}
+
+.ux-split {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 6px;
+  flex: none;
+  min-width: 0;
+}
+
+.ux-split-hand {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+}
+
+.ux-split-hand[data-active='true'] {
+  border-color: var(--nc-pink);
+}
+
+.ux-split-hand[data-active='false'] {
+  opacity: 0.55;
+}
+
+.ux-note {
+  flex: none;
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: 1px;
+  line-height: 1;
+  color: var(--nc-pink-soft);
+  text-align: center;
+}
+
+.ux-controls {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 8px 8px;
+}
+
+.ux-reason {
+  margin: 0;
+  text-align: center;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--nc-dim);
+}
+
+.ux-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}
+
+.ux-action {
+  flex: 1;
+  min-width: 0;
+}
+
+.ux-action .nc-btn {
+  height: 48px;
+  font-size: 22px;
+}
+
+@media (min-width: 700px) {
+  .ux-seats {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .ux-seat.nc-seat {
+    flex: 1;
+  }
+
+  .ux-seat .nc-seat-name,
+  .ux-you .nc-seat-name,
+  .ux-dealer-name {
+    font-size: 22px;
+  }
+
+  .ux-action .nc-btn {
+    height: 52px;
+    font-size: 26px;
+  }
+
+  .ux-split {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+}
