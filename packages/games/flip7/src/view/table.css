@@ -99,7 +99,8 @@
 
 .f7 .nc-zone-middle,
 .f7-middle {
-  min-height: calc(var(--nc-compact-h, 48px) + 22px);
+  min-height: calc(var(--nc-compact-h, 48px) + 32px);
+  margin-top: 8px;
 }
 
 .f7-middle {
@@ -124,16 +125,22 @@
   content: '';
   position: absolute;
   inset: 4px -4px auto 4px;
-  height: calc(100% - 22px);
+  height: var(--nc-compact-h, 48px);
   border-radius: 6px;
   border: 2px solid rgba(255, 46, 136, 0.35);
   z-index: -1;
 }
 
 .f7-pile-count {
+  margin-top: 6px;
   font-size: 18px;
   line-height: 1;
   color: var(--nc-dim);
+}
+
+/* The shared bust dim is for a turned line. Local faces stay at full ink. */
+.f7-me[data-status='busted'] .nc-card {
+  filter: none;
 }
 
 .f7-held {

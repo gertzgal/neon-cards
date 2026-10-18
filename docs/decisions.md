@@ -726,3 +726,7 @@ A four-seat phone room was taller than the viewport. The name sat on its own row
 The room proof showed card backs in the big hand. That line was busted. `cardsOf` turned every busted line face down as soon as the BUST stamp landed, which is earlier than the round moving on, and it hid the local hand with the opponents. The local numbers stay face up through a bust, including after the stamp, until the next round clears them. An opponent line still turns face down after its stamp.
 
 A phone strip keeps the solo 8px gap and shrinks until the cards sit side by side. Four cards at 390 no longer overlap inside a row that has room for a gap. A short phone keeps the solo pile and seat-card size, and the hand takes the shrink, so the pile count is not sitting on BUST and the turn card is not a sliver. A desktop room hand is 70% of the solo desktop hand, with a 12px gap, and the player spot keeps it centered. Solo Flip 7 is unchanged when it is not a room.
+
+## A busted local hand keeps its ink (2026-10-18)
+
+The shared bust treatment halves a card's brightness. That reads correctly on a face-down opponent line. On the local line it muddies the numerals, so a busted hand can be mistaken for card backs. The local cards drop that dim and keep their ink. The pile's stacked edge is the height of the compact card, and the count sits under it with a gap, clear of the seat's BUST.
