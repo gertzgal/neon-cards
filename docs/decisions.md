@@ -730,3 +730,9 @@ A phone strip keeps the solo 8px gap and shrinks until the cards sit side by sid
 ## A busted local hand keeps its ink (2026-10-18)
 
 The shared bust treatment halves a card's brightness. That reads correctly on a face-down opponent line. On the local line it muddies the numerals, so a busted hand can be mistaken for card backs. The local cards drop that dim and keep their ink. The pile's stacked edge is the height of the compact card, and the count sits under it with a gap, clear of the seat's BUST.
+
+## A short desktop room keeps its buttons (2026-10-18)
+
+At 1280x800 the 70% room hand left Hit and Stand past the bottom edge. Only their tops were on screen. 1440x900 still holds the 70% hand. The short desktop drops the hand to half the solo size and tightens the Flip 7 vertical gaps, so both buttons sit fully inside the viewport. The pile and the seat cards stay at the solo compact size.
+
+The played-card line was anchored on the middle of the draw pile. On a phone the fading Second Chance words sat on that card. The line now starts above the pile, and a follow-up frame lifts it again if the intro scale still touches the card.

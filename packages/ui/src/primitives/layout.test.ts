@@ -89,6 +89,14 @@ describe('fitTable', () => {
     expect(fitted.card.compact).toEqual(base.card.compact)
     expect(fitted.card.tray).toEqual(base.card.tray)
   })
+
+  it('shrinks a 1280x800 room hand so the buttons have room', () => {
+    const base = tableMetrics(1280, 800)
+    const fitted = fitTable(base, { opponents: 3, hudHeight: 120, room: true })
+    expect(fitted.card.hand).toEqual({ w: 80, h: 108 })
+    expect(fitted.card.hand.h).toBeLessThan(Math.round(base.card.hand.h * 0.7))
+    expect(fitted.card.compact).toEqual(base.card.compact)
+  })
 })
 
 describe('straightRow', () => {

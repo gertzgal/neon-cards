@@ -228,6 +228,14 @@ function fitProblems(): string[] {
     const hand = slots[0]
     if (hand && hand.height > 190) found.push('hand oversized')
   }
+  if (g.innerWidth === 1280 && g.innerHeight === 800) {
+    const buttons = [...g.document.querySelectorAll('[data-testid="table-controls"] button')]
+    if (buttons.length === 0) found.push('missing buttons')
+    for (const button of buttons) {
+      const rect = button.getBoundingClientRect()
+      if (rect.top < -1 || rect.bottom > g.innerHeight - 1 || rect.height < 40) found.push('button clipped')
+    }
+  }
   const mark = (a: { id: string; x: number; y: number; right: number; bottom: number; el: FitEl }, text: boolean) => {
     if (a.x < -1 || a.y < -1 || a.right > g.innerWidth + 1 || a.bottom > g.innerHeight + 1) found.push(`offscreen ${a.id}`)
     if (text && (a.el.scrollWidth > a.el.clientWidth + 1 || a.el.scrollHeight > a.el.clientHeight + 1)) found.push(`clipped ${a.id}`)

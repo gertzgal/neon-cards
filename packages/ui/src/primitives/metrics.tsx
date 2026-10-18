@@ -57,7 +57,8 @@ const minCardScale = 0.6
  * Phone seats stack, so each opponent costs a row. Desktop seats sit in one row.
  * The felt overlaps the hand by 20%, which the budget gives back.
  * A phone name is at least 46px beside the card, so a tiny card does not shrink the row further.
- * A room keeps the solo pile and seat cards. The hand takes the shrink. A desktop room hand is 70% of solo.
+ * A room keeps the solo pile and seat cards. The hand takes the shrink. A desktop room hand is 70% of solo,
+ * and a short desktop (1280x800) shrinks further so the Hit and Stand buttons stay on screen.
  */
 export function fitTable(
   base: TableMetrics,
@@ -99,7 +100,10 @@ export function fitTable(
   }
 
   if (input.room && !phone) {
-    return { ...base, card: { ...base.card, hand: sized(base.card.hand, 0.7) } }
+    // 1440x900 holds a 70% hand. 1280x800 does not: the buttons end past the fold.
+    // The felt covers the bottom 20% of the hand, so this scale is what lifts them back on screen.
+    const handScale = base.height <= 800 ? 0.5 : 0.7
+    return { ...base, card: { ...base.card, hand: sized(base.card.hand, handScale) } }
   }
 
   if (input.room && phone && scale < 1) {
