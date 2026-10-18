@@ -49,7 +49,7 @@ Don't edit another project's paths. If you need a change there, make the smalles
 | `pnpm test` | Vitest: the `worker` project (Workers runtime + migrated local D1) and the `unit` project (`packages/**/src/**/*.test.ts(x)`) |
 | `pnpm build` | Vite build of `apps/web` into `apps/web/dist` (the Worker serves it) |
 | `pnpm e2e` | Playwright on `phone` (390x844) and `desktop` (1440x900) against one `wrangler dev` and a fresh local D1 per worker |
-| `pnpm verify` | The verify skill's script: start, doctor, drive, screenshot, stop |
+| `pnpm verify` | The verify skill's script: start, doctor, drive, screenshot, stop. `pnpm verify layout` checks hand cards, slot rows, and buttons for overlap and clipping at 360×640, 390×844, 1280×800, and 1440×900 |
 
 CI (`.github/workflows/ci.yml`) runs `lint`, `typecheck`, and `unit` in parallel with `e2e`, which is a two-leg matrix (`phone` and `desktop`, one Playwright worker each, screenshots uploaded as `playwright-phone` and `playwright-desktop`). A job whose inputs the PR did not touch is skipped, and a task whose input hash already passed is not run again. Deploy stays on Cloudflare Workers Builds. `gh pr checks` must show `lint`, `typecheck`, `unit`, and both e2e legs green.
 

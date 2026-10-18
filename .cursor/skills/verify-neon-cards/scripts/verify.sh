@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Usage: verify.sh [all|start|doctor|drive|stop] [drive args...]
+# Usage: verify.sh [all|start|doctor|drive|layout|stop] [drive args...]
 set -euo pipefail
 
 ROOT=$(git -C "$(dirname "$0")" rev-parse --show-toplevel)
@@ -82,6 +82,13 @@ drive() {
   log "evidence in $EVIDENCE_DIR"
 }
 
+layout() {
+  doctor || exit 1
+  mkdir -p "$EVIDENCE_DIR"
+  log "evidence in $EVIDENCE_DIR"
+  node "$SCRIPTS/layout.mjs" --url "$URL" --out "$EVIDENCE_DIR"
+}
+
 stop() {
   if alive; then
     local g
@@ -101,6 +108,7 @@ case "$cmd" in
   start) start ;;
   doctor) doctor ;;
   drive) drive "$@" ;;
+  layout) layout ;;
   stop) stop ;;
   all)
     if doctor quiet; then
@@ -111,5 +119,5 @@ case "$cmd" in
       drive "$@"
     fi
     ;;
-  *) echo "usage: $0 [all|start|doctor|drive|stop] [drive args...]" >&2; exit 2 ;;
+  *) echo "usage: $0 [all|start|doctor|drive|layout|stop] [drive args...]" >&2; exit 2 ;;
 esac
