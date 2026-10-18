@@ -70,6 +70,40 @@ async function problemsOf(page, width, height) {
     })
     const found = []
     const contains = (a, b) => a.x <= b.x + 1 && a.y <= b.y + 1 && a.right + 1 >= b.right && a.bottom + 1 >= b.bottom
+    const bands = (a, b) => Math.min(a.bottom, b.bottom) - Math.max(a.y, b.y) > 1
+    const hits = (a, b) => bands(a, b) && Math.min(a.right, b.right) - Math.max(a.x, b.x) > 1
+    g.document.querySelectorAll('.nc-card').forEach((card) => {
+      const face = card.querySelector('.nc-card-in')
+      if (!face) return
+      const box = face.getBoundingClientRect()
+      card.querySelectorAll('.ek-face-title span').forEach((span) => {
+        const text = (span.textContent || '').trim()
+        if (!text) return
+        const range = g.document.createRange()
+        range.selectNodeContents(span)
+        const ink = range.getBoundingClientRect()
+        const outside = ink.left < box.left + 1 || ink.right > box.right - 1
+        const line = span.scrollWidth > span.clientWidth + 1
+        const note = `title ${text} outside ${card.getAttribute('data-testid') || 'card'}`
+        if ((outside || line) && !found.includes(note)) found.push(note)
+      })
+    })
+    const hands = [...g.document.querySelectorAll('[data-region^="hand-"]')]
+    const stacked = hands.length >= 2 && hands.every((hand, index) => {
+      if (index === 0) return true
+      const prev = hands[index - 1].getBoundingClientRect()
+      const cur = hand.getBoundingClientRect()
+      return cur.top >= prev.bottom - 1 || prev.top >= cur.bottom - 1
+    })
+    const targets = [...hands, ...g.document.querySelectorAll('[data-region^="total-split-"]')]
+    g.document.querySelectorAll('.ux-you .nc-seat-name, .ux-you .ux-points').forEach((label) => {
+      const a = label.getBoundingClientRect()
+      targets.forEach((hand) => {
+        const b = hand.getBoundingClientRect()
+        const note = `name on ${hand.getAttribute('data-region')}`
+        if ((hits(a, b) || (stacked && bands(a, b))) && !found.includes(note)) found.push(note)
+      })
+    })
     boxes.forEach((box, i) => {
       if (box.w < 1 || box.h < 1) found.push(`empty ${box.id}`)
       if (box.x < -1 || box.y < -1 || box.right > viewW + 1 || box.bottom > viewH + 1) found.push(`offscreen ${box.id}`)
@@ -113,9 +147,10 @@ try {
         const g = globalThis
         return g.document.fonts.ready
       })
+      await page.locator('html[data-titles-fit="true"]').waitFor()
       const problems = await problemsOf(page, size.width, size.height)
       const file = path.join(shotDir, `${scene}-${size.name}.png`)
-      await page.screenshot({ path: file })
+      if (process.env.UX_LAYOUT_SHOTS !== '0') await page.screenshot({ path: file })
       if (problems.length > 0) failures.push(`${scene} ${size.width}x${size.height}: ${problems.join('; ')}`)
     }
     await page.close()

@@ -189,4 +189,4 @@ The prototype composes the existing neon pieces. Exploding Kittens uses `ekFace`
 
 Each scene is shot at 390 by 844, 360 by 640, 1280 by 800, and 1440 by 900. The file name is the scene, a hyphen, and the width, for example `ek-nope-390.png` and `bj-split-1440.png`.
 
-`node docs/multiplayer/ux/layout-check.mjs` serves the preview, writes those files, and fails if any `data-region` is off the viewport, clipped by its own box, or overlapping a region it does not contain. The `ux-layout` CI job runs that script. A region that contains another region is allowed. Two cards in one row are not allowed to overlap.
+`node docs/multiplayer/ux/layout-check.mjs` serves the preview, writes those files, and fails if any `data-region` is off the viewport, clipped by its own box, or overlapping a region it does not contain. A title whose ink crosses the card face fails too, and so does a name that shares a row with a stacked hand. The `ux-layout` CI job runs that script. A region that contains another region is allowed. Two cards in one row are not allowed to overlap.

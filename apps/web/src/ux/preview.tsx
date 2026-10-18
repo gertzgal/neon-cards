@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useLayoutEffect, type ReactNode } from 'react'
 import type { CardView, Rank, Seat, StandardFace, Suit } from '@neon-cards/engine'
 import { ekFace } from '@neon-cards/game-exploding-kittens'
 import type { EkFace, Title } from '@neon-cards/game-exploding-kittens/rules'
@@ -665,8 +665,52 @@ function BjScene({ scene, box }: { scene: SceneId; box: Boxes }) {
   )
 }
 
+function titleInside(card: HTMLElement): boolean {
+  const face = card.querySelector('.nc-card-in')
+  if (!face) return true
+  const box = face.getBoundingClientRect()
+  for (const node of card.querySelectorAll('.ek-face-title span')) {
+    if (!(node instanceof HTMLElement)) continue
+    if (node.scrollWidth > node.clientWidth + 1) return false
+    const range = document.createRange()
+    range.selectNodeContents(node)
+    const ink = range.getBoundingClientRect()
+    if (ink.width < 1) continue
+    if (ink.left < box.left + 1 || ink.right > box.right - 1) return false
+  }
+  return true
+}
+
+/** Shrink a title until the whole word sits inside the card face. */
+function fitTitles(root: ParentNode) {
+  for (const card of root.querySelectorAll('.nc-card')) {
+    if (!(card instanceof HTMLElement)) continue
+    const title = card.querySelector('.ek-face-title')
+    if (!(title instanceof HTMLElement) || titleInside(card)) continue
+    let size = Number.parseFloat(getComputedStyle(title).fontSize)
+    let guard = 0
+    while (!titleInside(card) && size > 6 && guard < 24) {
+      size -= 0.5
+      title.style.fontSize = `${size}px`
+      guard += 1
+    }
+  }
+}
+
 export function UxPreview({ scene }: { scene: SceneId }) {
   const metrics = useTableMetrics()
+  useLayoutEffect(() => {
+    let live = true
+    delete document.documentElement.dataset.titlesFit
+    void document.fonts.ready.then(() => {
+      if (!live) return
+      fitTitles(document)
+      document.documentElement.dataset.titlesFit = 'true'
+    })
+    return () => {
+      live = false
+    }
+  }, [scene, metrics.width, metrics.height])
   const box = boxesFor(metrics.width, metrics.height)
   const body = scene.startsWith('bj-') ? <BjScene scene={scene} box={box} /> : <EkScene scene={scene} box={box} />
   return <NeonRoot swirl="off">{body}</NeonRoot>

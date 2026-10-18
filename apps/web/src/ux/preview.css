@@ -167,6 +167,13 @@ body,
   min-width: 0;
 }
 
+@media (max-width: 699px) {
+  .ux-you:has(.ux-split) {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
 .ux-you .nc-seat-name {
   font-size: 18px;
 }
