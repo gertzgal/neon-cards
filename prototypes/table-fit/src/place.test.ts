@@ -1,10 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import { auditPlacement } from './audit'
-import { placeTable, type FitRow, type Frame, type Viewport } from './place'
+import { MIN_ITEM, placeTable, type FitRow, type Frame, type Viewport } from './place'
 import { VIEWPORTS, longRows, roomRows, shellChrome } from './scenarios'
 
 function rowFrames(frames: readonly Frame[], rowId: string): Frame[] {
   return frames.filter((frame) => frame.rowId === rowId)
+}
+
+function lineCounts(frames: readonly Frame[]): number[] {
+  const counts = new Map<number, number>()
+  for (const frame of frames) counts.set(frame.y, (counts.get(frame.y) ?? 0) + 1)
+  return [...counts.entries()].sort((a, b) => a[0] - b[0]).map((entry) => entry[1])
+}
+
+function maxRight(frames: readonly Frame[]): number {
+  return frames.reduce((max, frame) => Math.max(max, frame.x + frame.w), 0)
 }
 
 function place(viewport: Viewport, rows: readonly FitRow[]) {
@@ -53,18 +63,18 @@ describe('placeTable', () => {
     }
   })
 
-  it('rejects a card-width floor that cannot hold 23 slots', () => {
+  it('wraps 23 slots at 360 instead of shrinking under the floor', () => {
     const width = VIEWPORTS.phone360.width
-    const floor = 28
-    expect(23 * floor).toBe(644)
-    expect(23 * floor).toBeGreaterThan(width)
+    expect(23 * MIN_ITEM).toBe(736)
+    expect(23 * MIN_ITEM).toBeGreaterThan(width)
     const slots = rowFrames(place(VIEWPORTS.phone360, longRows(8)), 'slots')
-    expect(slots[0]?.w).toBeLessThan(floor)
-    const right = (slots.at(-1)?.x ?? 0) + (slots.at(-1)?.w ?? 0)
-    expect(right).toBeLessThanOrEqual(width)
+    expect(lineCounts(slots)).toEqual([8, 8, 7])
+    expect(slots[0]?.w).toBeGreaterThanOrEqual(MIN_ITEM)
+    expect(slots[0]?.h).toBeGreaterThanOrEqual(MIN_ITEM)
+    expect(maxRight(slots)).toBeLessThanOrEqual(width)
   })
 
-  it('clamps chrome that is larger than the viewport and still places the hand', () => {
+  it('keeps every item at the floor when chrome is taller than the viewport', () => {
     const viewport = VIEWPORTS.phone360
     expect(10_000).toBeGreaterThan(viewport.height)
     const frames = placeTable(viewport, { top: 10_000, bottom: 10_000 }, longRows(8)).frames
@@ -74,9 +84,19 @@ describe('placeTable', () => {
     for (const frame of frames) {
       expect(frame.y + frame.h).toBeLessThanOrEqual(viewport.height)
       expect(frame.x + frame.w).toBeLessThanOrEqual(viewport.width)
-      expect(frame.w).toBeGreaterThan(0)
-      expect(frame.h).toBeGreaterThan(0)
+      if (frame.rowId === 'hud') continue
+      expect(frame.w).toBeGreaterThanOrEqual(MIN_ITEM)
+      expect(frame.h).toBeGreaterThanOrEqual(MIN_ITEM)
     }
+  })
+
+  it('keeps a short viewport inside the floor instead of clipping', () => {
+    const viewport = { width: 360, height: 200 }
+    const frames = placeTable(viewport, { top: 0, bottom: 0 }, longRows(8)).frames
+    const issues = auditPlacement(viewport, frames)
+    expect(issues.filter((issue) => issue.kind === 'clip')).toEqual([])
+    expect(issues.filter((issue) => issue.kind === 'floor')).toEqual([])
+    expect(rowFrames(frames, 'slots').length).toBeGreaterThan(0)
   })
 
   it('caps a two-button row that would otherwise be 720 by 360', () => {
@@ -84,42 +104,94 @@ describe('placeTable', () => {
     const uncappedH = Math.floor(uncappedW / 2)
     expect(uncappedW).toBe(720)
     expect(uncappedH).toBe(360)
-    const buttons = rowFrames(place(VIEWPORTS.desktop1440, longRows(8)), 'buttons')
-    expect(buttons[0]?.h).toBe(207)
+    const frames = place(VIEWPORTS.desktop1440, longRows(8))
+    const buttons = rowFrames(frames, 'buttons')
+    const hand = rowFrames(frames, 'hand')
+    expect(buttons[0]?.w).toBe(64)
+    expect(buttons[0]?.h).toBe(32)
     expect(buttons[0]?.h).toBeLessThan(uncappedH)
+    expect(buttons[0]?.h).toBeLessThan(hand[0]?.h ?? 0)
   })
 
   it('locks the boxes quoted in the spec', () => {
     const hand = (viewport: Viewport, cards: number) => rowFrames(place(viewport, longRows(cards)), 'hand')
-    expect(hand(VIEWPORTS.phone360, 8)[0]).toMatchObject({ x: 0, y: 245, w: 45, h: 63 })
-    expect(hand(VIEWPORTS.phone390, 8)[0]).toMatchObject({ x: 3, y: 320, w: 48, h: 67 })
-    expect(hand(VIEWPORTS.desktop1280, 8)[0]).toMatchObject({ x: 120, y: 253, w: 130, h: 182 })
-    expect(hand(VIEWPORTS.desktop1440, 8)[0]).toMatchObject({ x: 128, y: 278, w: 148, h: 207 })
+    expect(hand(VIEWPORTS.phone360, 8)[0]).toMatchObject({ x: 0, y: 410, w: 45, h: 63 })
+    expect(hand(VIEWPORTS.phone390, 8)[0]).toMatchObject({ x: 3, y: 681, w: 48, h: 67 })
+    expect(hand(VIEWPORTS.desktop1280, 8)[0]).toMatchObject({ x: 0, y: 489, w: 160, h: 224 })
+    expect(hand(VIEWPORTS.desktop1440, 8)[0]).toMatchObject({ x: 0, y: 554, w: 180, h: 252 })
 
-    const slotRight = (viewport: Viewport) => {
+    const slots = (viewport: Viewport) => {
       const group = rowFrames(place(viewport, longRows(8)), 'slots')
-      const last = group.at(-1)
-      return { w: group[0]?.w, h: group[0]?.h, right: last ? last.x + last.w : 0 }
+      return {
+        w: group[0]?.w,
+        h: group[0]?.h,
+        lines: lineCounts(group),
+        right: maxRight(group),
+        y: group[0]?.y,
+      }
     }
-    expect(slotRight(VIEWPORTS.phone360)).toEqual({ w: 15, h: 15, right: 352 })
-    expect(slotRight(VIEWPORTS.phone390)).toEqual({ w: 16, h: 16, right: 379 })
-    expect(slotRight(VIEWPORTS.desktop1280)).toEqual({ w: 55, h: 55, right: 1272 })
-    expect(slotRight(VIEWPORTS.desktop1440)).toEqual({ w: 62, h: 62, right: 1433 })
+    expect(slots(VIEWPORTS.phone360)).toEqual({ w: 45, h: 45, lines: [8, 8, 7], right: 360, y: 473 })
+    expect(slots(VIEWPORTS.phone390)).toEqual({ w: 32, h: 32, lines: [12, 11], right: 387, y: 748 })
+    expect(slots(VIEWPORTS.desktop1280)).toEqual({ w: 55, h: 55, lines: [23], right: 1272, y: 713 })
+    expect(slots(VIEWPORTS.desktop1440)).toEqual({ w: 62, h: 62, lines: [23], right: 1433, y: 806 })
 
-    const crowd = hand(VIEWPORTS.desktop1440, 13)
-    expect(crowd[0]).toMatchObject({ w: 110, h: 154 })
-    expect((crowd.at(-1)?.x ?? 0) + (crowd.at(-1)?.w ?? 0)).toBe(1435)
+    const buttons = (viewport: Viewport) => rowFrames(place(viewport, longRows(8)), 'buttons')[0]
+    expect(buttons(VIEWPORTS.phone360)).toMatchObject({ x: 116, y: 608, w: 64, h: 32 })
+    expect(buttons(VIEWPORTS.phone390)).toMatchObject({ x: 131, y: 812, w: 64, h: 32 })
+    expect(buttons(VIEWPORTS.desktop1280)).toMatchObject({ x: 576, y: 768, w: 64, h: 32 })
+    expect(buttons(VIEWPORTS.desktop1440)).toMatchObject({ x: 656, y: 868, w: 64, h: 32 })
+
+    const score = (viewport: Viewport) => rowFrames(place(viewport, longRows(8)), 'score')[0]
+    expect(score(VIEWPORTS.phone360)).toMatchObject({ x: 116, y: 378, w: 128, h: 32 })
+    expect(score(VIEWPORTS.phone390)).toMatchObject({ x: 131, y: 649, w: 128, h: 32 })
+    expect(score(VIEWPORTS.desktop1280)).toMatchObject({ x: 576, y: 457, w: 128, h: 32 })
+    expect(score(VIEWPORTS.desktop1440)).toMatchObject({ x: 656, y: 522, w: 128, h: 32 })
+
+    expect(lineCounts(hand(VIEWPORTS.phone360, 13))).toEqual([7, 6])
+    expect(hand(VIEWPORTS.phone360, 13)[0]).toMatchObject({ x: 1, y: 331, w: 51, h: 71 })
+    expect(maxRight(hand(VIEWPORTS.phone360, 13))).toBe(358)
+    expect(lineCounts(hand(VIEWPORTS.phone390, 13))).toEqual([7, 6])
+    expect(hand(VIEWPORTS.phone390, 13)[0]).toMatchObject({ x: 2, y: 594, w: 55, h: 77 })
+    expect(maxRight(hand(VIEWPORTS.phone390, 13))).toBe(387)
+    expect(hand(VIEWPORTS.desktop1280, 13)[0]).toMatchObject({ x: 3, y: 576, w: 98, h: 137 })
+    expect(maxRight(hand(VIEWPORTS.desktop1280, 13))).toBe(1277)
+    expect(hand(VIEWPORTS.desktop1440, 13)[0]).toMatchObject({ x: 5, y: 652, w: 110, h: 154 })
+    expect(maxRight(hand(VIEWPORTS.desktop1440, 13))).toBe(1435)
 
     expect(rowFrames(place(VIEWPORTS.phone360, roomRows()), 'hand')[0]).toMatchObject({ w: 45, h: 63 })
     expect(rowFrames(place(VIEWPORTS.phone390, roomRows()), 'hand')[0]).toMatchObject({ w: 48, h: 67 })
+    expect(rowFrames(place(VIEWPORTS.phone360, roomRows()), 'opponent-a')[0]).toMatchObject({
+      x: 0,
+      y: 187,
+      w: 72,
+      h: 100,
+    })
+    expect(rowFrames(place(VIEWPORTS.phone360, roomRows()), 'opponent-c')[0]).toMatchObject({
+      x: 0,
+      y: 387,
+      w: 90,
+      h: 126,
+    })
+    expect(rowFrames(place(VIEWPORTS.phone390, roomRows()), 'opponent-a')[0]).toMatchObject({
+      x: 0,
+      y: 358,
+      w: 78,
+      h: 109,
+    })
+    expect(rowFrames(place(VIEWPORTS.phone390, roomRows()), 'opponent-c')[0]).toMatchObject({
+      x: 1,
+      y: 576,
+      w: 97,
+      h: 135,
+    })
+    const roomScore = rowFrames(place(VIEWPORTS.phone390, roomRows()), 'score')[0]
+    expect(roomScore).toMatchObject({ h: 33 })
+    expect(roomScore?.h).toBeLessThan(67)
 
-    const hostile = rowFrames(
-      placeTable(VIEWPORTS.phone360, { top: 10_000, bottom: 10_000 }, longRows(8)).frames,
-      'hand',
-    )
-    expect(hostile).toHaveLength(8)
-    expect(hostile[0]).toMatchObject({ x: 0, y: 319, w: 45, h: 1 })
-    expect((hostile.at(-1)?.x ?? 0) + (hostile.at(-1)?.w ?? 0)).toBe(360)
+    const hostile = placeTable(VIEWPORTS.phone360, { top: 10_000, bottom: 10_000 }, longRows(8)).frames
+    expect(rowFrames(hostile, 'hand')[0]).toMatchObject({ x: 0, y: 221, w: 45, h: 63 })
+    expect(maxRight(rowFrames(hostile, 'hand'))).toBe(360)
+    expect(rowFrames(hostile, 'hud')[0]).toMatchObject({ h: 189 })
   })
 
   it('has no scale, gap, scroll, or fan input', () => {

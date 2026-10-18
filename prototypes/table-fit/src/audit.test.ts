@@ -43,6 +43,22 @@ describe('auditPlacement', () => {
     expect(issues).toContainEqual({ kind: 'overlap', a: 'hud-chip', b: 'score-0' })
   })
 
+  it('fails a slot that shrinks under the floor without leaving the viewport', () => {
+    const viewport = VIEWPORTS.phone390
+    const slot: Frame = { id: 'slots-0', rowId: 'slots', x: 20, y: 40, w: 15, h: 15 }
+    expect(slot.x + slot.w).toBeLessThanOrEqual(viewport.width)
+    expect(slot.y + slot.h).toBeLessThanOrEqual(viewport.height)
+    const issues = auditPlacement(viewport, [slot])
+    expect(issues.some((issue) => issue.kind === 'clip')).toBe(false)
+    expect(issues).toContainEqual({ kind: 'floor', id: 'slots-0', w: 15, h: 15, min: 32 })
+  })
+
+  it('does not treat the hud band as an item', () => {
+    const viewport = VIEWPORTS.phone360
+    const hud: Frame = { id: 'hud-chip', rowId: 'hud', x: 0, y: 0, w: 360, h: 10 }
+    expect(auditPlacement(viewport, [hud])).toEqual([])
+  })
+
   it('passes the engine at all four viewports, including hud-chip against score', () => {
     for (const viewport of Object.values(VIEWPORTS)) {
       for (const rows of [longRows(8), longRows(13), roomRows()]) {

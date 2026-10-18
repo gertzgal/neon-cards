@@ -1,10 +1,20 @@
-# Layout re-architecture (proposal, not adopted)
+# Layout re-architecture
 
-This PR is a proposal for review. It is not law on `main`. `docs/architecture.md` is unchanged on purpose: the bottom-zone paragraph there is still the contract, open PRs #84 and #88–#103 are already editing that file, and landing a second contract in the same lines would read as adopted. If this proposal is accepted, a follow-up replaces that paragraph with the contract in [Proposed contract](#proposed-contract). Until then, games keep the placers they have.
+Gal adopted this engine on 2026-10-18, reviewing PR #105. It is not merged, and it is not law on `main`. `docs/architecture.md` is unchanged on purpose: the bottom-zone paragraph there is still the contract, open PRs #84 and #88–#103 are already editing that file, and this PR does not land a second contract in those lines. Games are not migrated. Blackjack, Flip 7, Exploding Kittens, and the room tables keep the placers they have.
 
-The prototype is `prototypes/table-fit`. The lint is `tools/eslint-plugin-table-fit`. Neither path is in the file lists of open PRs #84–#104. This PR does not migrate Blackjack, Flip 7, Exploding Kittens, or the room tables, and it does not edit `.cursor/skills`, `AGENTS.md`, or `features/README.md`.
+The prototype is `prototypes/table-fit`. The lint is `tools/eslint-plugin-table-fit`. Neither path is in the file lists of open PRs #84–#104. This PR does not edit `.cursor/skills`, `AGENTS.md`, or `features/README.md`.
 
 Real tables at 360×640, 390×844, 1280×800, and 1440×900 are already driven by `pnpm verify layout` on PR #104 (`cursor/verify-layout-viewports-0d5b`, head `4fa09352009cd8be86eec4c691705c5956159828`). This PR does not add a second copy of that skill. Its CI gate is the lint plus the pure engine, below.
+
+## What Gal adopted
+
+1. One `placeTable` for every table, solo and multiplayer, every game.
+2. Blackjack drops the fan for a straight row. The before/after shots in this PR are that look. The game still fans until its own migration PR.
+3. The minimum item size is 32px. A row that cannot fit at that floor wraps onto another line. It does not clip, and it does not shrink to 15px. One global rule. No per-game input.
+4. Buttons and the score get a smaller band than card rows. One global rule. No per-game knob.
+5. Nothing merges until Gal reviews the build. The shots below are the tables on `main` and this engine, at 390×844 and 1280×800.
+
+The duplicate-PR note and the wallet refactor are not part of this work. A face-down local hand stays the one-line note under [Not a repeated class](#not-a-repeated-class).
 
 ## Gal's GitHub feedback
 
@@ -77,7 +87,7 @@ Different from a box past the viewport edge. The box is on screen and covers the
 
 ### 4. Two agents ship the same fix — 5 closed duplicate pairs
 
-Recommend only. This PR does not add a duplicate-PR bot.
+Five pairs, recorded so the count stays honest. This PR does not add a bot.
 
 | Closed | Merged twin | Bug |
 | --- | --- | --- |
@@ -91,7 +101,7 @@ Recommend only. This PR does not add a duplicate-PR bot.
 
 ### 5. A second client copy of the wallet or the last bet — 4 findings
 
-Recommend only. This PR does not rebuild the wallet.
+Four findings, recorded so the count stays honest. This PR does not rebuild the wallet.
 
 | Finding | PR | Commit |
 | --- | --- | --- |
@@ -123,57 +133,65 @@ Also not promoted: revert commits (none on `main`), and GitHub review comments a
 
 `placeTable(viewport, chrome, rows)` is the only placer. Viewport and chrome come in. Frames come out. A row is `{ id, count, role }` where `role` is `hand`, `slots`, `opponents`, `buttons`, or `score`. There is no `scale`, `gap`, `scrollTo`, `startScale`, `minCard`, or `fan`. A call that passes one of those does not typecheck (`prototypes/table-fit/src/place.test.ts`). That is the #89 failure made inexpressible: the engine cannot scroll one card into view, and it cannot take a per-game scale.
 
-Hands and opponent rows share one card shape, a playing card's width over its height. Slots are square. Buttons are twice as wide as they are tall. A score is four times as wide as it is tall. Those shapes live inside the engine. A game does not pass them, and they are not a size policy a later PR should copy onto a single game.
+Hands and opponent rows share one card shape, width over height 5/7. Slots are square. Buttons are twice as wide as they are tall. A score is four times as wide as it is tall. Those shapes live inside the engine. A game does not pass them.
 
-The body under the chrome is split into equal bands, one per row, in caller order, top to bottom. Each item is sized to its band and centered in it. Items in a row abut. Integer pixels only. A box that ends on the viewport edge is inside. A box past the edge is a clip. Two frames whose interiors intersect are an overlap, including when both are inside the viewport.
+The floor is 32px, `MIN_ITEM` in `prototypes/table-fit/src/place.ts`. It is not an argument. Both sides of every item stay at least 32px. The HUD band is chrome, not an item, so a short shell bar is not a floor failure.
 
-Chrome is whatever the shell already reserved. The tests pass the `.nc-hud` heights on `c86bbbd`: 58px, and 70px inside `@media (min-width: 700px)` in `packages/ui/src/primitives/primitives.css`. The engine does not branch on 700 and does not turn that height into a card scale. If the requested chrome is taller than the viewport, it is clamped so every row still has a band and every emitted frame stays inside.
+A row wraps when one line cannot hold its items at that floor. The widest line is `floor(width / 32)` items. The count splits evenly, and the first lines are the longer ones. Twenty-three slots at 360px are three lines (8, 8, 7), because `floor(360 / 32)` is 11 and two lines of 12 would be 384px. At 390px they are two lines (12 and 11) at 32px. At 1280px and 1440px, 23 fits on one line. A shorter line is centered. Items in a line abut. Integer pixels only.
 
-`auditPlacement` fails the build on any clip or any overlap. It does not know which game drew the frames.
+A card row takes its width from the fullest line, then the shape sets the height. A 32px-wide card is 45px tall. Buttons and the score do not get that height. Their band is at most half the shortest card item, and never under 32px. The width follows the button shape or the score shape, and the row is centered. On the long table the 23-slot row is the shortest card, half of it is under 32, so the controls sit on the floor: a button is 64×32 and the score is 128×32. That is the smaller band. An uncapped two-button row on 1440×900 would be 720×360. The engine's button is 64×32.
+
+The stack keeps the caller's order and pins to the bottom of the body. Leftover height is felt above the stack. A box that ends on the viewport edge is inside. A box past the edge is a clip. Two frames whose interiors intersect are an overlap, including when both are inside the viewport. Touching edges do not overlap.
+
+Chrome is whatever the shell already reserved. The tests pass the `.nc-hud` heights on `c86bbbd`: 58px, and 70px inside `@media (min-width: 700px)` in `packages/ui/src/primitives/primitives.css`. The engine does not branch on 700 and does not turn that height into a card scale. If the requested chrome plus the natural stack is taller than the viewport, chrome shrinks and the cards keep their size. Cards step down toward the floor only when the viewport itself is shorter than the natural stack. They do not cross the floor. A frame that still would not fit is omitted, not drawn past the edge.
+
+`auditPlacement` fails the build on a clip, an overlap, or an item under 32px. It does not know which game drew the frames. A 15×15 slot that sits inside 390×844 fails the floor check and does not need to clip to fail.
 
 The long-table rows used below are a score, a hand, 23 slots, and 2 buttons. The room rows are three opponent rows (5, 5, and 4 cards), a score, an 8-card hand, and 4 buttons. Same function. The room call does not pass a second size.
 
 ## Measurements
 
-Chrome for these runs is the shell bar above (58 or 70) and a bottom of 0. Every run passed `auditPlacement`: no clip, no overlap, including `hud-chip` against the score frame.
+Chrome for these runs is the shell bar above (58 or 70) and a bottom of 0. Every run passed `auditPlacement`: no clip, no overlap, no item under 32px, including `hud-chip` against the score frame. The first draft of this PR recorded 15×15 slots and equal bands. Those numbers are withdrawn.
 
 ### Eight cards and 23 slots
 
-| Viewport | Hand (first card) | Hand right | Slots | Slots right | Buttons |
-| --- | --- | --- | --- | --- | --- |
-| 360×640 | x 0, y 245, 45×63 | 360 | 15×15, x 7, y 415 | 352 | 180×90, y 522, bottom 612 |
-| 390×844 | x 3, y 320, 48×67 | 387 | 16×16, x 11, y 542 | 379 | 195×97, y 697, bottom 794 |
-| 1280×800 | x 120, y 253, 130×182 | 1160 | 55×55, x 7, y 499 | 1272 | 364×182, y 618, bottom 800 |
-| 1440×900 | x 128, y 278, 148×207 | 1312 | 62×62, x 7, y 558 | 1433 | 414×207, y 693, bottom 900 |
+The wrapped slot row is the 360 and 390 lines. Desktop stays one line.
 
-The 1440×900 button row ends on the bottom edge (693 + 207 = 900). That counts as inside. The HUD band is the full chrome rectangle (`hud-chip` at y 0, height 58 or 70, full width). On 360×640 the score frame starts at y 86, below that band. On 1440×900 the score starts at y 70, flush with the band's bottom, and does not intersect it.
+| Viewport | Hand (first card) | Hand right | Slots | Slot lines | Slots right | Buttons | Score |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 360×640 | x 0, y 410, 45×63 | 360 | 45×45, y 473 | 8, 8, 7 | 360 | 64×32, x 116, y 608, bottom 640 | 128×32, x 116, y 378 |
+| 390×844 | x 3, y 681, 48×67 | 387 | 32×32, y 748 | 12, 11 | 387 | 64×32, x 131, y 812, bottom 844 | 128×32, x 131, y 649 |
+| 1280×800 | x 0, y 489, 160×224 | 1280 | 55×55, x 7, y 713 | 23 | 1272 | 64×32, x 576, y 768, bottom 800 | 128×32, x 576, y 457 |
+| 1440×900 | x 0, y 554, 180×252 | 1440 | 62×62, x 7, y 806 | 23 | 1433 | 64×32, x 656, y 868, bottom 900 | 128×32, x 656, y 522 |
+
+At 360 the two lines of 8 end on the right edge (360). The line of 7 is centered and ends at 337. At 390 the line of 12 ends at 387 and the line of 11 ends at 371. Every slot is at least 32px. The 1440 button row ends on the bottom edge (868 + 32 = 900). That counts as inside. The HUD is the full chrome rectangle (`hud-chip` at y 0, height 58 or 70, full width). The score sits in the stack pinned to the bottom, so on 360×640 it starts at y 378, under the felt, and does not intersect the HUD.
 
 ### Thirteen cards and 23 slots
 
-The #95 desktop failure was a 13-card hand. The same four viewports, same rows, hand count 13:
+The #95 desktop failure was a 13-card hand. The same four viewports, same rows, hand count 13. At 360 and 390 the hand wraps (7 then 6). At 1280 and 1440 it stays one line.
 
-| Viewport | Hand | Hand right |
-| --- | --- | --- |
-| 360×640 | 27×37, x 4, y 258 | 355 |
-| 390×844 | 30×42, x 0, y 332 | 390 |
-| 1280×800 | 98×137, x 3, y 276 | 1277 |
-| 1440×900 | 110×154, x 5, y 305 | 1435 |
+| Viewport | Hand | Lines | Hand right |
+| --- | --- | --- | --- |
+| 360×640 | 51×71, x 1, y 331 | 7, 6 | 358 |
+| 390×844 | 55×77, x 2, y 594 | 7, 6 | 387 |
+| 1280×800 | 98×137, x 3, y 576 | 13 | 1277 |
+| 1440×900 | 110×154, x 5, y 652 | 13 | 1435 |
 
-1435 is inside 1440. The recorded failure on that viewport was rights 1479, 1609, and 1738.
+358 and 387 are the longer line. The shorter line ends at 333 on 360×640 and at 360 on 390×844. 1435 is inside 1440. The recorded failure on that viewport was rights 1479, 1609, and 1738. The slot row is unchanged from the eight-card table.
 
 ### Multiplayer-shaped table, same function
 
-No size argument. On both phones the 8-card local hand is the same box as the solo 8-card hand (45×63 at 360, 48×67 at 390), because the width is what binds and both calls share the card shape.
+No size argument. On both phones the 8-card local hand is the same box as the solo 8-card hand (45×63 at 360, 48×67 at 390), because the width is what binds and both calls share the card shape. The second opponent row of 5 is the same size as the first, one card-height lower (y 287 at 360, y 467 at 390).
 
 | | 360×640 | 390×844 |
 | --- | --- | --- |
-| Opponent rows of 5 | 69×96, right 352 | 78×109, right 390 |
-| Opponent row of 4 | 69×96, x 42, right 318 | 93×130, x 9, right 381 |
-| Score | 360×90, y 352 | 390×97, y 468 |
-| Local hand | 45×63, y 463, right 360 | 48×67, x 3, y 614, right 387 |
-| Four buttons | 90×45, y 569, bottom 614 | 97×48, x 1, y 754, bottom 802 |
+| Opponent rows of 5 | 72×100, x 0, y 187, right 360 | 78×109, x 0, y 358, right 390 |
+| Opponent row of 4 | 90×126, x 0, y 387, right 360 | 97×135, x 1, y 576, right 389 |
+| Score | 128×32, x 116, y 513 | 132×33, x 129, y 711 |
+| Local hand | 45×63, y 545, right 360 | 48×67, x 3, y 744, right 387 |
+| Four buttons | 64×32, x 52, y 608, bottom 640 | 66×33, x 63, y 811, bottom 844 |
 
-At 390 the row of 4 is 93×130 and the rows of 5 are 78×109, because the shorter row has fewer items. At 360 the band is short enough that both stay 69×96. The local 8-card hand is smaller than those rows at both widths, from the same call, with no scale argument. This PR does not add a compact-opponent factor. That factor is how #103 started.
+The row of 4 is taller than the rows of 5 because it has fewer cards, not because of a second constant. At 390 the shortest card is the local hand at 67px, so the control band is half of that, 33px, still under the hand. This PR does not add a compact-opponent factor. That factor is how #103 started.
 
 ### What the bad fixture does
 
@@ -193,23 +211,23 @@ Class 3, synthetic pair, both inside 390×844. #102 did not publish boxes, so th
 - `hud-chip` at x 16, y 20, 120×36 (right 136, bottom 56).
 - `score-0` at x 90, y 40, 80×28 (right 170, bottom 68).
 
-They intersect from x 90–136 and y 40–56. The audit reports one overlap and zero clips. The engine's own `hud-chip` and score, at all four viewports, produce zero issues.
+They intersect from x 90–136 and y 40–56. The audit reports that overlap and zero clips. The score fixture is 28px tall, so it also fails the floor check. The overlap is the class-3 failure. The engine's own `hud-chip` and score, at all four viewports, produce zero issues.
 
 ## What the prototype changed
 
-Two ideas failed when they were run. The engine in this PR is the version after those runs.
+Three ideas failed when they were run. The engine in this PR is the version after those runs, and Gal adopted that version.
 
-**Dropping a row that cannot keep the card shape.** Chrome of 10,000px top and 10,000px bottom on 360×640 clamps to a 318px HUD, a 318px bottom reserve, and a 4px body. Four rows then get 1px each. A playing-card shape in a 1px band floors to zero width (`floor(1 × 5/7) = 0`), so the first version emitted no hand. The 23 slots still appeared, because a square fits in 1px. The hand has to be placed. The engine now flattens a row into its band when the shape does not fit: the 8-card hand is eight frames of 45×1 at y 319, last right edge 360, and the audit is clean. At the four real viewports the shape still holds (the 45×63 hand above is 5/7). Flattening is the edge case, not the phone layout.
+**Dropping a row, then flattening it to 1px.** Chrome of 10,000px top and 10,000px bottom on 360×640 used to leave a 4px body. A playing-card shape in a 1px band floors to zero width, so the first version emitted no hand. The next version flattened the hand to eight frames of 45×1. Gal's floor rejects both. The hostile case now keeps the natural stack: HUD 189px, hand 45×63 at y 221, right edge 360, slots still 45×45 on three lines, buttons 64×32. The audit is clean, and nothing is under 32px.
 
-**A card-width floor.** The Exploding Kittens call passes a minimum of 28. Twenty-three slots at that floor are 23 × 28 = 644, which is wider than 360. The engine has no minimum argument. At 360×640 the slot frames are 15×15, right edge 352. Fifteen pixels is small. The labels inside those boxes are a later art pass. Putting the floor back would recreate finding 8.
+**A floor with no wrap.** The Exploding Kittens call passes a minimum of 28. Twenty-three slots at that floor are 23 × 28 = 644, which is wider than 360. Shrinking until they fit made 15×15 slots. The adopted rule wraps instead. At 360×640 the slots are 45×45 on three lines. At 390×844 they are 32×32 on two lines. A fixture that draws a 15×15 slot inside the viewport fails `auditPlacement` with kind `floor`.
 
-**An uncapped row that owns the whole width.** Two buttons on 1440×900, sized only from the width and the button shape, are 720×360. That box is still inside a 900px height, and it eats the hand. Equal bands are what cap it. The engine's button frame on that viewport is 414×207. The same split is why a one-item score is 90px tall on 360×640 and 208×832 on 1440×900. Those frames do not cover the HUD or the hand. They are large because the band is large. A shorter score would be a change inside this engine, still with no per-game input. This PR does not add one.
+**Equal bands, and an uncapped button row.** Two buttons on 1440×900, sized only from the width and the button shape, are 720×360. Equal bands capped that frame at 414×207, which is as tall as the hand cards on that screen, and they made the score 90px tall on a phone and 208px tall on 1440×900. Buttons and the score now take at most half the shortest card item, and never less than 32px. On this table that is 64×32 and 128×32. They do not cover the HUD or the hand.
 
-## Proposed contract
+## Adopted contract
 
-Not adopted. `docs/architecture.md` on `main` still says what it says. This is the replacement, for a follow-up after review.
+Adopted for this engine. Not merged. `docs/architecture.md` on `main` still says what it says. A follow-up replaces that paragraph after Gal reviews the build. This PR does not.
 
-Every table, solo or multiplayer, every game, places its hand, its slot row, its opponent rows, its score, and its buttons by calling `placeTable`. The shell passes the viewport and the chrome it has already reserved. The game passes the row ids, the counts, and the roles. Card size is an output. A row that must fit does not scroll, fan, wrap, or rotate, and it does not take a scale, a gap, or a minimum size. Opponent rows use the same call and the same card shape as the local hand. A second constant for "the room hand" or "the desktop hand" is not part of the contract.
+Every table, solo or multiplayer, every game, places its hand, its slot row, its opponent rows, its score, and its buttons by calling `placeTable`. The shell passes the viewport and the chrome it has already reserved. The game passes the row ids, the counts, and the roles. Card size is an output. A row that must fit does not scroll, fan, or rotate, and it does not take a scale, a gap, or a per-game minimum. It wraps when the 32px floor does not fit on one line. Opponent rows use the same call and the same card shape as the local hand. A second constant for "the room hand" or "the desktop hand" is not part of the contract.
 
 The HUD occupies the chrome rectangle. The score occupies its own row under that rectangle. Those two frames do not intersect. Juice and sheets draw inside a band the engine reserved, or they fail `auditPlacement`.
 
@@ -217,34 +235,44 @@ The lint rule `table-fit/no-hand-tuned-card-size` rejects the six placers' patte
 
 Today the ESLint glob is `prototypes/table-fit/**/*.ts`, so `pnpm lint` fails if the prototype grows a hand-tuned size, and it does not fail on the games. Widening the glob to `packages/games/**` and `packages/ui/**` before those placers are deleted fails the build. That widening is the migration PR, not this one.
 
-`auditPlacement` is the structural check. The `unit` CI job runs it, because `pnpm test` includes `prototypes/table-fit/**/*.test.ts`. It fails the #85/#95 boxes and the synthetic chip-on-score pair, and it passes `placeTable` at 360×640, 390×844, 1280×800, and 1440×900. `pnpm verify layout` (#104) remains the check that drives the real Blackjack, Flip 7, and Exploding Kittens tables at those sizes. The two checks answer different questions. This PR does not extend the skill.
+`auditPlacement` is the structural check. The `unit` CI job runs it, because `pnpm test` includes `prototypes/table-fit/**/*.test.ts`. It fails the #85/#95 boxes, the synthetic chip-on-score pair, and a 15×15 slot that never leaves the viewport. It passes `placeTable` at 360×640, 390×844, 1280×800, and 1440×900, including the wrapped 23-slot row. `pnpm verify layout` (#104) remains the check that drives the real Blackjack, Flip 7, and Exploding Kittens tables at those sizes. The two checks answer different questions. This PR does not extend the skill.
 
 ## How the open multiplayer stack moves over
 
-Do not rewrite #84–#103. They keep landing as written. This proposal does not edit their files.
+Do not rewrite #84–#103. They keep landing as written. This PR does not edit their files. Nothing here merges.
 
 | PR | What it is | What a later PR does |
 | --- | --- | --- |
-| #84 | Multiplayer architecture spec | Leave it. This file is the layout proposal beside it. |
+| #84 | Multiplayer architecture spec | Leave it. This file is the layout spec beside it. |
 | #88, #90 | Seat list and roster | No layout change. |
 | #91, #93, #94, #96, #97, #100 | Directory, lobby, deal, clock, rematch, measure | No layout change. |
 | #98, #99 | Room shell, Exploding Kittens in the room | After merge, the table calls `placeTable` for the local hand, opponent rows, and buttons. One PR. |
 | #102 | Room chips covering the `0/200` score | After merge, the bankroll stays in the chrome band and the score stays in its row. The audit pair is the one this gate already fails. Do not retune the chip's coordinates in #102. |
 | #103 | Room fit, including a desktop fraction and a face-down local hand | After merge, delete the fraction and the phone gap instead of editing them. The face-down fix stays the type note above, in the game's view, not in `placeTable`. |
 
-Solo migration, also after this proposal is accepted, one game per PR:
+Solo migration, after Gal reviews this build, one game per PR:
 
-1. Exploding Kittens drops `fittedRow` and `scrollToCard`. The defuse hand and the 23 slots are two rows.
+1. Exploding Kittens drops `fittedRow` and `scrollToCard`. The defuse hand and the 23 slots are two rows. The slot row wraps.
 2. Flip 7 drops `FLIP7_PHONE_SCALE`, `FLIP7_DESKTOP_SCALE`, and the gap constant. The number row is a `hand` row.
-3. Blackjack drops `layoutHand` and `measure`. The felt arc can stay as paint. The card boxes come from the engine, so the fan goes away. That is a look change. #104 still allows a blackjack fan to overlap itself, because that is the table on `main` today. The engine does not have a rotate field.
+3. Blackjack drops `layoutHand` and `measure`. The felt arc can stay as paint. The card boxes come from the engine, so the fan goes away. That is a look change, and the shots below are it. #104 still allows a blackjack fan to overlap itself, because that is the table on `main` today. The engine does not have a rotate field.
 4. Delete `handLayout`, `straightRow`, and `fittedRow` from `@neon-cards/ui` when nothing calls them, and widen the lint glob in that PR.
 
 Subtract the placer. Do not add a seventh one beside it.
 
-## Recommendations this PR does not build
+#104 and this PR both append `docs/decisions.md`. That file is `merge=union`. The overlap is expected. This branch is not rebased onto #104, and it does not revert #104's "Layout check in the verify skill" entry. A union merge may interleave the two 2026-10-18 sections.
 
-**Duplicate PRs.** Five closed pairs shipped the same fix while the ownership table was already in `AGENTS.md`. A CI comment when two open PRs touch the same path would have seen them. This PR does not add that workflow. #104 and this PR both append `docs/decisions.md`. That file is `merge=union`. The overlap is expected. This branch is not rebased onto #104, and it does not revert #104's "Layout check in the verify skill" entry. A union merge may interleave the two 2026-10-18 sections.
+## Before and after
 
-**Wallet.** One reader: the human `view` plus the wallet field on the session response. A client `stack` or `lastChips` used as the bankroll should fail to compile. The four findings above are why. The pill and the rebet are not rebuilt here.
+The before shots are the games on this branch's `main`, which is `c86bbbd`. The after shots are `placeTable` for the same counts, drawn by the prototype. The games are not edited.
 
-**Face-down local hand.** One case. The type note under [Not a repeated class](#not-a-repeated-class) is the whole recommendation.
+Blackjack, both sizes: the player fan becomes a straight row. The dealer row is a straight row too.
+
+Exploding Kittens at 390×844: the 23-slot strip wraps to two lines of 32×32 and stays inside the screen. At 1280×800 the 23 slots stay one line at 55×55. The hand does not scroll.
+
+Flip 7, both sizes: the phone 0.8 scale and the desktop 0.56 scale are not applied. The number row is one straight line sized from the viewport.
+
+| | 390×844 before | 390×844 after | 1280×800 before | 1280×800 after |
+| --- | --- | --- | --- | --- |
+| Blackjack | ![Blackjack before, 390×844](layout-rearchitecture/blackjack-before-390x844.png) | ![Blackjack after, 390×844](layout-rearchitecture/blackjack-after-390x844.png) | ![Blackjack before, 1280×800](layout-rearchitecture/blackjack-before-1280x800.png) | ![Blackjack after, 1280×800](layout-rearchitecture/blackjack-after-1280x800.png) |
+| Exploding Kittens | ![Exploding Kittens before, 390×844](layout-rearchitecture/exploding-kittens-before-390x844.png) | ![Exploding Kittens after, 390×844](layout-rearchitecture/exploding-kittens-after-390x844.png) | ![Exploding Kittens before, 1280×800](layout-rearchitecture/exploding-kittens-before-1280x800.png) | ![Exploding Kittens after, 1280×800](layout-rearchitecture/exploding-kittens-after-1280x800.png) |
+| Flip 7 | ![Flip 7 before, 390×844](layout-rearchitecture/flip7-before-390x844.png) | ![Flip 7 after, 390×844](layout-rearchitecture/flip7-after-390x844.png) | ![Flip 7 before, 1280×800](layout-rearchitecture/flip7-before-1280x800.png) | ![Flip 7 after, 1280×800](layout-rearchitecture/flip7-after-1280x800.png) |
