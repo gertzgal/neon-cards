@@ -736,3 +736,11 @@ The shared bust treatment halves a card's brightness. That reads correctly on a 
 At 1280x800 the 70% room hand left Hit and Stand past the bottom edge. Only their tops were on screen. 1440x900 still holds the 70% hand. The short desktop drops the hand to half the solo size and tightens the Flip 7 vertical gaps, so both buttons sit fully inside the viewport. The pile and the seat cards stay at the solo compact size.
 
 The played-card line was anchored on the middle of the draw pile. On a phone the fading Second Chance words sat on that card. The line now starts above the pile, and a follow-up frame lifts it again if the intro scale still touches the card.
+
+## Multiplayer tables wait for a picture (2026-10-18)
+
+Gal approves the Exploding Kittens and Blackjack room pictures before either table is built for more than one human. The picture is `docs/multiplayer/ux.md`. This pull request does not deal a room hand and does not change solo play.
+
+Blackjack uses one shared dealer, not a table per seat. The room stays score only. Each hand is 1 point, the host Deal starts it, and there is no chip rack. `seats.max` becomes 5 in the later game pull request so four playing seats and the dealer fit. Solo stays chips, id `player`, and max 2. A split is two hands on one seat. The 30 second deadline refreshes after each action while that human is still to act.
+
+Exploding Kittens keeps the room it already has. Opponent rows show at most four backs and a count badge. Favor between humans is a give on the target's own screen. A pair steal does not show the face to anyone else. Other seats see a dead hand, and they see a defuse with no plant index. Nope is two buttons on the 5 second quick deadline. A chosen card takes an outline instead of a lift.
