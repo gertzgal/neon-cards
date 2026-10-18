@@ -233,7 +233,7 @@ function fitProblems(): string[] {
     if (buttons.length === 0) found.push('missing buttons')
     for (const button of buttons) {
       const rect = button.getBoundingClientRect()
-      if (rect.top < -1 || rect.bottom > g.innerHeight - 1 || rect.height < 40) found.push('button clipped')
+      if (rect.y < -1 || rect.bottom > g.innerHeight - 1 || rect.height < 40) found.push('button clipped')
     }
   }
   const mark = (a: { id: string; x: number; y: number; right: number; bottom: number; el: FitEl }, text: boolean) => {
