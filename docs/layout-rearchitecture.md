@@ -12,7 +12,7 @@ Real tables at 360×640, 390×844, 1280×800, and 1440×900 are already driven b
 2. Blackjack drops the fan for a straight row. The before/after shots in this PR are that look. The game still fans until its own migration PR.
 3. The minimum item size is 32px. A row that cannot fit at that floor wraps onto another line. It does not clip, and it does not shrink to 15px. One global rule. No per-game input.
 4. Buttons and the score get a smaller band than card rows. One global rule. No per-game knob.
-5. Nothing merges until Gal reviews the build. The shots below are the tables on `main` and this engine, at 390×844 and 1280×800.
+5. Nothing merges until Gal reviews the build. The shots below are the tables on `main` and this engine, at 390×844 and 1280×800. The after shot is the same scene, with the real cards, labels, badges, and buttons in the frames `placeTable` returns.
 
 The duplicate-PR note and the wallet refactor are not part of this work. A face-down local hand stays the one-line note under [Not a repeated class](#not-a-repeated-class).
 
@@ -263,13 +263,44 @@ Subtract the placer. Do not add a seventh one beside it.
 
 ## Before and after
 
-The before shots are the games on this branch's `main`, which is `c86bbbd`. The after shots are `placeTable` for the same counts, drawn by the prototype. The games are not edited.
+The before shot is the table on this branch's `main`, `c86bbbd`. The after shot is that same scene. The real cards, labels, badges, and buttons are moved into the frames `placeTable` returns. The games are not edited.
 
-Blackjack, both sizes: the player fan becomes a straight row. The dealer row is a straight row too.
+Chrome is the band the table already reserved. Phone tables pass 58px. Exploding Kittens and Flip 7 at 1280×800 pass 70px. Blackjack's desktop bar is 84px, so that after shot uses 84.
 
-Exploding Kittens at 390×844: the 23-slot strip wraps to two lines of 32×32 and stays inside the screen. At 1280×800 the 23 slots stay one line at 55×55. The hand does not scroll.
+### Blackjack
 
-Flip 7, both sizes: the phone 0.8 scale and the desktop 0.56 scale are not applied. The number row is one straight line sized from the viewport.
+Six-card player hand, dealer up, Hit / Stand / Double / Split.
+
+- The six-card fan opens into a straight row of separate cards.
+- The dealer's two cards become a straight pair. On the phone each card is 195×273 and the pair fills the width. On 1280×800 the pair is 171×239 and sits centered, because a full-width pair is taller than the screen.
+- The hand total, 10/20, leaves the side of the fan and sits in its own band between the dealer and the player: 180×45 on the phone, 476×119 on 1280×800.
+- The dealer's own total leaves the side of the dealer cards.
+- On the phone, Hit, Stand, Double, and Split leave the two-by-two grid and sit in one row of 90×45 buttons.
+- On 1280×800 those four buttons stay in one row and become 238×119, half the height of the cards.
+- The $25 chip leaves the open felt. The dealer row and the hand stack occupy that space.
+
+### Exploding Kittens
+
+Defuse: about eight cards in hand, the 23 insert slots, and the action those slots are.
+
+- Each opponent's overlapping face-down fan becomes a straight row where every card is fully visible: 48×67 on the phone, about 121×169 on 1280×800. The seat name and the difficulty pips leave the row.
+- The eight-card hand becomes a straight row of that same size. On the phone that is 48×67 in place of the fitted 35×47 strip. The hand does not scroll.
+- On the phone the 23 insert slots wrap onto two lines of 32×32. Top stays the pink end button. Bottom sits on the second line.
+- On 1280×800 those 23 slots stay one line of 55×55 across the width.
+- On the phone the draw pile and the exploding kitten stay in the gap above the stack. On 1280×800 the card rows fill from under the HUD and cover both.
+- The line "Bury a drawn kitten anywhere in the pile." leaves the hand.
+
+### Flip 7
+
+Number row, modifier row, two opponent rows, the score, Hit and Stay.
+
+- Each opponent's three cards leave the small tray and become a full straight row. On the phone each card is 130×182, so the two opponents fill the top of the screen. The total and the +33 status leave the end of the row.
+- The modifier row, +4, ×2, and +10, is the same size as a three-card opponent row, larger than the six number cards.
+- The number row is one straight line at the width's card size: 65×91 on the phone, 97×135 on 1280×800, in place of the scaled 0.8 and 0.56 strips.
+- The seven progress marks, about 15×8 today, become squares: 55×55 on the phone and 97×97 on 1280×800. Six are lit, so they touch and read as a pink band, with one empty square at the end.
+- The round score, 60, leaves the middle of the hand and sits in its own shorter band: 128×32 on the phone, 192×48 on 1280×800.
+- Hit and Stay become a shorter pair. On the phone they are 64×32, because the progress squares are the shortest card and a button stays at least 32px. On 1280×800 they are 96×48.
+- The draw pile leaves the center. The rows fill that space.
 
 | | 390×844 before | 390×844 after | 1280×800 before | 1280×800 after |
 | --- | --- | --- | --- | --- |
