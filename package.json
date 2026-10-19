@@ -10,7 +10,7 @@
     "dev": "pnpm build && pnpm --filter @neon-cards/worker db:migrate && pnpm --parallel --filter @neon-cards/worker --filter @neon-cards/web dev",
     "build": "pnpm --filter @neon-cards/web build",
     "start": "pnpm build && pnpm --filter @neon-cards/worker start",
-    "typecheck": "tsc -p tsconfig.json && pnpm -r typecheck",
+    "typecheck": "tsc -p tsconfig.json && tsc -p prototypes/table-fit/tsconfig.json && pnpm -r typecheck",
     "lint": "eslint .",
     "test": "vitest run",
     "e2e": "playwright test",
